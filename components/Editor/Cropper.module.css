@@ -1,0 +1,83 @@
+/* Custom styles for react-advanced-cropper using specified variables */
+.cropper {
+  /* Define the variables */
+  --base-color: white;
+  --accent-color: currentColor;
+  --line-color: var(--base-color);
+  --grid-color: var(--line-color);
+  --handler-color: var(--accent-color);
+  --big-handler-color: var(--handler-color);
+  --small-handler-color: var(--handler-color);
+  --big-handler-size: 16px;
+  --small-handler-size: 4px;
+  --big-handler-width: 2px;
+  
+  /* Set the current color to white for the accent */
+  color: white;
+}
+
+/* Stencil border and overlay */
+.cropper :global(.react-advanced-cropper__stencil-wrapper) {
+  border: 2px solid var(--base-color);
+}
+
+/* Corner and edge lines */
+.cropper :global(.react-advanced-cropper__line) {
+  background-color: var(--line-color) !important;
+  opacity: 1;
+}
+
+.cropper :global(.react-advanced-cropper__line--top),
+.cropper :global(.react-advanced-cropper__line--bottom) {
+  height: 2px !important;
+  background-color: var(--line-color) !important;
+}
+
+.cropper :global(.react-advanced-cropper__line--left),
+.cropper :global(.react-advanced-cropper__line--right) {
+  width: 2px !important;
+  background-color: var(--line-color) !important;
+}
+
+/* Grid lines */
+.cropper :global(.react-advanced-cropper__grid-line) {
+  background-color: var(--grid-color) !important;
+  opacity: 0.2;
+}
+
+/* Handlers (if they were enabled) */
+.cropper :global(.react-advanced-cropper__handler) {
+  background-color: var(--handler-color);
+  border: var(--big-handler-width) solid var(--big-handler-color);
+  width: var(--big-handler-size);
+  height: var(--big-handler-size);
+}
+
+/* Small handlers */
+.cropper :global(.react-advanced-cropper__handler--small) {
+  width: var(--small-handler-size);
+  height: var(--small-handler-size);
+  background-color: var(--small-handler-color);
+}
+
+/* Dark overlay outside crop area */
+.cropper :global(.react-advanced-cropper__boundaries) {
+  background-color: rgb(147, 32, 255);
+}
+
+/* Custom overlay with purple tint */
+.overlay {
+  color: #0000004b;
+}
+
+/* Override line colors when overlay is used */
+.cropper .overlay :global(.react-advanced-cropper__line) {
+  background-color: currentColor !important;
+  opacity: 0.9;
+}
+
+/* Override grid colors when overlay is used */
+.cropper .overlay :global(.react-advanced-cropper__grid-line) {
+  background-color: currentColor !important;
+  opacity: 0.15;
+}
