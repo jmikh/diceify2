@@ -89,10 +89,6 @@ export default function ControlPanel({ params, onParamChange }: ControlPanelProp
 
   return (
     <div className="p-4">
-      <h3 className="text-sm font-semibold mb-3" style={{ color: theme.colors.text.primary }}>
-        Controls
-      </h3>
-      
       <div className="space-y-4">
         {/* Grid Size */}
         <div className="group relative">

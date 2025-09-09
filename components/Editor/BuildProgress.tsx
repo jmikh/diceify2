@@ -55,14 +55,11 @@ export default function BuildProgress({
   canNavigate
 }: BuildProgressProps) {
   return (
-    <div className="backdrop-blur-md bg-white/10 rounded-2xl border border-white/20 p-4 space-y-4">
+    <div className="space-y-3">
       {/* Position Info */}
       <div className="text-center">
-        <div className="text-xl font-bold" style={{ color: theme.colors.accent.blue }}>
-          x: {currentX}, y: {currentY}
-        </div>
-        <div className="text-xs mt-1" style={{ color: theme.colors.text.muted }}>
-          of {totalCols} × {totalRows} grid
+        <div className="text-sm" style={{ color: theme.colors.accent.blue }}>
+          Row: {currentY + 1}, Column: {currentX + 1}
         </div>
       </div>
 
@@ -93,13 +90,6 @@ export default function BuildProgress({
         >
           <ChevronLeft size={20} />
         </button>
-
-        <div className="px-3 py-1 rounded-lg mx-2" 
-             style={{ backgroundColor: theme.colors.glass.medium }}>
-          <span className="text-sm font-mono" style={{ color: theme.colors.text.primary }}>
-            {currentIndex + 1} / {totalDice}
-          </span>
-        </div>
 
         <button
           onClick={() => onNavigate('next')}

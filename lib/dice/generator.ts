@@ -40,7 +40,8 @@ export class DiceGenerator {
 
   constructor() {
     this.canvas = document.createElement('canvas')
-    this.ctx = this.canvas.getContext('2d')!
+    // Set willReadFrequently to true for better performance with getImageData
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!
   }
 
   async generateDiceGrid(

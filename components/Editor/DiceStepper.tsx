@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { WorkflowStep } from '@/lib/types'
 import styles from './DiceStepper.module.css'
 
@@ -15,16 +15,9 @@ const steps: { id: WorkflowStep; dice: string; label: string }[] = [
   { id: 'crop', dice: '⚁', label: 'Crop' },
   { id: 'tune', dice: '⚂', label: 'Tune' },
   { id: 'build', dice: '⚃', label: 'Build' },
-  { id: 'export', dice: '⚄', label: 'Export' },
-  { id: 'share', dice: '⚅', label: 'Share' },
 ]
 
-export default function DiceStepper({ currentStep, onStepClick, hasImage }: DiceStepperProps) {
-  // Log re-renders
-  console.log('DiceStepper re-rendered:', {
-    currentStep,
-    hasImage
-  })
+const DiceStepper = memo(function DiceStepper({ currentStep, onStepClick, hasImage }: DiceStepperProps) {
   
   const [justActivated, setJustActivated] = useState<WorkflowStep | null>(null)
 
@@ -37,7 +30,7 @@ export default function DiceStepper({ currentStep, onStepClick, hasImage }: Dice
   }, [currentStep])
 
   return (
-    <div className="flex items-center justify-center gap-3 px-5 py-2 rounded-full bg-[#0a0014]">
+    <div className="flex items-center justify-center gap-3 px-5 py-2 ">
       {steps.map((step) => {
         const isActive = step.id === currentStep
         // Upload is always clickable, other steps require an image
@@ -91,4 +84,6 @@ export default function DiceStepper({ currentStep, onStepClick, hasImage }: Dice
       })}
     </div>
   )
-}
+})
+
+export default DiceStepper

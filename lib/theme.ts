@@ -2,8 +2,8 @@ export const theme = {
   colors: {
     // Background colors
     background: {
-      primary: '#0a0014', // Main dark purple background
-      secondary: '#1a0826', // Secondary dark purple
+      primary: '#000000ff', // Main dark purple background
+      secondary: '#ffffffff', // Secondary dark purple
       dark: '#000000', // Pure black
       overlay: 'rgba(0, 0, 0, 0.4)', // Dark overlay
     },
@@ -47,9 +47,7 @@ export const theme = {
     // Dice stepper specific
     dice: {
       inactive: 'rgba(20, 20, 35, 0.8)',
-      inactiveBorder: 'rgba(100, 100, 150, 0.1)',
       active: 'rgba(30, 30, 50, 0.9)',
-      activeBorder: 'rgba(100, 150, 255, 0.9)',
       activeGlow: 'rgba(100, 150, 255, 0.5)',
       previous: 'rgba(40, 50, 80, 0.6)',
       previousBorder: 'rgba(100, 150, 255, 0.5)',

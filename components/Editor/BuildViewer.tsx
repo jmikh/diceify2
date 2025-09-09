@@ -499,7 +499,7 @@ export default function BuildViewer({
   }, [currentX, currentY, canNavigate])
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="flex-1 w-full lg:w-auto">
       <style jsx>{`
         .no-scrollbar::-webkit-scrollbar {
           display: none;
@@ -509,13 +509,15 @@ export default function BuildViewer({
           scrollbar-width: none;
         }
       `}</style>
-      <div className="flex-1">
+      <div className="w-full">
         <div 
             ref={containerRef}
-            className="relative backdrop-blur-xl rounded-2xl border overflow-hidden"
+            className="relative backdrop-blur-xl rounded-2xl border overflow-hidden w-full"
             style={{ 
               backgroundColor: theme.colors.glass.medium,
               borderColor: theme.colors.glass.border,
+              minWidth: '400px',
+              maxWidth: '900px',
               height: '600px'
             }}
           >

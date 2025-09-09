@@ -8,7 +8,7 @@
 import { DiceGrid } from '../dice/types'
 
 // Workflow types
-export type WorkflowStep = 'upload' | 'crop' | 'tune' | 'build' | 'export' | 'share'
+export type WorkflowStep = 'upload' | 'crop' | 'tune' | 'build'
 
 // Color mode for dice generation
 export type ColorMode = 'both' | 'black' | 'white'

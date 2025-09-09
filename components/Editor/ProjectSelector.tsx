@@ -80,7 +80,7 @@ export default function ProjectSelector({
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative min-w-[200px]" ref={dropdownRef}>
       <div 
         className="flex items-center gap-2 px-4 py-3 border-b"
         style={{ borderColor: theme.colors.glass.border }}
@@ -122,11 +122,12 @@ export default function ProjectSelector({
       {/* Dropdown */}
       {showDropdown && (
         <div 
-          className="absolute top-full left-0 right-0 z-50 backdrop-blur-xl border rounded-b-lg shadow-xl overflow-hidden"
+          className="absolute top-full left-0 right-0 border rounded-b-lg shadow-xl overflow-hidden"
           style={{ 
-            backgroundColor: theme.colors.glass.heavy,
+            backgroundColor: '#1a1a2e',
             borderColor: theme.colors.glass.border,
-            borderTop: 'none'
+            borderTop: 'none',
+            zIndex: 9999
           }}
         >
           <div className="py-2">

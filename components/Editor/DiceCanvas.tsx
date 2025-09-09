@@ -240,58 +240,68 @@ export default function DiceCanvas({ imageUrl, params, onStatsUpdate, onGridUpda
   }
 
   return (
-    <div className="flex items-center justify-center" ref={containerRef}>
-      {/* Canvas view */}
-      <canvas
-        ref={canvasRef}
-        style={{ 
-          imageRendering: 'pixelated',
-          display: showGrayscale || renderMode === 'svg' ? 'none' : 'block',
-          backgroundColor: 'transparent',
-          maxWidth: '100%',
-          maxHeight: '100%',
-          width: 'auto',
-          height: 'auto'
-        }}
-      />
-      
-      {/* SVG view */}
-      <div
-        ref={svgContainerRef}
-        className="flex items-center justify-center"
-        style={{ 
-          display: showGrayscale || renderMode === 'canvas' ? 'none' : 'flex',
-          transform: `scale(${zoomLevel / 100})`,
-          transformOrigin: 'center',
-          transition: 'transform 0.2s ease',
-          width: '100%',
-          height: '100%'
-        }}
-        dangerouslySetInnerHTML={{ __html: svgContent }}
-      />
-      
-      {/* Grayscale preview */}
-      {grayscaleImage && canvasDimensions && (
-        <img
-          src={grayscaleImage}
-          alt="Grayscale preview"
+    <div className="flex-1 w-full lg:w-auto flex items-center justify-center" ref={containerRef}>
+      {/* Image content wrapper with Eye button */}
+      <div className="relative inline-block rounded-2xl border" style={{ 
+        minWidth: '400px', 
+        maxWidth: '900px',
+        background: 'rgba(255, 255, 255, 0.05)',
+        backdropFilter: 'blur(10px)',
+        borderColor: 'rgba(139, 92, 246, 0.2)',
+        boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
+                   0 0 60px rgba(59, 130, 246, 0.08),
+                   0 5px 20px rgba(0, 0, 0, 0.3)`
+      }}>
+        {/* Canvas view */}
+        <canvas
+          ref={canvasRef}
           style={{ 
-            display: showGrayscale ? 'block' : 'none',
-            width: `${canvasDimensions.width}px`,
-            height: `${canvasDimensions.height}px`,
-            imageRendering: 'auto'
+            imageRendering: 'pixelated',
+            display: showGrayscale || renderMode === 'svg' ? 'none' : 'block',
+            backgroundColor: 'transparent',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            width: 'auto',
+            height: 'auto'
           }}
         />
-      )}
-      
-      {/* Eye button for grayscale preview - only in tune step */}
-      {currentStep === 'tune' && (
+        
+        {/* SVG view */}
+        <div
+          ref={svgContainerRef}
+          className="flex items-center justify-center"
+          style={{ 
+            display: showGrayscale || renderMode === 'canvas' ? 'none' : 'flex',
+            transform: `scale(${zoomLevel / 100})`,
+            transformOrigin: 'center',
+            transition: 'transform 0.2s ease',
+            width: '100%',
+            height: '100%'
+          }}
+          dangerouslySetInnerHTML={{ __html: svgContent }}
+        />
+        
+        {/* Grayscale preview */}
+        {grayscaleImage && (
+          <img
+            src={grayscaleImage}
+            alt="Grayscale preview"
+            style={{ 
+              display: showGrayscale ? 'block' : 'none',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              imageRendering: 'auto'
+            }}
+          />
+        )}
+        
+        {/* Eye button for grayscale preview - only in tune step */}
+        {currentStep === 'tune' && (
         <button
-          onMouseDown={() => setShowGrayscale(true)}
-          onMouseUp={() => setShowGrayscale(false)}
-          onMouseLeave={() => setShowGrayscale(false)}
-          onTouchStart={() => setShowGrayscale(true)}
-          onTouchEnd={() => setShowGrayscale(false)}
+          onClick={() => setShowGrayscale(!showGrayscale)}
           onMouseEnter={() => {
             tooltipTimeoutRef.current = setTimeout(() => setShowTooltip(true), 500)
           }}
@@ -300,12 +310,11 @@ export default function DiceCanvas({ imageUrl, params, onStatsUpdate, onGridUpda
               clearTimeout(tooltipTimeoutRef.current)
             }
             setShowTooltip(false)
-            setShowGrayscale(false)
           }}
           className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center backdrop-blur-md border rounded-2xl transition-all hover:scale-110 shadow-xl z-10"
           style={{
-            backgroundColor: `${theme.colors.accent.purple}33`,
-            borderColor: `${theme.colors.accent.purple}66`,
+            backgroundColor: showGrayscale ? `${theme.colors.accent.purple}66` : `${theme.colors.accent.purple}33`,
+            borderColor: showGrayscale ? theme.colors.accent.purple : `${theme.colors.accent.purple}66`,
           }}
         >
           <Eye className="w-6 h-6" style={{ color: 'white' }} />
@@ -319,11 +328,12 @@ export default function DiceCanvas({ imageUrl, params, onStatsUpdate, onGridUpda
                 color: theme.colors.text.primary
               }}
             >
-              View grayscale
+              {showGrayscale ? 'View dice' : 'View grayscale'}
             </span>
           )}
         </button>
-      )}
+        )}
+      </div>
       
       {/* Bottom controls - only show mode toggle and download in build step */}
       {currentStep === 'build' && (

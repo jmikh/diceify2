@@ -79,16 +79,20 @@ export default function ImageUploader({ onImageUpload }: ImageUploaderProps) {
       <div
         {...getRootProps()}
         className={`
-          relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all
-          backdrop-blur-xl
-          ${isDragging 
-            ? 'border-blue-400 shadow-2xl' 
-            : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10 hover:shadow-xl'
-          }
+          relative rounded-2xl p-12 text-center cursor-pointer transition-all
+          backdrop-blur-md border
         `}
         style={{
-          backgroundColor: isDragging ? theme.colors.glass.heavy : theme.colors.glass.light,
-          boxShadow: isDragging ? `0 0 40px ${theme.colors.glow.blue}` : undefined
+          background: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(10px)',
+          borderColor: isDragging ? `${theme.colors.accent.blue}33` : `${theme.colors.accent.purple}33`,
+          boxShadow: isDragging 
+            ? `0 20px 60px rgba(59, 130, 246, 0.4),
+               0 0 100px rgba(59, 130, 246, 0.2),
+               0 10px 30px rgba(0, 0, 0, 0.3)`
+            : `0 20px 60px rgba(139, 92, 246, 0.3),
+               0 0 100px rgba(59, 130, 246, 0.1),
+               0 10px 30px rgba(0, 0, 0, 0.3)`
         }}
       >
         <input {...getInputProps()} />
