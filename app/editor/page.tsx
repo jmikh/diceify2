@@ -420,9 +420,8 @@ export default function Editor() {
             {/* Main build viewer */}
             <BuildViewer 
               grid={diceGrid}
-              stats={diceStats}
-              initialX={buildProgress.x}
-              initialY={buildProgress.y}
+              initialX={0}
+              initialY={0}
               onPositionChange={handleBuildProgressUpdate}
               onNavigationReady={handleNavigationReady}
             />

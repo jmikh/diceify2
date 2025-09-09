@@ -51,23 +51,11 @@ interface BuildViewerProps {
 
 const BuildViewer = memo(function BuildViewer({ 
   grid, 
-  stats, 
   initialX = 0, 
   initialY = 0, 
   onPositionChange,
   onNavigationReady 
 }: BuildViewerProps) {
-  // Log re-renders with detailed prop comparison
-  const renderCountRef = useRef(0)
-  renderCountRef.current++
-  console.log(`🔄 BuildViewer render #${renderCountRef.current}`, {
-    grid: grid ? `${grid.width}x${grid.height}` : 'null',
-    stats,
-    initialX,
-    initialY,
-    onPositionChange: onPositionChange ? 'defined' : 'undefined',
-    onNavigationReady: onNavigationReady ? 'defined' : 'undefined'
-  })
   // Now using x,y coordinates where (0,0) is bottom-left
   const [currentX, setCurrentX] = useState(initialX) // Start at initialX
   const [currentY, setCurrentY] = useState(initialY) // Start at initialY
@@ -235,7 +223,6 @@ const BuildViewer = memo(function BuildViewer({
 
   // Initialize SVG renderer and generate SVG only when grid changes
   useEffect(() => {
-    console.log('🎨 Re-rendering SVG grid (grid changed)')
     if (!svgRendererRef.current) {
       svgRendererRef.current = new DiceSVGRenderer()
     }
@@ -288,13 +275,11 @@ const BuildViewer = memo(function BuildViewer({
   
   // Track container dimensions
   useEffect(() => {
-    console.log('📐 ResizeObserver effect setup')
     if (!containerRef.current) return
     
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect
-        console.log('📏 Container resized:', { width, height })
         setContainerDimensions({ width, height })
       }
     })
@@ -309,7 +294,6 @@ const BuildViewer = memo(function BuildViewer({
 
   // Rebuild viewBox when container dimensions or zoom changes
   useEffect(() => {
-    console.log('🎯 buildZoom effect triggered by:', { containerDimensions, zoomLevel })
     buildZoom()
   }, [buildZoom, containerDimensions, zoomLevel])
 
@@ -318,8 +302,8 @@ const BuildViewer = memo(function BuildViewer({
     if (currentX > 0) {
       setCurrentX(currentX - 1)
     } else if (currentY > 0) {
-      // Batch both state updates together
-      setCurrentY(currentY - 1)
+      // Use functional updates to ensure batching
+      setCurrentY(prev => prev - 1)
       setCurrentX(totalCols - 1)
     }
   }, [currentX, currentY, totalCols])
@@ -328,8 +312,8 @@ const BuildViewer = memo(function BuildViewer({
     if (currentX < totalCols - 1) {
       setCurrentX(currentX + 1)
     } else if (currentY < totalRows - 1) {
-      // Batch both state updates together
-      setCurrentY(currentY + 1)
+      // Use functional updates to ensure batching
+      setCurrentY(prev => prev + 1)
       setCurrentX(0)
     }
   }, [currentX, currentY, totalCols, totalRows])
@@ -429,29 +413,28 @@ const BuildViewer = memo(function BuildViewer({
   const lastNotifiedPosition = useRef({ x: currentX, y: currentY })
   
   useEffect(() => {
-    console.log('📍 Position change effect:', { currentX, currentY, lastX: lastNotifiedPosition.current.x, lastY: lastNotifiedPosition.current.y })
     if (onPositionChange && 
         (lastNotifiedPosition.current.x !== currentX || 
          lastNotifiedPosition.current.y !== currentY)) {
       lastNotifiedPosition.current = { x: currentX, y: currentY }
-      console.log('📤 Notifying parent of position change')
       onPositionChange(currentX, currentY)
     }
   }, [currentX, currentY, onPositionChange])
 
-  // Expose navigation handlers to parent
+  // Expose navigation handlers to parent - memoize the entire object
+  const navigationHandlers = useMemo(() => ({
+    navigatePrev,
+    navigateNext,
+    navigatePrevDiff,
+    navigateNextDiff,
+    canNavigate
+  }), [navigatePrev, navigateNext, navigatePrevDiff, navigateNextDiff, canNavigate])
+  
   useEffect(() => {
-    console.log('🚀 Navigation ready effect, canNavigate:', canNavigate)
     if (onNavigationReady) {
-      onNavigationReady({
-        navigatePrev,
-        navigateNext,
-        navigatePrevDiff,
-        navigateNextDiff,
-        canNavigate
-      })
+      onNavigationReady(navigationHandlers)
     }
-  }, [onNavigationReady, navigatePrev, navigateNext, navigatePrevDiff, navigateNextDiff, canNavigate])
+  }, [onNavigationReady, navigationHandlers])
 
   // FPS monitoring
   useEffect(() => {
@@ -505,7 +488,7 @@ const BuildViewer = memo(function BuildViewer({
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [currentX, currentY, canNavigate])
+  }, [canNavigate, navigatePrev, navigateNext, navigatePrevDiff, navigateNextDiff])
 
   return (
     <div className="flex-1 w-full lg:w-auto">
@@ -782,6 +765,18 @@ const BuildViewer = memo(function BuildViewer({
       </div>
     </div>
   )
+}, (prevProps, nextProps) => {
+  // Custom comparison - only re-render if grid actually changes
+  // Ignore callback reference changes since they don't affect rendering
+  const gridEqual = prevProps.grid === nextProps.grid
+  const initialXEqual = prevProps.initialX === nextProps.initialX
+  const initialYEqual = prevProps.initialY === nextProps.initialY
+  
+  if (!gridEqual || !initialXEqual || !initialYEqual) {
+    return false // Props changed, re-render
+  }
+  
+  return true // Props are equal, skip re-render
 })
 
 export default BuildViewer

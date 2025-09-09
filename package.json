@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:visual": "node tests/visual/page-test.js",
+    "test:workflow": "node tests/visual/workflow-test.js",
+    "test:visual:clean": "rm -rf tests/screenshots/*"
   },
   "dependencies": {
     "@types/node": "^22.14.0",
@@ -29,6 +32,7 @@
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
     "eslint": "^9.34.0",
-    "eslint-config-next": "^15.5.2"
+    "eslint-config-next": "^15.5.2",
+    "puppeteer": "^24.19.0"
   }
 }

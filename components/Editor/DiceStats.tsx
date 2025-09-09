@@ -51,16 +51,6 @@ const DiceStats = memo(function DiceStats({
   onDieSizeChange,
   onCostPer1000Change
 }: DiceStatsProps) {
-  // Log re-renders
-  console.log('DiceStats re-rendered:', {
-    totalCount,
-    blackCount,
-    whiteCount,
-    gridWidth,
-    gridHeight,
-    frameWidth,
-    frameHeight
-  })
   
   // Track previous values for smooth transitions
   const prevCountRef = useRef(totalCount)
