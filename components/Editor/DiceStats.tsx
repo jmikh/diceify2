@@ -22,7 +22,7 @@
 
 import { theme } from '@/lib/theme'
 import CountUp from 'react-countup'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, memo } from 'react'
 
 interface DiceStatsProps {
   blackCount: number
@@ -38,7 +38,7 @@ interface DiceStatsProps {
   onCostPer1000Change?: (cost: number) => void
 }
 
-export default function DiceStats({ 
+const DiceStats = memo(function DiceStats({ 
   blackCount, 
   whiteCount, 
   totalCount,
@@ -354,4 +354,6 @@ export default function DiceStats({
       )}
     </div>
   )
-}
+})
+
+export default DiceStats

@@ -24,7 +24,7 @@
 
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
 import { animate } from 'motion'
 import { DiceGrid, Dice } from '@/lib/dice/types'
 import { DiceSVGRenderer } from '@/lib/dice/svg-renderer'
@@ -32,11 +32,6 @@ import { theme } from '@/lib/theme'
 
 interface BuildViewerProps {
   grid: DiceGrid
-  stats: {
-    blackCount: number
-    whiteCount: number
-    totalCount: number
-  }
   initialX?: number
   initialY?: number
   onPositionChange?: (x: number, y: number) => void
@@ -54,7 +49,7 @@ interface BuildViewerProps {
   }) => void
 }
 
-export default function BuildViewer({ 
+const BuildViewer = memo(function BuildViewer({ 
   grid, 
   stats, 
   initialX = 0, 
@@ -62,8 +57,17 @@ export default function BuildViewer({
   onPositionChange,
   onNavigationReady 
 }: BuildViewerProps) {
-  // Log re-renders
-  console.log('BuildViewer re-rendered')
+  // Log re-renders with detailed prop comparison
+  const renderCountRef = useRef(0)
+  renderCountRef.current++
+  console.log(`🔄 BuildViewer render #${renderCountRef.current}`, {
+    grid: grid ? `${grid.width}x${grid.height}` : 'null',
+    stats,
+    initialX,
+    initialY,
+    onPositionChange: onPositionChange ? 'defined' : 'undefined',
+    onNavigationReady: onNavigationReady ? 'defined' : 'undefined'
+  })
   // Now using x,y coordinates where (0,0) is bottom-left
   const [currentX, setCurrentX] = useState(initialX) // Start at initialX
   const [currentY, setCurrentY] = useState(initialY) // Start at initialY
@@ -89,9 +93,9 @@ export default function BuildViewer({
   
   // Calculate index for progress (counting from bottom-left as position 0)
   // Since (0,0) is now bottom-left, the index is straightforward
-  const currentIndex = currentY * totalCols + currentX
-  const totalDice = totalRows * totalCols
-  const currentDice = grid.dice[currentX]?.[currentY] || null
+  const currentIndex = useMemo(() => currentY * totalCols + currentX, [currentY, totalCols, currentX])
+  const totalDice = useMemo(() => totalRows * totalCols, [totalRows, totalCols])
+  const currentDice = useMemo(() => grid.dice[currentX]?.[currentY] || null, [grid.dice, currentX, currentY])
 
   // Calculate consecutive count for current dice (on the same row/y-level)
   const getConsecutiveCount = () => {
@@ -282,18 +286,15 @@ export default function BuildViewer({
     }, 0)
   }, []) // Run only once on mount
   
-  // Trigger zoom calculation when actual parameters change
-  useEffect(() => {
-    buildZoom()
-  }, [buildZoom])
-
   // Track container dimensions
   useEffect(() => {
+    console.log('📐 ResizeObserver effect setup')
     if (!containerRef.current) return
     
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect
+        console.log('📏 Container resized:', { width, height })
         setContainerDimensions({ width, height })
       }
     })
@@ -308,6 +309,7 @@ export default function BuildViewer({
 
   // Rebuild viewBox when container dimensions or zoom changes
   useEffect(() => {
+    console.log('🎯 buildZoom effect triggered by:', { containerDimensions, zoomLevel })
     buildZoom()
   }, [buildZoom, containerDimensions, zoomLevel])
 
@@ -316,6 +318,7 @@ export default function BuildViewer({
     if (currentX > 0) {
       setCurrentX(currentX - 1)
     } else if (currentY > 0) {
+      // Batch both state updates together
       setCurrentY(currentY - 1)
       setCurrentX(totalCols - 1)
     }
@@ -325,6 +328,7 @@ export default function BuildViewer({
     if (currentX < totalCols - 1) {
       setCurrentX(currentX + 1)
     } else if (currentY < totalRows - 1) {
+      // Batch both state updates together
       setCurrentY(currentY + 1)
       setCurrentX(0)
     }
@@ -345,6 +349,7 @@ export default function BuildViewer({
     
     // If no different dice found on this row and not at first row, move to previous row
     if (currentY > 0) {
+      // Batch both state updates together
       setCurrentY(currentY - 1)
       setCurrentX(totalCols - 1)
     }
@@ -365,6 +370,7 @@ export default function BuildViewer({
     
     // If no different dice found on this row and not at last row, move to next row
     if (currentY < totalRows - 1) {
+      // Batch both state updates together
       setCurrentY(currentY + 1)
       setCurrentX(0)
     }
@@ -423,16 +429,19 @@ export default function BuildViewer({
   const lastNotifiedPosition = useRef({ x: currentX, y: currentY })
   
   useEffect(() => {
+    console.log('📍 Position change effect:', { currentX, currentY, lastX: lastNotifiedPosition.current.x, lastY: lastNotifiedPosition.current.y })
     if (onPositionChange && 
         (lastNotifiedPosition.current.x !== currentX || 
          lastNotifiedPosition.current.y !== currentY)) {
       lastNotifiedPosition.current = { x: currentX, y: currentY }
+      console.log('📤 Notifying parent of position change')
       onPositionChange(currentX, currentY)
     }
   }, [currentX, currentY, onPositionChange])
 
   // Expose navigation handlers to parent
   useEffect(() => {
+    console.log('🚀 Navigation ready effect, canNavigate:', canNavigate)
     if (onNavigationReady) {
       onNavigationReady({
         navigatePrev,
@@ -773,4 +782,6 @@ export default function BuildViewer({
       </div>
     </div>
   )
-}
+})
+
+export default BuildViewer

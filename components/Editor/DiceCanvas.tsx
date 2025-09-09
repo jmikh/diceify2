@@ -240,11 +240,9 @@ export default function DiceCanvas({ imageUrl, params, onStatsUpdate, onGridUpda
   }
 
   return (
-    <div className="flex-1 w-full lg:w-auto flex items-center justify-center" ref={containerRef}>
+    <div className="flex-1 w-full lg:w-auto flex items-start justify-center" ref={containerRef}>
       {/* Image content wrapper with Eye button */}
       <div className="relative inline-block rounded-2xl border" style={{ 
-        minWidth: '400px', 
-        maxWidth: '900px',
         background: 'rgba(255, 255, 255, 0.05)',
         backdropFilter: 'blur(10px)',
         borderColor: 'rgba(139, 92, 246, 0.2)',

@@ -180,11 +180,11 @@ export class DiceGenerator {
     } else {
       // White dice only (white bg with black dots)
       // Higher brightness = fewer dots
-      if (brightness >= 217) return { face: 1, color: 'white' }  // Least dots (brightest)
-      if (brightness >= 192) return { face: 2, color: 'white' }
-      if (brightness >= 166) return { face: 3, color: 'white' }
-      if (brightness >= 141) return { face: 4, color: 'white' }
-      if (brightness >= 115) return { face: 5, color: 'white' }
+      if (brightness >= 255*5/6) return { face: 1, color: 'white' }  // Least dots (brightest)
+      if (brightness >= 255*4/6) return { face: 2, color: 'white' }
+      if (brightness >= 255*3/6) return { face: 3, color: 'white' }
+      if (brightness >= 255*2/6) return { face: 4, color: 'white' }
+      if (brightness >= 255*1/6) return { face: 5, color: 'white' }
       return { face: 6, color: 'white' }                         // Most dots (darkest for white dice)
     }
   }
