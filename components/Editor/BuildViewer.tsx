@@ -49,16 +49,21 @@ interface BuildViewerProps {
   }) => void
 }
 
-const BuildViewer = memo(function BuildViewer({ 
+const BuildViewer = memo(function BuildViewer({
   grid, 
   initialX = 0, 
   initialY = 0, 
   onPositionChange,
   onNavigationReady 
 }: BuildViewerProps) {
+  
+  // Use refs to track the initial values but don't use them as state initializers
+  // This prevents re-renders when initialX/Y change
+  const initialPositionRef = useRef({ x: initialX, y: initialY })
+  
   // Now using x,y coordinates where (0,0) is bottom-left
-  const [currentX, setCurrentX] = useState(initialX) // Start at initialX
-  const [currentY, setCurrentY] = useState(initialY) // Start at initialY
+  const [currentX, setCurrentX] = useState(() => initialPositionRef.current.x)
+  const [currentY, setCurrentY] = useState(() => initialPositionRef.current.y)
   const totalCols = grid.width  // Number of columns (x-axis)
   const totalRows = grid.height // Number of rows (y-axis)
   
@@ -767,16 +772,16 @@ const BuildViewer = memo(function BuildViewer({
   )
 }, (prevProps, nextProps) => {
   // Custom comparison - only re-render if grid actually changes
-  // Ignore callback reference changes since they don't affect rendering
+  // Ignore callback reference changes and position changes since component manages its own state
   const gridEqual = prevProps.grid === nextProps.grid
   const initialXEqual = prevProps.initialX === nextProps.initialX
   const initialYEqual = prevProps.initialY === nextProps.initialY
+  const onPositionChangeEqual = prevProps.onPositionChange === nextProps.onPositionChange
+  const onNavigationReadyEqual = prevProps.onNavigationReady === nextProps.onNavigationReady
   
-  if (!gridEqual || !initialXEqual || !initialYEqual) {
-    return false // Props changed, re-render
-  }
-  
-  return true // Props are equal, skip re-render
+  // Only re-render if the grid object itself changes
+  // Ignore initialX/initialY changes since the component tracks position internally
+  return gridEqual // Grid hasn't changed, skip re-render
 })
 
 export default BuildViewer

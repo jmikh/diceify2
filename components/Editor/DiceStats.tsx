@@ -36,9 +36,10 @@ interface DiceStatsProps {
   costPer1000?: number
   onDieSizeChange?: (size: number) => void
   onCostPer1000Change?: (cost: number) => void
+  imageUrl?: string  // Preview image URL
 }
 
-const DiceStats = memo(function DiceStats({ 
+const DiceStats = memo(function DiceStats({
   blackCount, 
   whiteCount, 
   totalCount,
@@ -49,9 +50,9 @@ const DiceStats = memo(function DiceStats({
   dieSize = 16,
   costPer1000 = 60,
   onDieSizeChange,
-  onCostPer1000Change
+  onCostPer1000Change,
+  imageUrl
 }: DiceStatsProps) {
-  
   // Track previous values for smooth transitions
   const prevCountRef = useRef(totalCount)
   const prevBlackRef = useRef(blackCount)
@@ -131,11 +132,11 @@ const DiceStats = memo(function DiceStats({
       
       {/* Grid dimensions visualization */}
       {gridWidth && gridHeight && (
-        <div className="mb-8 flex justify-center">
+        <div className="mb-1 flex justify-center">
           <div className="relative" style={{ paddingLeft: '45px', paddingBottom: '40px', paddingTop: '35px', paddingRight: '55px' }}>
             {/* Rectangle with dimensions */}
             <div 
-              className="relative border-2 flex items-center justify-center"
+              className="relative border-2 flex items-center justify-center overflow-hidden"
               style={{ 
                 borderColor: theme.colors.glass.border,
                 width: `${rectWidth}px`,
@@ -143,105 +144,101 @@ const DiceStats = memo(function DiceStats({
                 backgroundColor: theme.colors.glass.light
               }}
             >
-              {/* Total count inside */}
-              <div className="text-center">
-                <div className="text-xl font-bold" style={{ color: theme.colors.accent.blue }}>
-                  <CountUp
-                    start={prevCountRef.current}
-                    end={totalCount}
-                    duration={1.5}
-                    separator=","
-                    useEasing={true}
-                    easingFn={easeOutCubic}
-                    preserveValue={true}
-                  />
-                </div>
-                <div className="text-xs" style={{ color: theme.colors.text.muted }}>total</div>
-              </div>
-              
-              {/* Grid Width label at bottom (inside) */}
-              <div 
-                className="absolute left-1/2 transform -translate-x-1/2 text-xs"
-                style={{ 
-                  color: theme.colors.text.secondary,
-                  bottom: '-24px'
-                }}
-              >
-                <CountUp
-                  start={prevGridWidthRef.current}
-                  end={gridWidth || 0}
-                  duration={1}
-                  useEasing={true}
-                  easingFn={easeOutCubic}
-                  preserveValue={true}
-                />
-              </div>
-              
-              {/* Grid Height label on left (inside) */}
-              <div 
-                className="absolute top-1/2 transform -translate-y-1/2 text-xs"
-                style={{ 
-                  color: theme.colors.text.secondary,
-                  left: '-28px'
-                }}
-              >
-                <CountUp
-                  start={prevGridHeightRef.current}
-                  end={gridHeight || 0}
-                  duration={1}
-                  useEasing={true}
-                  easingFn={easeOutCubic}
-                  preserveValue={true}
-                />
-              </div>
-              
-              {/* Frame Width label at top (outside) */}
-              {frameWidth && (
-                <div 
-                  className="absolute left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap"
-                  style={{ 
-                    color: theme.colors.text.muted,
-                    top: '-24px'
+              {/* Grayscale image preview */}
+              {imageUrl && (
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{
+                    filter: 'grayscale(100%)',
+                    opacity: 1
                   }}
-                >
-                  {frameWidth.toFixed(1)} cm
-                </div>
-              )}
-              
-              {/* Frame Height label on right (outside) */}
-              {frameHeight && (
-                <div 
-                  className="absolute top-1/2 transform -translate-y-1/2 text-xs whitespace-nowrap"
-                  style={{ 
-                    color: theme.colors.text.muted,
-                    right: '-56px'
-                  }}
-                >
-                  {frameHeight.toFixed(1)} cm
-                </div>
+                />
               )}
             </div>
+            
+            {/* Labels positioned outside the rectangle */}
+            {/* Grid Width label at bottom */}
+            <div 
+              className="absolute left-1/2 transform -translate-x-1/2 text-xs"
+              style={{ 
+                color: theme.colors.text.secondary,
+                bottom: '16px'
+              }}
+            >
+              <CountUp
+                start={prevGridWidthRef.current}
+                end={gridWidth || 0}
+                duration={1}
+                useEasing={true}
+                easingFn={easeOutCubic}
+                preserveValue={true}
+              />
+            </div>
+            
+            {/* Grid Height label on left */}
+            <div 
+              className="absolute top-1/2 transform -translate-y-1/2 text-xs"
+              style={{ 
+                color: theme.colors.text.secondary,
+                left: '17px'
+              }}
+            >
+              <CountUp
+                start={prevGridHeightRef.current}
+                end={gridHeight || 0}
+                duration={1}
+                useEasing={true}
+                easingFn={easeOutCubic}
+                preserveValue={true}
+              />
+            </div>
+            
+            {/* Frame Width label at top */}
+            {frameWidth && (
+              <div 
+                className="absolute left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap"
+                style={{ 
+                  color: theme.colors.text.muted,
+                  top: '11px'
+                }}
+              >
+                {frameWidth.toFixed(1)} cm
+              </div>
+            )}
+            
+            {/* Frame Height label on right */}
+            {frameHeight && (
+              <div 
+                className="absolute top-1/2 transform -translate-y-1/2 text-xs whitespace-nowrap"
+                style={{ 
+                  color: theme.colors.text.muted,
+                  right: '0px'
+                }}
+              >
+                {frameHeight.toFixed(1)} cm
+              </div>
+            )}
           </div>
         </div>
       )}
       
-      {/* Fallback for when no dimensions */}
-      {(!gridWidth || !gridHeight) && (
-        <div className="text-center mb-3">
-          <div className="text-2xl font-bold" style={{ color: theme.colors.text.primary }}>
-            <CountUp
-              start={prevCountRef.current}
-              end={totalCount}
-              duration={1}
-              separator=","
-              useEasing={true}
-              easingFn={easeOutCubic}
-              preserveValue={true}
-            />
-          </div>
-          <div className="text-xs" style={{ color: theme.colors.text.muted }}>dice</div>
+      {/* Total dice count - always shown above bar */}
+      <div className="text-center mb-3">
+        <div className="text-2xl font-bold" style={{ color: theme.colors.text.primary }}>
+          <CountUp
+            start={prevCountRef.current}
+            end={totalCount}
+            duration={1.5}
+            separator=","
+            useEasing={true}
+            easingFn={easeOutCubic}
+            preserveValue={true}
+          />
         </div>
-      )}
+        <div className="text-xs" style={{ color: theme.colors.text.muted }}>total dice</div>
+      </div>
       
       {/* Proportional bar */}
       <div className="h-4 rounded-lg overflow-hidden flex mb-2 border" style={{ 

@@ -1,39 +1,63 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Check } from 'lucide-react'
+import { ChevronDown, Check, Plus, Loader2, Trash2, AlertCircle } from 'lucide-react'
 import { theme } from '@/lib/theme'
+import { useSession } from 'next-auth/react'
 
 interface Project {
   id: string
   name: string
-  lastModified: Date
+  updatedAt: string
+  percentComplete?: number
 }
 
 interface ProjectSelectorProps {
   currentProject: string
+  currentProjectId?: string | null
   onProjectChange: (name: string) => void
-  onProjectSelect?: (id: string) => void
+  onProjectSelect?: (project: Project) => void
+  onCreateProject?: () => void
 }
 
 export default function ProjectSelector({ 
-  currentProject, 
+  currentProject,
+  currentProjectId,
   onProjectChange,
-  onProjectSelect 
+  onProjectSelect,
+  onCreateProject
 }: ProjectSelectorProps) {
+  const { data: session } = useSession()
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(currentProject)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   
-  // Sample projects - in a real app, these would come from a database
-  const [recentProjects] = useState<Project[]>([
-    { id: '1', name: 'Dice Art Project 1', lastModified: new Date('2024-01-15') },
-    { id: '2', name: 'Family Portrait', lastModified: new Date('2024-01-10') },
-    { id: '3', name: 'Logo Design', lastModified: new Date('2024-01-05') },
-    { id: '4', name: 'Abstract Pattern', lastModified: new Date('2023-12-20') },
-  ])
+  // Fetch user's projects
+  useEffect(() => {
+    if (session?.user) {
+      fetchProjects()
+    }
+  }, [session])
+
+  const fetchProjects = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/projects')
+      if (response.ok) {
+        const data = await response.json()
+        setProjects(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch projects:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -56,7 +80,7 @@ export default function ProjectSelector({
   const handleEditComplete = () => {
     setIsEditing(false)
     if (editValue.trim() && editValue !== currentProject) {
-      onProjectChange(editValue.trim())
+      handleRenameProject()
     } else {
       setEditValue(currentProject)
     }
@@ -74,9 +98,56 @@ export default function ProjectSelector({
   const handleProjectSelect = (project: Project) => {
     onProjectChange(project.name)
     if (onProjectSelect) {
-      onProjectSelect(project.id)
+      onProjectSelect(project)
     }
     setShowDropdown(false)
+  }
+
+  const handleRenameProject = async () => {
+    if (!currentProjectId || !editValue.trim() || editValue === currentProject) {
+      setEditValue(currentProject)
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${currentProjectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editValue.trim() })
+      })
+      
+      if (response.ok) {
+        onProjectChange(editValue.trim())
+        fetchProjects() // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to rename project:', error)
+      setEditValue(currentProject)
+    }
+  }
+
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    if (!confirm(`Are you sure you want to delete "${projectName}"? This cannot be undone.`)) {
+      return
+    }
+
+    setDeletingProjectId(projectId)
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Remove project from list
+        setProjects(prev => prev.filter(p => p.id !== projectId))
+      } else {
+        console.error('Failed to delete project')
+      }
+    } catch (error) {
+      console.error('Failed to delete project:', error)
+    } finally {
+      setDeletingProjectId(null)
+    }
   }
 
   return (
@@ -131,44 +202,93 @@ export default function ProjectSelector({
           }}
         >
           <div className="py-2">
-            <div className="px-3 py-1 text-xs font-medium" style={{ color: theme.colors.text.muted }}>
-              Recent Projects
-            </div>
-            {recentProjects.map((project) => (
-              <button
+            {isLoading ? (
+              <div className="px-3 py-4 flex items-center justify-center">
+                <Loader2 className="animate-spin" size={16} style={{ color: theme.colors.text.muted }} />
+                <span className="ml-2 text-sm" style={{ color: theme.colors.text.muted }}>Loading projects...</span>
+              </div>
+            ) : projects.length > 0 ? (
+              <>
+                <div className="px-3 py-1 text-xs font-medium" style={{ color: theme.colors.text.muted }}>
+                  Your Projects
+                </div>
+                {projects.map((project) => (
+              <div
                 key={project.id}
-                onClick={() => handleProjectSelect(project)}
-                className="w-full px-3 py-2 flex items-center justify-between hover:bg-white/10 transition-colors"
+                className="w-full px-3 py-2 flex items-center justify-between hover:bg-white/10 transition-colors group"
               >
-                <div className="flex-1 text-left">
+                <button
+                  onClick={() => handleProjectSelect(project)}
+                  className="flex-1 text-left"
+                >
                   <div className="text-sm" style={{ color: theme.colors.text.primary }}>
                     {project.name}
                   </div>
                   <div className="text-xs" style={{ color: theme.colors.text.muted }}>
-                    {project.lastModified.toLocaleDateString()}
+                    {new Date(project.updatedAt).toLocaleDateString()}
+                    {project.percentComplete !== undefined && (
+                      <span className="ml-2">
+                        • {Math.round(project.percentComplete)}% complete
+                      </span>
+                    )}
                   </div>
+                </button>
+                <div className="flex items-center gap-2">
+                  {project.id === currentProjectId ? (
+                    <Check size={14} style={{ color: theme.colors.accent.green }} />
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteProject(project.id, project.name)
+                      }}
+                      disabled={deletingProjectId === project.id}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
+                      style={{ color: theme.colors.accent.red }}
+                      title="Delete project"
+                    >
+                      {deletingProjectId === project.id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={14} />
+                      )}
+                    </button>
+                  )}
                 </div>
-                {project.name === currentProject && (
-                  <Check size={14} style={{ color: theme.colors.accent.green }} />
-                )}
-              </button>
+              </div>
             ))}
+              </>
+            ) : (
+              <div className="px-3 py-3 text-sm text-center" style={{ color: theme.colors.text.muted }}>
+                No projects yet
+              </div>
+            )}
             
             <div className="border-t mt-2 pt-2" style={{ borderColor: theme.colors.glass.border }}>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors"
-                style={{ color: theme.colors.accent.blue }}
-                onClick={() => {
-                  setShowDropdown(false)
-                  // In a real app, this would open a dialog to create a new project
-                  const newName = 'New Project'
-                  onProjectChange(newName)
-                  setIsEditing(true)
-                  setEditValue(newName)
-                }}
-              >
-                + Create New Project
-              </button>
+              {projects.length >= 5 ? (
+                <div className="px-3 py-2 text-sm" style={{ color: theme.colors.text.muted }}>
+                  <div className="flex items-center gap-2">
+                    <AlertCircle size={14} />
+                    <div>
+                      <div>At project capacity (5 max)</div>
+                      <div className="text-xs mt-1">Delete a project to create a new one</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors"
+                  style={{ color: theme.colors.accent.blue }}
+                  onClick={() => {
+                    setShowDropdown(false)
+                    if (onCreateProject) {
+                      onCreateProject()
+                    }
+                  }}
+                >
+                  <Plus size={14} className="inline mr-1" /> Create New Project
+                </button>
+              )}
             </div>
           </div>
         </div>

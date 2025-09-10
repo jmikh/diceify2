@@ -86,7 +86,8 @@ const aspectRatioOptions: AspectRatioOption[] = [
   },
 ]
 
-export default function Cropper({ imageUrl, onCropComplete }: CropperProps) {
+export default function Cropper({
+  imageUrl, onCropComplete }: CropperProps) {
   const fixedCropperRef = useRef<FixedCropperRef>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')

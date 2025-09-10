@@ -35,7 +35,8 @@ interface ControlPanelProps {
   onParamChange: (params: Partial<DiceParams>) => void
 }
 
-export default function ControlPanel({ params, onParamChange }: ControlPanelProps) {
+export default function ControlPanel({
+  params, onParamChange }: ControlPanelProps) {
   // Initialize rotations based on current params - default to 90 degrees
   const getInitialRotation = (isRotated: boolean) => isRotated ? 0 : 90
   

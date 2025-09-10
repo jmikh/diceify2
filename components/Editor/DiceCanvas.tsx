@@ -45,12 +45,14 @@ interface DiceCanvasProps {
   params: DiceParams
   onStatsUpdate: (stats: DiceStats) => void
   onGridUpdate?: (grid: DiceGrid) => void
+  onProcessedImageReady?: (dataUrl: string) => void
   maxWidth?: number
   maxHeight?: number
   currentStep?: WorkflowStep
 }
 
-export default function DiceCanvas({ imageUrl, params, onStatsUpdate, onGridUpdate, maxWidth = 700, maxHeight = 500, currentStep }: DiceCanvasProps) {
+export default function DiceCanvas({
+  imageUrl, params, onStatsUpdate, onGridUpdate, onProcessedImageReady, maxWidth = 700, maxHeight = 500, currentStep }: DiceCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const svgContainerRef = useRef<HTMLDivElement>(null)
@@ -144,6 +146,12 @@ export default function DiceCanvas({ imageUrl, params, onStatsUpdate, onGridUpda
           width: canvasRef.current.width,
           height: canvasRef.current.height
         })
+        
+        // Extract canvas data URL and pass to parent
+        if (onProcessedImageReady) {
+          const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.8)
+          onProcessedImageReady(dataUrl)
+        }
       }
       
       // Never auto-generate SVG - only on explicit mode switch
@@ -154,7 +162,7 @@ export default function DiceCanvas({ imageUrl, params, onStatsUpdate, onGridUpda
     } finally {
       setIsGenerating(false)
     }
-  }, [imageUrl, params.numRows, params.colorMode, params.contrast, params.gamma, params.edgeSharpening, params.rotate6, params.rotate3, params.rotate2, onStatsUpdate, maxWidth, maxHeight])
+  }, [imageUrl, params.numRows, params.colorMode, params.contrast, params.gamma, params.edgeSharpening, params.rotate6, params.rotate3, params.rotate2, onStatsUpdate, onGridUpdate, onProcessedImageReady, maxWidth, maxHeight])
 
   // Initial generation when component mounts with image
   useEffect(() => {

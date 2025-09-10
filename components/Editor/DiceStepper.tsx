@@ -17,8 +17,8 @@ const steps: { id: WorkflowStep; dice: string; label: string }[] = [
   { id: 'build', dice: '⚃', label: 'Build' },
 ]
 
-const DiceStepper = memo(function DiceStepper({ currentStep, onStepClick, hasImage }: DiceStepperProps) {
-  
+const DiceStepper = memo(function DiceStepper({
+  currentStep, onStepClick, hasImage }: DiceStepperProps) {
   const [justActivated, setJustActivated] = useState<WorkflowStep | null>(null)
 
   useEffect(() => {
