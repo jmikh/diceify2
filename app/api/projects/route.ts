@@ -10,6 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
+  console.log(`[DB] GET /api/projects - Fetching all projects for user ${session.user.id}`)
   try {
     const projects = await prisma.project.findMany({
       where: {
@@ -21,14 +22,18 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        lastReachedStep: true,
         percentComplete: true,
-        updatedAt: true,
-        createdAt: true,
         totalDice: true,
-        completedDice: true
+        completedDice: true,
+        updatedAt: true,
+        createdAt: true
+        // Excluded large fields: originalImage, croppedImage, gridData
+        // These will be fetched only when loading a specific project
       }
     })
     
+    console.log(`[DB] Found ${projects.length} projects for user`)
     return NextResponse.json(projects)
   } catch (error) {
     console.error('Error fetching projects:', error)
@@ -44,23 +49,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
+  console.log(`[DB] POST /api/projects - Creating new project for user ${session.user.id}`)
   try {
-    // Check if user already has 5 projects
+    // Check if user already has 3 projects
+    console.log(`[DB] Checking project count for user`)
     const projectCount = await prisma.project.count({
       where: {
         userId: session.user.id
       }
     })
     
-    if (projectCount >= 5) {
+    if (projectCount >= 3) {
       return NextResponse.json({ 
-        error: 'Project limit reached. Maximum 5 projects allowed. Please delete a project to create a new one.' 
+        error: 'Project limit reached. Maximum 3 projects allowed. Please delete a project to create a new one.' 
       }, { status: 403 })
     }
     
     const body = await request.json()
     const { name = 'Untitled Project' } = body
     
+    console.log(`[DB] Creating new project with name: ${name}`)
     const project = await prisma.project.create({
       data: {
         name,
@@ -68,6 +76,7 @@ export async function POST(request: NextRequest) {
       }
     })
     
+    console.log(`[DB] Created project ${project.id}`)
     return NextResponse.json(project)
   } catch (error) {
     console.error('Error creating project:', error)

@@ -6,10 +6,13 @@ import { theme } from '@/lib/theme'
 
 interface ImageUploaderProps {
   onImageUpload: (imageUrl: string) => void
+  currentImage?: string | null
 }
 
 export default function ImageUploader({
-  onImageUpload }: ImageUploaderProps) {
+  onImageUpload,
+  currentImage
+}: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -99,42 +102,61 @@ export default function ImageUploader({
         <input {...getInputProps()} />
         
         <div className="relative">
-          {/* Animated dice icon */}
-          <div className="mx-auto w-20 h-20 mb-6 relative">
-            <div className="absolute inset-0 flex items-center justify-center text-5xl animate-pulse">
-              ⚅
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center text-5xl animate-pulse delay-75 opacity-50">
-              ⚄
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center text-5xl animate-pulse delay-150 opacity-30">
-              ⚃
-            </div>
+          {/* Miniature preview box */}
+          <div className="mx-auto w-32 h-32 mb-6 relative rounded-lg overflow-hidden border-2 border-dashed border-white/10">
+            {currentImage ? (
+              <>
+                <img 
+                  src={currentImage} 
+                  alt="Current" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <span className="px-3 py-1 rounded-md text-white font-medium text-sm cursor-pointer transition-all hover:scale-105 hover:shadow-lg" 
+                        style={{ 
+                          backgroundColor: theme.colors.accent.blue + '99',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.colors.accent.blue;
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.colors.accent.blue + '99';
+                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                        }}>
+                    Change
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center" 
+                   style={{ backgroundColor: theme.colors.glass.light }}>
+                <span className="px-3 py-1 rounded-md text-white font-medium text-sm cursor-pointer transition-all hover:scale-105 hover:shadow-lg"
+                      style={{ 
+                        backgroundColor: theme.colors.accent.blue + '99',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.colors.accent.blue;
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.colors.accent.blue + '99';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                      }}>
+                  Upload
+                </span>
+              </div>
+            )}
           </div>
           
           <p className="text-xl font-medium mb-2" style={{ color: theme.colors.accent.blue }}>
             {isDragging ? '🎲 Drop to roll the dice!' : 'Drop your image here'}
           </p>
-          <p className="text-sm text-white/50 mb-4">
+          <p className="text-sm text-white/50">
             or click to browse your files
           </p>
-          
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/20" style={{ backgroundColor: theme.colors.glass.medium }}>
-            <svg
-              className="w-5 h-5 text-white/70"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
-            <span className="text-white/70 text-sm">PNG, JPG, GIF, WebP up to 10MB</span>
-          </div>
         </div>
         
         {error && (

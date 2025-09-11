@@ -9,7 +9,8 @@ import { theme } from '@/lib/theme'
 
 interface CropperProps {
   imageUrl: string
-  onCropComplete: (croppedImageUrl: string) => void
+  onCropComplete: (croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => void
+  initialCrop?: { x: number, y: number, width: number, height: number, rotation: number }
 }
 
 type AspectRatio = '4:3' | '3:2' | '1:1' | '2:3' | '3:4'
@@ -87,12 +88,18 @@ const aspectRatioOptions: AspectRatioOption[] = [
 ]
 
 export default function Cropper({
-  imageUrl, onCropComplete }: CropperProps) {
+  imageUrl, onCropComplete, initialCrop }: CropperProps) {
   const fixedCropperRef = useRef<FixedCropperRef>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
   const [imageLoaded, setImageLoaded] = useState(false)
   const [currentRatio, setCurrentRatio] = useState<string>('1:1')
+  const [hasAppliedInitialCrop, setHasAppliedInitialCrop] = useState(false)
+  
+  // Reset the flag when imageUrl or initialCrop changes
+  useEffect(() => {
+    setHasAppliedInitialCrop(false)
+  }, [imageUrl, initialCrop])
 
   const selectedOption = aspectRatioOptions.find(opt => opt.value === selectedRatio) || aspectRatioOptions[2]
   
@@ -135,9 +142,19 @@ export default function Cropper({
       })
       
       if (canvas) {
+        // Get crop coordinates
+        const coordinates = cropper.getCoordinates()
+        const state = cropper.getState()
+        
         // Convert to data URL
         const croppedImage = canvas.toDataURL('image/jpeg', 0.95)
-        onCropComplete(croppedImage)
+        onCropComplete(croppedImage, {
+          x: coordinates?.left || 0,
+          y: coordinates?.top || 0,
+          width: coordinates?.width || 0,
+          height: coordinates?.height || 0,
+          rotation: state?.transforms?.rotate || 0
+        })
       }
     } catch (error) {
       console.error('Error auto-cropping image:', error)
@@ -224,7 +241,23 @@ export default function Cropper({
                 height: stencilHeight,
               }}
               imageRestriction={ImageRestriction.stencil}
-              onReady={() => setImageLoaded(true)}
+              onReady={() => {
+                setImageLoaded(true)
+                // Apply initial crop if provided, but only once
+                if (initialCrop && fixedCropperRef.current && !hasAppliedInitialCrop) {
+                  const cropper = fixedCropperRef.current
+                  // Don't apply rotation - it's cumulative and causes issues
+                  // The rotation is already applied when we generate the cropped image
+                  // Just set the crop coordinates
+                  cropper.setCoordinates({
+                    left: initialCrop.x,
+                    top: initialCrop.y,
+                    width: initialCrop.width,
+                    height: initialCrop.height
+                  })
+                  setHasAppliedInitialCrop(true)
+                }
+              }}
               onChange={handleCropperChange}
             />
             

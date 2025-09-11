@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// PATCH /api/projects/[id]/progress - Update project progress (auto-save)
+// PATCH /api/projects/[id]/metadata - Update project metadata only
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -13,11 +13,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] PATCH /api/projects/${params.id}/progress - Updating progress for user ${session.user.id}`)
+  console.log(`[DB] PATCH /api/projects/${params.id}/metadata - Updating metadata for user ${session.user.id}`)
   try {
     const body = await request.json()
-    const { currentX, currentY, completedDice } = body
-    console.log(`[DB] Progress update: x=${currentX}, y=${currentY}, completed=${completedDice}`)
+    const { name } = body
+    console.log(`[DB] Metadata update: name="${name}"`)
     
     // Check if project belongs to user
     console.log(`[DB] Checking project ownership`)
@@ -32,26 +32,21 @@ export async function PATCH(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
-    // Update only progress fields
-    console.log(`[DB] Updating progress for project ${params.id}`)
+    // Update only metadata fields
+    console.log(`[DB] Updating metadata for project ${params.id}`)
     const project = await prisma.project.update({
       where: {
         id: params.id
       },
       data: {
-        currentX,
-        currentY,
-        completedDice,
-        percentComplete: existingProject.totalDice > 0 
-          ? (completedDice / existingProject.totalDice) * 100
-          : 0
+        name
       }
     })
     
-    console.log(`[DB] Successfully updated progress for project ${params.id}`)
+    console.log(`[DB] Successfully updated metadata for project ${params.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating progress:', error)
-    return NextResponse.json({ error: 'Failed to update progress' }, { status: 500 })
+    console.error('Error updating metadata:', error)
+    return NextResponse.json({ error: 'Failed to update metadata' }, { status: 500 })
   }
 }

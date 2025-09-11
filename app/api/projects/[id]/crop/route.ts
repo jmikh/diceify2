@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// PATCH /api/projects/[id]/progress - Update project progress (auto-save)
+// PATCH /api/projects/[id]/crop - Update crop step data only
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -13,11 +13,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] PATCH /api/projects/${params.id}/progress - Updating progress for user ${session.user.id}`)
+  console.log(`[DB] PATCH /api/projects/${params.id}/crop - Updating crop data for user ${session.user.id}`)
   try {
     const body = await request.json()
-    const { currentX, currentY, completedDice } = body
-    console.log(`[DB] Progress update: x=${currentX}, y=${currentY}, completed=${completedDice}`)
+    const { cropX, cropY, cropWidth, cropHeight, cropRotation, lastReachedStep } = body
+    console.log(`[DB] Crop update: x=${cropX}, y=${cropY}, w=${cropWidth}, h=${cropHeight}, rotation=${cropRotation}, lastReached=${lastReachedStep}`)
     
     // Check if project belongs to user
     console.log(`[DB] Checking project ownership`)
@@ -32,26 +32,26 @@ export async function PATCH(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
-    // Update only progress fields
-    console.log(`[DB] Updating progress for project ${params.id}`)
+    // Update only crop-related fields
+    console.log(`[DB] Updating crop data for project ${params.id}`)
     const project = await prisma.project.update({
       where: {
         id: params.id
       },
       data: {
-        currentX,
-        currentY,
-        completedDice,
-        percentComplete: existingProject.totalDice > 0 
-          ? (completedDice / existingProject.totalDice) * 100
-          : 0
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        cropRotation: cropRotation || 0,
+        lastReachedStep
       }
     })
     
-    console.log(`[DB] Successfully updated progress for project ${params.id}`)
+    console.log(`[DB] Successfully updated crop data for project ${params.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating progress:', error)
-    return NextResponse.json({ error: 'Failed to update progress' }, { status: 500 })
+    console.error('Error updating crop data:', error)
+    return NextResponse.json({ error: 'Failed to update crop data' }, { status: 500 })
   }
 }

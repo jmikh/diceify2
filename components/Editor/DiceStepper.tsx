@@ -8,6 +8,7 @@ interface DiceStepperProps {
   currentStep: WorkflowStep
   onStepClick?: (step: WorkflowStep) => void
   hasImage?: boolean
+  lastReachedStep?: WorkflowStep
 }
 
 const steps: { id: WorkflowStep; dice: string; label: string }[] = [
@@ -18,7 +19,7 @@ const steps: { id: WorkflowStep; dice: string; label: string }[] = [
 ]
 
 const DiceStepper = memo(function DiceStepper({
-  currentStep, onStepClick, hasImage }: DiceStepperProps) {
+  currentStep, onStepClick, hasImage, lastReachedStep }: DiceStepperProps) {
   const [justActivated, setJustActivated] = useState<WorkflowStep | null>(null)
 
   useEffect(() => {
@@ -31,11 +32,25 @@ const DiceStepper = memo(function DiceStepper({
 
   return (
     <div className="flex items-center justify-center gap-3 px-5 py-2 ">
-      {steps.map((step) => {
+      {steps.map((step, index) => {
         const isActive = step.id === currentStep
-        // Upload is always clickable, other steps require an image
-        const isClickable = onStepClick && (step.id === 'upload' || hasImage)
+        
+        // Determine if step is clickable based on lastReachedStep
+        const stepOrder: WorkflowStep[] = ['upload', 'crop', 'tune', 'build']
+        const currentIndex = stepOrder.indexOf(step.id)
+        const lastReachedIndex = lastReachedStep ? stepOrder.indexOf(lastReachedStep) : -1
+        
+        // Step is clickable if:
+        // 1. It's upload (always clickable)
+        // 2. It's a previously reached step (currentIndex <= lastReachedIndex)
+        // 3. It's the immediate next step (currentIndex === lastReachedIndex + 1)
+        const isClickable = onStepClick && (
+          step.id === 'upload' || 
+          (hasImage && currentIndex <= lastReachedIndex + 1)
+        )
+        
         const isJustActivated = justActivated === step.id
+        const isFutureStep = currentIndex > lastReachedIndex + 1
 
         return (
           <div key={step.id} className="flex items-center">
@@ -60,11 +75,11 @@ const DiceStepper = memo(function DiceStepper({
                       ? `${styles.diceInactive} hover:scale-110`
                       : styles.diceInactive
                   }
-                  ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}
+                  ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-30'}
                 `}
               >
                 <span className={`
-                  ${isActive ? 'text-white/90' : isClickable ? 'text-gray-400' : 'text-gray-600'}
+                  ${isActive ? 'text-white/90' : isClickable ? 'text-gray-400' : 'text-gray-600/50'}
                 `}>
                   {step.dice}
                 </span>
@@ -73,7 +88,7 @@ const DiceStepper = memo(function DiceStepper({
               {/* Label */}
               <div className={`
                 mt-1 text-xs font-medium text-center transition-colors
-                ${isActive ? 'text-blue-400/80' : isClickable ? 'text-gray-500' : 'text-gray-700'}
+                ${isActive ? 'text-blue-400/80' : isClickable ? 'text-gray-500' : 'text-gray-600/50'}
               `}>
                 {step.label}
               </div>

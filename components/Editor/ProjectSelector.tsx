@@ -15,27 +15,47 @@ interface Project {
 interface ProjectSelectorProps {
   currentProject: string
   currentProjectId?: string | null
+  projects?: Project[]
   onProjectChange: (name: string) => void
   onProjectSelect?: (project: Project) => void
   onCreateProject?: () => void
+  onProjectsChange?: () => void
 }
 
 export default function ProjectSelector({ 
   currentProject,
   currentProjectId,
+  projects: propProjects,
   onProjectChange,
   onProjectSelect,
-  onCreateProject
+  onCreateProject,
+  onProjectsChange
 }: ProjectSelectorProps) {
   const { data: session } = useSession()
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(currentProject)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<Project[]>(propProjects || [])
   const [isLoading, setIsLoading] = useState(false)
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Check if the current project name is actually empty/untitled
+  const isUntitled = !currentProject || currentProject === 'Untitled Project' || currentProject.trim() === ''
+  const displayName = isUntitled ? 'Untitled Project' : currentProject
+  
+  // Update edit value when current project changes
+  useEffect(() => {
+    setEditValue(currentProject)
+  }, [currentProject])
+  
+  // Update projects when prop changes
+  useEffect(() => {
+    if (propProjects) {
+      setProjects(propProjects)
+    }
+  }, [propProjects])
   
   // Fetch user's projects
   useEffect(() => {
@@ -79,10 +99,14 @@ export default function ProjectSelector({
 
   const handleEditComplete = () => {
     setIsEditing(false)
-    if (editValue.trim() && editValue !== currentProject) {
+    const trimmedValue = editValue.trim()
+    
+    // If we have a valid new name that's different from the current stored name
+    if (trimmedValue && (trimmedValue !== currentProject || isUntitled)) {
       handleRenameProject()
     } else {
-      setEditValue(currentProject)
+      // Reset to the display name if no valid input
+      setEditValue(isUntitled ? '' : currentProject)
     }
   }
 
@@ -96,7 +120,10 @@ export default function ProjectSelector({
   }
 
   const handleProjectSelect = (project: Project) => {
-    onProjectChange(project.name)
+    const projectName = project.name || ''
+    // Don't call onProjectChange here - that's only for editing
+    // Just update the local edit value for display
+    setEditValue(projectName) // Update the edit value when selecting a project
     if (onProjectSelect) {
       onProjectSelect(project)
     }
@@ -104,8 +131,10 @@ export default function ProjectSelector({
   }
 
   const handleRenameProject = async () => {
-    if (!currentProjectId || !editValue.trim() || editValue === currentProject) {
-      setEditValue(currentProject)
+    const trimmedValue = editValue.trim()
+    
+    if (!currentProjectId || !trimmedValue) {
+      setEditValue(isUntitled ? '' : currentProject)
       return
     }
 
@@ -113,16 +142,16 @@ export default function ProjectSelector({
       const response = await fetch(`/api/projects/${currentProjectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editValue.trim() })
+        body: JSON.stringify({ name: trimmedValue })
       })
       
       if (response.ok) {
-        onProjectChange(editValue.trim())
+        onProjectChange(trimmedValue)
         fetchProjects() // Refresh the list
       }
     } catch (error) {
       console.error('Failed to rename project:', error)
-      setEditValue(currentProject)
+      setEditValue(isUntitled ? '' : currentProject)
     }
   }
 
@@ -140,6 +169,10 @@ export default function ProjectSelector({
       if (response.ok) {
         // Remove project from list
         setProjects(prev => prev.filter(p => p.id !== projectId))
+        // Notify parent to update projects
+        if (onProjectsChange) {
+          onProjectsChange()
+        }
       } else {
         console.error('Failed to delete project')
       }
@@ -151,10 +184,9 @@ export default function ProjectSelector({
   }
 
   return (
-    <div className="relative min-w-[200px]" ref={dropdownRef}>
+    <div className="relative inline-block" ref={dropdownRef}>
       <div 
-        className="flex items-center gap-2 px-4 py-3 border-b"
-        style={{ borderColor: theme.colors.glass.border }}
+        className="inline-flex items-center gap-1 px-4 py-3"
       >
         {isEditing ? (
           <input
@@ -164,17 +196,28 @@ export default function ProjectSelector({
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleEditComplete}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent outline-none text-sm font-medium"
-            style={{ color: theme.colors.text.primary }}
-            placeholder="Project name..."
+            className="bg-transparent outline-none text-sm font-medium px-2 py-1 rounded min-w-[150px]"
+            style={{ 
+              color: theme.colors.text.primary,
+              backgroundColor: 'rgba(255, 255, 255, 0.1)'
+            }}
+            placeholder="Enter project name..."
           />
         ) : (
           <button
-            onClick={() => setIsEditing(true)}
-            className="flex-1 text-left text-sm font-medium hover:opacity-80 transition-opacity"
-            style={{ color: theme.colors.text.primary }}
+            onClick={() => {
+              setIsEditing(true)
+              // Clear the field if it's untitled
+              if (isUntitled) {
+                setEditValue('')
+              }
+            }}
+            className="text-left text-sm font-medium transition-all px-2 py-1 rounded hover:bg-white/10"
+            style={{ 
+              color: isUntitled ? theme.colors.text.muted : theme.colors.text.primary
+            }}
           >
-            {currentProject}
+            {displayName}
           </button>
         )}
         
@@ -193,12 +236,13 @@ export default function ProjectSelector({
       {/* Dropdown */}
       {showDropdown && (
         <div 
-          className="absolute top-full left-0 right-0 border rounded-b-lg shadow-xl overflow-hidden"
+          className="absolute top-full left-0 border rounded-b-lg shadow-xl overflow-hidden"
           style={{ 
             backgroundColor: '#1a1a2e',
             borderColor: theme.colors.glass.border,
             borderTop: 'none',
-            zIndex: 9999
+            zIndex: 9999,
+            minWidth: '250px'
           }}
         >
           <div className="py-2">
@@ -221,8 +265,14 @@ export default function ProjectSelector({
                   onClick={() => handleProjectSelect(project)}
                   className="flex-1 text-left"
                 >
-                  <div className="text-sm" style={{ color: theme.colors.text.primary }}>
-                    {project.name}
+                  <div className="text-sm" style={{ 
+                    color: (!project.name || project.name === 'Untitled Project') 
+                      ? theme.colors.text.muted 
+                      : theme.colors.text.primary 
+                  }}>
+                    {(!project.name || project.name === 'Untitled Project') 
+                      ? 'Untitled Project' 
+                      : project.name}
                   </div>
                   <div className="text-xs" style={{ color: theme.colors.text.muted }}>
                     {new Date(project.updatedAt).toLocaleDateString()}
@@ -265,12 +315,12 @@ export default function ProjectSelector({
             )}
             
             <div className="border-t mt-2 pt-2" style={{ borderColor: theme.colors.glass.border }}>
-              {projects.length >= 5 ? (
+              {projects.length >= 3 ? (
                 <div className="px-3 py-2 text-sm" style={{ color: theme.colors.text.muted }}>
                   <div className="flex items-center gap-2">
                     <AlertCircle size={14} />
                     <div>
-                      <div>At project capacity (5 max)</div>
+                      <div>At project capacity (3 max)</div>
                       <div className="text-xs mt-1">Delete a project to create a new one</div>
                     </div>
                   </div>

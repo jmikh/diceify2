@@ -57,6 +57,8 @@ const BuildViewer = memo(function BuildViewer({
   onNavigationReady 
 }: BuildViewerProps) {
   
+  console.log(`[BuildViewer] Rendering with grid ${grid.width}x${grid.height}, initial position (${initialX}, ${initialY})`)
+  
   // Use refs to track the initial values but don't use them as state initializers
   // This prevents re-renders when initialX/Y change
   const initialPositionRef = useRef({ x: initialX, y: initialY })
@@ -435,6 +437,7 @@ const BuildViewer = memo(function BuildViewer({
     canNavigate
   }), [navigatePrev, navigateNext, navigatePrevDiff, navigateNextDiff, canNavigate])
   
+  // Call onNavigationReady whenever navigation handlers change
   useEffect(() => {
     if (onNavigationReady) {
       onNavigationReady(navigationHandlers)

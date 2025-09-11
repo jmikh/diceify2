@@ -414,22 +414,7 @@ export default function DiceCanvas({
         </div>
       )}
       
-      {isGenerating && (
-        <div className="absolute inset-0 backdrop-blur-sm flex items-center justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
-          <div className="backdrop-blur-md rounded-lg p-6 border" style={{ backgroundColor: theme.colors.glass.heavy, borderColor: theme.colors.glass.border }}>
-            <div className="text-center">
-              <div className="mb-2" style={{ color: theme.colors.text.primary }}>Generating Dice Art...</div>
-              <div className="w-48 rounded-full h-2" style={{ backgroundColor: theme.colors.glass.border }}>
-                <div
-                  className="h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%`, backgroundColor: theme.colors.accent.blue }}
-                />
-              </div>
-              <div className="mt-2 text-sm" style={{ color: theme.colors.text.secondary }}>{Math.round(progress)}%</div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed generating popup - dice generation is fast enough */}
     </div>
   )
 }
