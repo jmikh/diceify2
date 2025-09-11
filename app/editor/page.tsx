@@ -34,6 +34,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useSession, signOut } from 'next-auth/react'
+import Link from 'next/link'
 import ImageUploader from '@/components/Editor/ImageUploader'
 import Cropper from '@/components/Editor/Cropper'
 import DiceCanvas from '@/components/Editor/DiceCanvas'
@@ -120,8 +121,8 @@ export default function Editor() {
   })
   const [lastGridHash, setLastGridHash] = useState<string>('')
   
-  // Compute if we should warn when exiting build step (only true if there's progress)
-  const shouldWarnOnExit = step === 'build' && buildProgress.percentage > 0
+  // Compute if we should warn when exiting build step (only true if not at starting position)
+  const shouldWarnOnExit = step === 'build' && (buildProgress.x !== 0 || buildProgress.y !== 0)
   
   // Navigation confirmation dialog
   const [showBuildProgressDialog, setShowBuildProgressDialog] = useState(false)
@@ -240,6 +241,12 @@ export default function Editor() {
         setLastReachedStep('tune')
         console.log('[CROP] Resetting lastReachedStep to tune - user must re-tune after crop change')
       }
+      
+      // Reset build progress if there was any
+      if (buildProgress.x !== 0 || buildProgress.y !== 0) {
+        setBuildProgress({ x: 0, y: 0, percentage: 0 })
+        console.log('[CROP] Reset build progress due to crop change')
+      }
     } else {
       console.log('[CROP] Crop parameters unchanged')
     }
@@ -264,6 +271,12 @@ export default function Editor() {
     if (step === 'tune') {
       // Changes tracked internally
       setHasTuneChanged(true) // Mark that tune has changed
+      
+      // Reset build progress if there was any
+      if (buildProgress.x !== 0 || buildProgress.y !== 0) {
+        setBuildProgress({ x: 0, y: 0, percentage: 0 })
+        console.log('[TUNE] Reset build progress due to parameter change')
+      }
     }
   }
 
@@ -306,9 +319,8 @@ export default function Editor() {
   
   // handleStepNavigation moved below navigateToStep to fix dependency issue
   
-  // Reset build progress and navigate to attempted step
-  const handleResetBuildProgress = () => {
-    setBuildProgress({ x: 0, y: 0, percentage: 0 })
+  // Continue to the attempted step (progress will be reset when params change)
+  const handleContinueToStep = () => {
     setShowBuildProgressDialog(false)
     if (attemptedStep) {
       setStep(attemptedStep)
@@ -858,13 +870,16 @@ export default function Editor() {
     // Clear any existing timeout
     if (buildAutoSaveTimeoutRef.current) {
       clearTimeout(buildAutoSaveTimeoutRef.current)
+      console.log('[AUTO-SAVE] Resetting 15-second auto-save timer')
+    } else {
+      console.log('[AUTO-SAVE] Starting 15-second auto-save timer')
     }
     
-    // Schedule new save after 30 seconds
+    // Schedule new save after 15 seconds
     buildAutoSaveTimeoutRef.current = setTimeout(() => {
-      console.log('[AUTO-SAVE] Saving build progress after 30 seconds of inactivity')
+      console.log('[AUTO-SAVE] Saving build progress after 15 seconds of inactivity')
       saveProgressOnly()
-    }, 30000) // 30 seconds delay
+    }, 15000) // 15 seconds delay
   }, [saveProgressOnly])
   
   // Clean up timeout on unmount
@@ -992,10 +1007,10 @@ export default function Editor() {
       >
         <div className="max-w-7xl mx-auto px-4 py-4 relative flex items-center">
           
-          {/* Logo on the left */}
-          <div className="flex-shrink-0">
+          {/* Logo on the left - clickable to go home */}
+          <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
             <Logo />
-          </div>
+          </Link>
           
           {/* Spacer */}
           <div className="flex-1"></div>
@@ -1288,13 +1303,13 @@ export default function Editor() {
       <ConfirmDialog
         isOpen={showBuildProgressDialog}
         title="Build in Progress"
-        message="You have a build in progress. Are you sure you want to reset?"
+        message="Changing the underlying image or its tuning parameters will change the dice art and reset your progress.\n\nAre you sure you want to continue?"
         progress={buildProgress.percentage}
-        confirmText="Reset"
+        confirmText="Yes"
         confirmButtonColor={theme.colors.accent.pink}
         cancelText="Back to Build"
         cancelButtonColor={theme.colors.accent.blue}
-        onConfirm={handleResetBuildProgress}
+        onConfirm={handleContinueToStep}
         onCancel={handleStayInBuild}
       />
       

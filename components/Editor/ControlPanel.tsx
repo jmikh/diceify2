@@ -91,42 +91,7 @@ export default function ControlPanel({
   return (
     <div className="p-4">
       <div className="space-y-4">
-        {/* Grid Size */}
-        <div className="group relative">
-          <div className="flex items-center gap-2">
-            <Grid3x3 size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
-            <input
-              type="range"
-              id="numRows"
-              min="20"
-              max="120"
-              value={params.numRows}
-              onChange={handleNumRowsChange}
-              onMouseDown={() => setIsDragging({ ...isDragging, numRows: true })}
-              onMouseUp={() => setIsDragging({ ...isDragging, numRows: false })}
-              onTouchStart={() => setIsDragging({ ...isDragging, numRows: true })}
-              onTouchEnd={() => setIsDragging({ ...isDragging, numRows: false })}
-              className="flex-1 h-1 rounded-lg appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, ${theme.colors.accent.blue} 0%, ${theme.colors.accent.blue} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} 100%)`
-              }}
-            />
-          </div>
-          {/* Tooltip positioned above slider thumb */}
-          <div 
-            className="absolute -top-8 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap"
-            style={{
-              left: `calc(24px + ${((params.numRows - 20) / 100) * 85}%)`,
-              transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(10, 0, 20, 0.95)',
-              color: 'white'
-            }}
-          >
-            {isDragging.numRows ? params.numRows : 'Rows'}
-          </div>
-        </div>
-
-        {/* Color Mode */}
+        {/* Color Mode - FIRST */}
         <div>
           <div 
             className="flex rounded-lg overflow-hidden border"
@@ -175,6 +140,135 @@ export default function ControlPanel({
               {/* White square */}
               <div className="w-5 h-5 rounded-sm border" style={{ backgroundColor: 'white', borderColor: theme.colors.glass.border }} />
             </button>
+          </div>
+        </div>
+
+        {/* Dice Rotation - SECOND (Orientation) */}
+        <div className="flex items-center gap-2">
+          <RotateCw size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
+          
+          <div 
+            className="flex flex-1 rounded-lg overflow-hidden border"
+            style={{ 
+              backgroundColor: theme.colors.glass.light,
+              borderColor: theme.colors.glass.border
+            }}
+          >
+            {/* Dice 2 */}
+            <button
+              onClick={() => handleDiceRotation(2)}
+              className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
+              style={{ 
+                borderRight: `1px solid ${theme.colors.glass.border}`
+              }}
+            >
+              <span 
+                className="text-2xl inline-block transition-transform"
+                style={{ 
+                  transform: `rotate(${rotations.dice2}deg)`,
+                  transformOrigin: 'center',
+                  transition: 'transform 0.3s ease',
+                  color: theme.colors.text.secondary
+                }}
+              >
+                ⚁
+              </span>
+              {/* Hover indicator */}
+              <div 
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                style={{ 
+                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
+                }}
+              />
+            </button>
+            
+            {/* Dice 3 */}
+            <button
+              onClick={() => handleDiceRotation(3)}
+              className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
+              style={{ 
+                borderRight: `1px solid ${theme.colors.glass.border}`
+              }}
+            >
+              <span 
+                className="text-2xl inline-block transition-transform"
+                style={{ 
+                  transform: `rotate(${rotations.dice3}deg)`,
+                  transformOrigin: 'center',
+                  transition: 'transform 0.3s ease',
+                  color: theme.colors.text.secondary
+                }}
+              >
+                ⚂
+              </span>
+              {/* Hover indicator */}
+              <div 
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                style={{ 
+                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
+                }}
+              />
+            </button>
+            
+            {/* Dice 6 */}
+            <button
+              onClick={() => handleDiceRotation(6)}
+              className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
+            >
+              <span 
+                className="text-2xl inline-block transition-transform"
+                style={{ 
+                  transform: `rotate(${rotations.dice6}deg)`,
+                  transformOrigin: 'center',
+                  transition: 'transform 0.3s ease',
+                  color: theme.colors.text.secondary
+                }}
+              >
+                ⚅
+              </span>
+              {/* Hover indicator */}
+              <div 
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                style={{ 
+                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
+                }}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Grid Size - THIRD (Start of sliders) */}
+        <div className="group relative">
+          <div className="flex items-center gap-2">
+            <Grid3x3 size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
+            <input
+              type="range"
+              id="numRows"
+              min="20"
+              max="120"
+              value={params.numRows}
+              onChange={handleNumRowsChange}
+              onMouseDown={() => setIsDragging({ ...isDragging, numRows: true })}
+              onMouseUp={() => setIsDragging({ ...isDragging, numRows: false })}
+              onTouchStart={() => setIsDragging({ ...isDragging, numRows: true })}
+              onTouchEnd={() => setIsDragging({ ...isDragging, numRows: false })}
+              className="flex-1 h-1 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, ${theme.colors.accent.blue} 0%, ${theme.colors.accent.blue} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} 100%)`
+              }}
+            />
+          </div>
+          {/* Tooltip positioned above slider thumb */}
+          <div 
+            className="absolute -top-8 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap"
+            style={{
+              left: `calc(24px + ${((params.numRows - 20) / 100) * 85}%)`,
+              transform: 'translateX(-50%)',
+              backgroundColor: 'rgba(10, 0, 20, 0.95)',
+              color: 'white'
+            }}
+          >
+            {isDragging.numRows ? params.numRows : 'Rows'}
           </div>
         </div>
 
@@ -281,100 +375,6 @@ export default function ControlPanel({
             }}
           >
             {isDragging.edgeSharpening ? params.edgeSharpening : 'Sharpening'}
-          </div>
-        </div>
-
-        {/* Dice Rotation - Unified Panel */}
-        <div className="flex items-center gap-2">
-          <RotateCw size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
-          
-          <div 
-            className="flex flex-1 rounded-lg overflow-hidden border"
-            style={{ 
-              backgroundColor: theme.colors.glass.light,
-              borderColor: theme.colors.glass.border
-            }}
-          >
-            {/* Dice 2 */}
-            <button
-              onClick={() => handleDiceRotation(2)}
-              className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
-              style={{ 
-                borderRight: `1px solid ${theme.colors.glass.border}`
-              }}
-            >
-              <span 
-                className="text-2xl inline-block transition-transform"
-                style={{ 
-                  transform: `rotate(${rotations.dice2}deg)`,
-                  transformOrigin: 'center',
-                  transition: 'transform 0.3s ease',
-                  color: theme.colors.text.secondary
-                }}
-              >
-                ⚁
-              </span>
-              {/* Hover indicator */}
-              <div 
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                style={{ 
-                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
-                }}
-              />
-            </button>
-            
-            {/* Dice 3 */}
-            <button
-              onClick={() => handleDiceRotation(3)}
-              className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
-              style={{ 
-                borderRight: `1px solid ${theme.colors.glass.border}`
-              }}
-            >
-              <span 
-                className="text-2xl inline-block transition-transform"
-                style={{ 
-                  transform: `rotate(${rotations.dice3}deg)`,
-                  transformOrigin: 'center',
-                  transition: 'transform 0.3s ease',
-                  color: theme.colors.text.secondary
-                }}
-              >
-                ⚂
-              </span>
-              {/* Hover indicator */}
-              <div 
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                style={{ 
-                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
-                }}
-              />
-            </button>
-            
-            {/* Dice 6 */}
-            <button
-              onClick={() => handleDiceRotation(6)}
-              className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
-            >
-              <span 
-                className="text-2xl inline-block transition-transform"
-                style={{ 
-                  transform: `rotate(${rotations.dice6}deg)`,
-                  transformOrigin: 'center',
-                  transition: 'transform 0.3s ease',
-                  color: theme.colors.text.secondary
-                }}
-              >
-                ⚅
-              </span>
-              {/* Hover indicator */}
-              <div 
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                style={{ 
-                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
-                }}
-              />
-            </button>
           </div>
         </div>
       </div>

@@ -65,7 +65,7 @@ export default function ConfirmDialog({
         
         {message && (
           <p 
-            className="mb-6"
+            className="mb-6 text-center whitespace-pre-line"
             style={{ color: theme.colors.text.secondary }}
           >
             {message}
