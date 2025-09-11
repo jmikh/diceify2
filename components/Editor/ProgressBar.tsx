@@ -1,7 +1,6 @@
 'use client'
 
 import { theme } from '@/lib/theme'
-import ProgressBadge from './ProgressBadge'
 
 interface ProgressBarProps {
   percentage: number
@@ -23,7 +22,9 @@ export default function ProgressBar({ percentage, showComplete = true, className
         />
       </div>
       <div className="text-center mt-1">
-        <ProgressBadge percentage={percentage} showComplete={showComplete} />
+        <span className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>
+          {percentage === 100 && showComplete ? 'Complete' : `${percentage}%`}
+        </span>
       </div>
     </div>
   )

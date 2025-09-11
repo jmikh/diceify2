@@ -138,7 +138,7 @@ export default function Cropper({
       // Get the canvas with the cropped image
       const canvas = cropper.getCanvas({
         width: 2048,
-        height: 2048 / selectedOption.ratio,
+        height: selectedOption.ratio ? 2048 / selectedOption.ratio : 2048,
       })
       
       if (canvas) {

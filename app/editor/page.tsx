@@ -47,14 +47,9 @@ import ProjectSelector from '@/components/Editor/ProjectSelector'
 import ProjectSelectionModal from '@/components/ProjectSelectionModal'
 import DiceStepper from '@/components/Editor/DiceStepper'
 import Logo from '@/components/Logo'
-// AnimatedBackground removed - no longer used
 import AuthModal from '@/components/AuthModal'
 import { theme } from '@/lib/theme'
 import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
-// Grid encoding no longer needed - generating from parameters instead
-// import { encodeDiceGrid, decodeDiceGrid } from '@/lib/dice/encoding'
-
-// Types are now imported from @/lib/types
 
 export default function Editor() {
   const { data: session, status } = useSession()
@@ -63,7 +58,6 @@ export default function Editor() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showProjectModal, setShowProjectModal] = useState(false)
   
-  // Debug refs to track callback stability
   const [originalImage, setOriginalImage] = useState<string | null>(null)
   const [croppedImage, setCroppedImage] = useState<string | null>(null) // Generated from crop params
   const [cropParams, setCropParams] = useState<{
@@ -94,14 +88,10 @@ export default function Editor() {
   const [costPer1000, setCostPer1000] = useState(60) // dollars
   const [projectName, setProjectName] = useState('Untitled Project')
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
-  const [, forceUpdate] = useState(0) // Force re-render for save indicator
-  
-  // Remove auto-save refs - no longer needed
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [userProjects, setUserProjects] = useState<any[]>([])
-  const [hasCropChanged, setHasCropChanged] = useState(false) // Track if crop has changed
-  const [hasTuneChanged, setHasTuneChanged] = useState(false) // Track if tune parameters have changed
-  // Removed loadingProjects - no longer needed
+  const [hasCropChanged, setHasCropChanged] = useState(false)
+  const [hasTuneChanged, setHasTuneChanged] = useState(false)
   const [headerOpacity, setHeaderOpacity] = useState(1)
   
   // Memoize frame dimensions to prevent re-renders
@@ -317,7 +307,6 @@ export default function Editor() {
   const pendingUpdateRef = useRef<{ x: number; y: number } | null>(null)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
-  // handleStepNavigation moved below navigateToStep to fix dependency issue
   
   // Continue to the attempted step (progress will be reset when params change)
   const handleContinueToStep = () => {
@@ -468,7 +457,7 @@ export default function Editor() {
           rotate6: diceParams.rotate6,
           dieSize,
           costPer1000,
-          gridData: null, // No longer storing grid data
+          gridData: null,
           gridWidth: diceGrid?.width || null,
           gridHeight: diceGrid?.height || null,
           totalDice: diceStats.totalCount,
@@ -627,8 +616,6 @@ export default function Editor() {
 
       if (response.ok) {
         console.log('Tune parameters saved successfully')
-        // Save completed
-        setTimeout(() => forceUpdate(prev => prev + 1), 3000)
       }
     } catch (error) {
       console.error('Failed to save tune parameters:', error)
@@ -686,7 +673,6 @@ export default function Editor() {
     }
   }, [step, lastReachedStep, cropParams, currentProjectId, session, saveCropStep, saveTuneStep])
 
-  // Manual save removed - saves happen automatically on step transitions
 
   // Handle navigation with build progress check
   const handleStepNavigation = useCallback((newStep: WorkflowStep) => {
@@ -708,8 +694,6 @@ export default function Editor() {
   }, [shouldWarnOnExit, status, navigateToStep])
 
   // Save project metadata (name)
-  // Removed saveProjectMetadata - project name updates are now handled by ProjectSelector component
-  // Removed saveFullProject - we now use step-specific saves
 
   // Load a project
   const loadProject = useCallback(async (project: any) => {
@@ -925,11 +909,8 @@ export default function Editor() {
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id, currentProjectId]) // fetchUserProjects excluded to prevent re-runs
+  }, [session?.user?.id, currentProjectId])
 
-  // Removed auto-save - now only saving on step transitions
-
-  // No more auto-save - saves are now manual or on step transitions
   
   // Handle build progress updates with throttling
   const handleBuildProgressUpdate = useCallback((x: number, y: number) => {

@@ -212,7 +212,7 @@ export default function DiceCanvas({
     if (renderMode === 'svg' && !svgContent) return
 
     try {
-      if (renderMode === 'canvas') {
+      if (renderMode === 'canvas' && rendererRef.current) {
         const blob = await rendererRef.current.exportAsImage(0.95)
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
