@@ -52,12 +52,6 @@ model Project {
   name            String
   userId          String
   originalImage   String?
-  // Crop parameters instead of storing cropped image
-  cropX           Float?   // X position of crop area
-  cropY           Float?   // Y position of crop area  
-  cropWidth       Float?   // Width of crop area
-  cropHeight      Float?   // Height of crop area
-  cropRotation    Float    @default(0) // Rotation angle
   numRows         Int      @default(30)
   colorMode       String   @default("both")
   contrast        Float    @default(0)
@@ -78,6 +72,11 @@ model Project {
   costPer1000     Float    @default(60)
   dieSize         Int      @default(16)
   lastReachedStep String   @default("upload")
+  cropHeight      Float?
+  cropRotation    Float    @default(0)
+  cropWidth       Float?
+  cropX           Float?
+  cropY           Float?
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])

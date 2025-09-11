@@ -66,13 +66,70 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json()
-    const { name = 'Untitled Project' } = body
+    const { 
+      name = 'Untitled Project',
+      lastReachedStep = 'upload',
+      originalImage,
+      croppedImage, // This will be stored as originalImage if no originalImage provided
+      numRows,
+      colorMode,
+      contrast,
+      gamma,
+      edgeSharpening,
+      rotate2,
+      rotate3,
+      rotate6,
+      dieSize,
+      costPer1000,
+      gridWidth,
+      gridHeight,
+      totalDice,
+      completedDice,
+      currentX,
+      currentY,
+      percentComplete,
+      cropX,
+      cropY,
+      cropWidth,
+      cropHeight,
+      cropRotation
+    } = body
     
     console.log(`[DB] Creating new project with name: ${name}`)
+    console.log(`[DB] Has originalImage: ${!!originalImage}, Has croppedImage: ${!!croppedImage}`)
+    
+    // Use croppedImage as originalImage if originalImage is not provided
+    // This happens when user crops before saving
+    const imageToSave = originalImage || croppedImage
+    
     const project = await prisma.project.create({
       data: {
         name,
-        userId: session.user.id
+        userId: session.user.id,
+        lastReachedStep,
+        originalImage: imageToSave,
+        numRows,
+        colorMode,
+        contrast,
+        gamma,
+        edgeSharpening,
+        rotate2,
+        rotate3,
+        rotate6,
+        dieSize,
+        costPer1000,
+        gridWidth,
+        gridHeight,
+        totalDice,
+        completedDice,
+        currentX,
+        currentY,
+        percentComplete,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        cropRotation
       }
     })
     

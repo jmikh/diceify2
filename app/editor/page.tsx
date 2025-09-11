@@ -89,6 +89,7 @@ export default function Editor() {
   const [projectName, setProjectName] = useState('Untitled Project')
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [isRestoringOAuthState, setIsRestoringOAuthState] = useState(false)
   const [userProjects, setUserProjects] = useState<any[]>([])
   const [hasCropChanged, setHasCropChanged] = useState(false)
   const [hasTuneChanged, setHasTuneChanged] = useState(false)
@@ -438,34 +439,52 @@ export default function Editor() {
     
     // Saving automatically
     console.log(`[DB] Creating new project with current state`)
+    console.log('[DB] Current state when creating project:')
+    console.log('  - originalImage:', originalImage ? `${originalImage.substring(0, 50)}...` : 'null')
+    console.log('  - croppedImage:', croppedImage ? `${croppedImage.substring(0, 50)}...` : 'null')
+    console.log('  - processedImageUrl:', processedImageUrl ? `${processedImageUrl.substring(0, 50)}...` : 'null')
+    console.log('  - lastReachedStep:', lastReachedStep)
+    console.log('  - diceParams:', diceParams)
+    console.log('  - diceStats:', diceStats)
+    
     try {
+      const payload = {
+        name: 'Untitled Project',
+        lastReachedStep,
+        originalImage,
+        croppedImage,
+        numRows: diceParams.numRows,
+        colorMode: diceParams.colorMode,
+        contrast: diceParams.contrast,
+        gamma: diceParams.gamma,
+        edgeSharpening: diceParams.edgeSharpening,
+        rotate2: diceParams.rotate2,
+        rotate3: diceParams.rotate3,
+        rotate6: diceParams.rotate6,
+        dieSize,
+        costPer1000,
+        gridWidth: diceGrid?.width || null,
+        gridHeight: diceGrid?.height || null,
+        totalDice: diceStats.totalCount,
+        completedDice: 0,
+        currentX: buildProgress.x,
+        currentY: buildProgress.y,
+        percentComplete: buildProgress.percentage,
+        cropX: cropParams?.x || null,
+        cropY: cropParams?.y || null,
+        cropWidth: cropParams?.width || null,
+        cropHeight: cropParams?.height || null,
+        cropRotation: cropParams?.rotation || 0
+      }
+      
+      console.log('[DB] Payload being sent to API:')
+      console.log('  - originalImage in payload:', payload.originalImage ? `${payload.originalImage.substring(0, 50)}...` : 'null')
+      console.log('  - croppedImage in payload:', payload.croppedImage ? `${payload.croppedImage.substring(0, 50)}...` : 'null')
+      
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Untitled Project',
-          lastReachedStep,
-          originalImage,
-          croppedImage,
-          numRows: diceParams.numRows,
-          colorMode: diceParams.colorMode,
-          contrast: diceParams.contrast,
-          gamma: diceParams.gamma,
-          edgeSharpening: diceParams.edgeSharpening,
-          rotate2: diceParams.rotate2,
-          rotate3: diceParams.rotate3,
-          rotate6: diceParams.rotate6,
-          dieSize,
-          costPer1000,
-          gridData: null,
-          gridWidth: diceGrid?.width || null,
-          gridHeight: diceGrid?.height || null,
-          totalDice: diceStats.totalCount,
-          completedDice: 0,
-          currentX: buildProgress.x,
-          currentY: buildProgress.y,
-          percentComplete: buildProgress.percentage
-        })
+        body: JSON.stringify(payload)
       })
 
       if (response.ok) {
@@ -502,11 +521,29 @@ export default function Editor() {
           // Reset if we deleted the current project
           resetWorkflow()
         }
+        
+        // Check if we're in capacity modal and have work to save
+        if (showProjectModal) {
+          console.log('[DEBUG] Project deleted from capacity modal - checking if we need to save restored state')
+          setShowProjectModal(false)
+          
+          // Check if user has work in progress that needs to be saved
+          const hasWorkInProgress = originalImage || processedImageUrl
+          if (hasWorkInProgress) {
+            console.log('[DEBUG] User has work in progress after deletion - auto-creating project')
+            // Now that we have space, auto-create project from current state
+            await createProjectFromCurrent()
+          } else {
+            console.log('[DEBUG] No work in progress - creating fresh project')
+            // No work in progress, create fresh project
+            createProject()
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to delete project:', error)
     }
-  }, [session, currentProjectId, fetchUserProjects, resetWorkflow])
+  }, [session, currentProjectId, fetchUserProjects, resetWorkflow, showProjectModal, originalImage, processedImageUrl, createProjectFromCurrent, createProject])
 
   // Save only progress fields (for build step)
   const saveProgressOnly = useCallback(async () => {
@@ -679,6 +716,8 @@ export default function Editor() {
     console.log(`[CLIENT] handleStepNavigation called: ${newStep}`)
     // Check if trying to enter build step without auth
     if (newStep === 'build' && status !== 'authenticated') {
+      // Store that user wanted to go to build after login
+      sessionStorage.setItem('intendedStepAfterLogin', 'build')
       setShowAuthModal(true)
       return
     }
@@ -900,16 +939,136 @@ export default function Editor() {
     setBuildNavigation(wrappedNav)
   }, [scheduleBuildAutoSave])
 
-  // Handle user login - show project selection modal
+  // Handle OAuth restoration after redirect
   useEffect(() => {
-    if (session?.user?.id && !currentProjectId) {
-      fetchUserProjects().then(() => {
-        // Show project modal if user has no active project
-        setShowProjectModal(true)
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('restored') === 'true') {
+      console.log('[DEBUG] OAuth redirect detected, checking for saved state')
+      setIsRestoringOAuthState(true)
+      const savedState = sessionStorage.getItem('editorStateBeforeAuth')
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState)
+          console.log('[DEBUG] Restoring editor state after OAuth redirect')
+          console.log('[DEBUG] Saved state contains:')
+          console.log('  - originalImage:', state.originalImage ? `${state.originalImage.substring(0, 50)}...` : 'null')
+          console.log('  - croppedImage:', state.croppedImage ? `${state.croppedImage.substring(0, 50)}...` : 'null')
+          console.log('  - processedImageUrl:', state.processedImageUrl ? `${state.processedImageUrl.substring(0, 50)}...` : 'null')
+          console.log('  - step:', state.step)
+          console.log('  - lastReachedStep:', state.lastReachedStep)
+          console.log('  - cropParams:', state.cropParams)
+          console.log('  - diceParams:', state.diceParams)
+          
+          // Restore the state
+          if (state.originalImage) {
+            console.log('[DEBUG] Restoring originalImage')
+            setOriginalImage(state.originalImage)
+          }
+          if (state.croppedImage) {
+            console.log('[DEBUG] Restoring croppedImage')
+            setCroppedImage(state.croppedImage)
+          }
+          if (state.processedImageUrl) {
+            console.log('[DEBUG] Restoring processedImageUrl')
+            setProcessedImageUrl(state.processedImageUrl)
+          }
+          if (state.cropParams) {
+            console.log('[DEBUG] Restoring cropParams')
+            setCropParams(state.cropParams)
+          }
+          if (state.diceParams) {
+            console.log('[DEBUG] Restoring diceParams')
+            setDiceParams(state.diceParams)
+          }
+          if (state.step) {
+            console.log('[DEBUG] Restoring step')
+            setStep(state.step)
+          }
+          if (state.lastReachedStep) {
+            console.log('[DEBUG] Restoring lastReachedStep')
+            setLastReachedStep(state.lastReachedStep)
+          }
+          
+          // Clear the saved state and URL param
+          sessionStorage.removeItem('editorStateBeforeAuth')
+          window.history.replaceState({}, '', '/editor')
+          
+          // Set flag for auto-save to be handled after restoration completes
+          console.log('[DEBUG] Setting flag for auto-save after restoration completes')
+          sessionStorage.setItem('shouldAutoSaveRestoredState', 'true')
+          
+          // Check if user intended to go to build step after login
+          const intendedStep = sessionStorage.getItem('intendedStepAfterLogin')
+          if (intendedStep === 'build') {
+            console.log('[DEBUG] User intended to go to build step after login - navigating there')
+            sessionStorage.removeItem('intendedStepAfterLogin')
+            // Set step to build after restoration
+            setStep('build')
+            setLastReachedStep('build')
+          }
+          
+          // Mark restoration as complete - this will trigger auto-save logic
+          console.log('[DEBUG] OAuth state restoration complete')
+          // Note: The state variables here will show old values due to closure, but setState calls have been made
+          setIsRestoringOAuthState(false)
+        } catch (err) {
+          console.error('[DEBUG] Failed to restore state:', err)
+          setIsRestoringOAuthState(false)
+        }
+      } else {
+        setIsRestoringOAuthState(false)
+      }
+    }
+  }, []) // Run once on mount
+
+  // Handle user login - auto-create project or show capacity modal
+  useEffect(() => {
+    if (session?.user?.id && !currentProjectId && !isRestoringOAuthState) {
+      fetchUserProjects().then((projects) => {
+        const projectCount = (projects || []).length
+        console.log('[DEBUG] User logged in - Project count:', projectCount, '/ 3 max')
+        
+        // Check if user has work in progress (including restored OAuth state)
+        const shouldAutoSaveRestoredState = sessionStorage.getItem('shouldAutoSaveRestoredState') === 'true'
+        const hasWorkInProgress = originalImage || processedImageUrl || shouldAutoSaveRestoredState
+        
+        if (shouldAutoSaveRestoredState) {
+          console.log('[DEBUG] Found shouldAutoSaveRestoredState flag - state should now be restored')
+          console.log('[DEBUG] Current state - originalImage:', !!originalImage, 'processedImageUrl:', !!processedImageUrl, 'croppedImage:', !!croppedImage)
+          sessionStorage.removeItem('shouldAutoSaveRestoredState')
+        }
+        
+        if (hasWorkInProgress) {
+          // User has work - try to save it
+          if (projectCount < 3) {
+            // Under limit - auto-create project from current state
+            console.log('[DEBUG] User has work and under project limit - auto-creating project')
+            createProjectFromCurrent().then(() => {
+              console.log('[DEBUG] Work saved successfully as new project')
+            }).catch(err => {
+              console.error('[DEBUG] Failed to auto-save work:', err)
+            })
+          } else {
+            // At capacity - show deletion modal 
+            console.log('[DEBUG] User has work but at project capacity - showing deletion modal')
+            setShowProjectModal(true)
+          }
+        } else {
+          // No work in progress
+          if (projectCount < 3) {
+            // Under limit - create fresh project
+            console.log('[DEBUG] No work in progress and under limit - creating fresh project')
+            createProject()
+          } else {
+            // At capacity - show deletion modal (though unusual case)
+            console.log('[DEBUG] No work but at capacity - showing deletion modal') 
+            setShowProjectModal(true)
+          }
+        }
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id, currentProjectId])
+  }, [session?.user?.id, currentProjectId, isRestoringOAuthState, originalImage, processedImageUrl, croppedImage])
 
   
   // Handle build progress updates with throttling
@@ -1301,21 +1460,25 @@ export default function Editor() {
         onSuccess={() => {
           setShowAuthModal(false)
           setStep('build')
-          // After login, fetch projects and show modal
-          fetchUserProjects().then(() => {
-            setShowProjectModal(true)
-          })
+          // Everything else is handled automatically by the login useEffect
         }}
         message="Sign in to save your progress and start building your dice art"
+        editorState={{
+          originalImage,
+          croppedImage,
+          processedImageUrl,
+          cropParams,
+          diceParams,
+          step,
+          lastReachedStep
+        }}
       />
       
-      {/* Project Selection Modal */}
+      {/* Project Capacity Modal - only shown when at capacity */}
       <ProjectSelectionModal
         isOpen={showProjectModal}
-        // Don't provide onClose if user is logged in and has no active project - they must select one
-        onClose={(!session?.user || currentProjectId) ? () => setShowProjectModal(false) : undefined}
-        onCreateFromCurrent={originalImage ? createProjectFromCurrent : undefined}
-        onCreateNew={createProject}
+        onCreateFromCurrent={undefined} // No create options in new flow
+        onCreateNew={createProject} // Keep this for TypeScript, though unused in new flow
         onSelectProject={(projectId) => {
           const project = userProjects.find(p => p.id === projectId)
           if (project) {

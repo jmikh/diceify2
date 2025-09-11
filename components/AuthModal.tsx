@@ -10,10 +10,19 @@ interface AuthModalProps {
   onClose?: () => void
   onSuccess?: () => void
   message?: string
+  editorState?: {
+    originalImage?: string | null
+    croppedImage?: string | null
+    processedImageUrl?: string | null
+    cropParams?: any
+    diceParams?: any
+    step?: string
+    lastReachedStep?: string
+  }
 }
 
 export default function AuthModal({
-  isOpen, onClose, onSuccess, message }: AuthModalProps) {
+  isOpen, onClose, onSuccess, message, editorState }: AuthModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,9 +33,16 @@ export default function AuthModal({
     setError(null)
     
     try {
-      // For OAuth providers, we need to redirect to the provider's auth page
+      // OAuth providers require redirect, so save state to sessionStorage first
+      // The editor will restore this state after redirect
+      if (editorState) {
+        console.log('[DEBUG] Saving editor state before OAuth redirect')
+        sessionStorage.setItem('editorStateBeforeAuth', JSON.stringify(editorState))
+      }
+      
+      // For OAuth providers, we must redirect to the provider's auth page
       await signIn(provider, {
-        callbackUrl: '/editor'
+        callbackUrl: '/editor?restored=true'  // Add flag to indicate state should be restored
       })
       // The page will redirect, so this code won't execute
     } catch (err) {

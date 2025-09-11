@@ -39,6 +39,18 @@ export default function ProjectSelectionModal({
   const [selectedProject, setSelectedProject] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   
+  // Debug logging
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[DEBUG] ProjectSelectionModal opened with:')
+      console.log('[DEBUG] - hasCurrentState:', hasCurrentState)
+      console.log('[DEBUG] - onCreateFromCurrent:', onCreateFromCurrent ? 'function provided' : 'undefined')
+      console.log('[DEBUG] - projects count:', projects.length)
+      console.log('[DEBUG] - isAtCapacity:', projects.length >= maxProjects)
+      console.log('[DEBUG] - Button will show:', hasCurrentState && onCreateFromCurrent ? 'YES' : 'NO')
+    }
+  }, [isOpen, hasCurrentState, onCreateFromCurrent, projects.length, maxProjects])
+  
   const isAtCapacity = projects.length >= maxProjects
   
   // Sort projects by most recently updated
@@ -87,7 +99,7 @@ export default function ProjectSelectionModal({
           style={{ borderColor: theme.colors.glass.border }}
         >
           <h2 className="text-xl font-semibold" style={{ color: theme.colors.text.primary }}>
-            Select or Create Project
+            Project Capacity Reached
           </h2>
           {onClose && (
             <button
@@ -117,81 +129,23 @@ export default function ProjectSelectionModal({
             </div>
           )}
           
-          {/* Create Options */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
-              Create New
-            </h3>
-            
-            {/* Create from Current State */}
-            {hasCurrentState && onCreateFromCurrent && (
-              <button
-                onClick={onCreateFromCurrent}
-                disabled={isAtCapacity}
-                className="w-full p-4 rounded-lg border flex items-center gap-3 transition-all hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ 
-                  borderColor: theme.colors.glass.border,
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)'
-                }}
-              >
-                <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: theme.colors.accent.blue + '20' }}
-                >
-                  <Plus size={20} style={{ color: theme.colors.accent.blue }} />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="font-medium" style={{ color: theme.colors.text.primary }}>
-                    Create from Current Editor
-                  </div>
-                  <div className="text-xs" style={{ color: theme.colors.text.muted }}>
-                    Save your current work as a new project
-                  </div>
-                </div>
-              </button>
-            )}
-            
-            {/* Create New Empty Project */}
-            <button
-              onClick={onCreateNew}
-              disabled={isAtCapacity}
-              className="w-full p-4 rounded-lg border flex items-center gap-3 transition-all hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ 
-                borderColor: theme.colors.glass.border,
-                backgroundColor: 'rgba(255, 255, 255, 0.02)'
-              }}
-            >
-              <div 
-                className="p-2 rounded-lg"
-                style={{ backgroundColor: theme.colors.accent.green + '20' }}
-              >
-                <FolderOpen size={20} style={{ color: theme.colors.accent.green }} />
+          {/* Capacity Message */}
+          <div 
+            className="flex items-center gap-2 p-4 rounded-lg border"
+            style={{ 
+              borderColor: theme.colors.accent.pink + '40',
+              backgroundColor: theme.colors.accent.pink + '10'
+            }}
+          >
+            <AlertCircle size={20} style={{ color: theme.colors.accent.pink }} />
+            <div>
+              <div className="font-medium" style={{ color: theme.colors.text.primary }}>
+                You've reached the {maxProjects} project limit
               </div>
-              <div className="flex-1 text-left">
-                <div className="font-medium" style={{ color: theme.colors.text.primary }}>
-                  Create Empty Project
-                </div>
-                <div className="text-xs" style={{ color: theme.colors.text.muted }}>
-                  Start fresh with a new project
-                </div>
+              <div className="text-sm mt-1" style={{ color: theme.colors.text.muted }}>
+                Delete an existing project to save your current work, or load one of your existing projects below.
               </div>
-            </button>
-            
-            {/* Capacity Warning */}
-            {isAtCapacity && (
-              <div 
-                className="flex items-center gap-2 p-3 rounded-lg border"
-                style={{ 
-                  borderColor: theme.colors.accent.pink + '40',
-                  backgroundColor: theme.colors.accent.pink + '10'
-                }}
-              >
-                <AlertCircle size={16} style={{ color: theme.colors.accent.pink }} />
-                <span className="text-sm" style={{ color: theme.colors.text.primary }}>
-                  At project capacity ({maxProjects} max). Delete a project to create a new one.
-                </span>
-              </div>
-            )}
+            </div>
           </div>
           
           {/* Existing Projects */}

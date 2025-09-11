@@ -22,8 +22,8 @@ export default function ProgressBar({ percentage, showComplete = true, className
         />
       </div>
       <div className="text-center mt-1">
-        <span className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>
-          {percentage === 100 && showComplete ? 'Complete' : `${percentage}%`}
+        <span className="text-sm" style={{ color: theme.colors.text.secondary }}>
+          {percentage === 100 && showComplete ? 'Complete' : `${percentage.toFixed(1)}%`}
         </span>
       </div>
     </div>
