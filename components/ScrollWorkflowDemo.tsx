@@ -578,7 +578,22 @@ export default function ScrollWorkflowDemo() {
             <div 
               className={styles.transformContainer}
               style={{
-                opacity: 1  // Container always fully opaque, parent div controls visibility
+                opacity: 1,  // Container always fully opaque, parent div controls visibility
+                transform: (() => {
+                  // Deep zoom effect during fade out
+                  if (currentStage === 'transform' && stageProgress > 0.85) {
+                    // Exponential zoom from 1x to 5x in the last 15% of transform stage
+                    const zoomProgress = (stageProgress - 0.85) / 0.15
+                    const zoomLevel = 1 + (zoomProgress * zoomProgress * 4)  // Exponential curve to 5x
+                    return `scale(${zoomLevel})`
+                  } else if (currentStage === 'build') {
+                    // Continue zooming during build stage fade
+                    const zoomLevel = 5 + (stageProgress * 2)  // Continue to 7x
+                    return `scale(${zoomLevel})`
+                  }
+                  return 'scale(1)'
+                })(),
+                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
             >
               <DiceCanvas
@@ -622,8 +637,19 @@ export default function ScrollWorkflowDemo() {
             </div>
             
             {/* Particle effects */}
-            {currentStage === 'transform' && stageProgress > 0.2 && stageProgress < 0.9 && (
-              <div className={styles.particles}>
+            {currentStage === 'transform' && stageProgress > 0.2 && (
+              <div className={styles.particles} style={{
+                transform: (() => {
+                  // Particles also zoom with the canvas
+                  if (stageProgress > 0.85) {
+                    const zoomProgress = (stageProgress - 0.85) / 0.15
+                    const zoomLevel = 1 + (zoomProgress * zoomProgress * 4)
+                    return `scale(${zoomLevel})`
+                  }
+                  return 'scale(1)'
+                })(),
+                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}>
                 {Array.from({ length: 40 }, (_, i) => (
                   <div 
                     key={i}
