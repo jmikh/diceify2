@@ -560,16 +560,16 @@ export default function ScrollWorkflowDemo() {
             height: '100%',
             opacity: (() => {
               if (currentStage === 'transform') {
-                // Fade in quickly, then start fading out in last 30% of transform stage
+                // Fade in quickly, then start fading out in last 10% of transform stage
                 if (stageProgress < 0.2) {
                   return stageProgress * 5  // Fade in
-                } else if (stageProgress > 0.7) {
-                  return Math.max((1 - stageProgress) * 3.33, 0)  // Fade out in last 30%
+                } else if (stageProgress > 0.9) {
+                  return Math.max((1 - stageProgress) * 10, 0)  // Fade out quickly in last 10%
                 }
                 return 1  // Fully visible in middle
               } else if (currentStage === 'build') {
-                // Continue fading out during build stage
-                return Math.max(1 - stageProgress * 3, 0)
+                // Quickly fade out at start of build stage
+                return Math.max(1 - stageProgress * 10, 0)
               }
               return 0
             })(),
@@ -624,15 +624,17 @@ export default function ScrollWorkflowDemo() {
             {/* Particle effects */}
             {currentStage === 'transform' && stageProgress > 0.2 && stageProgress < 0.9 && (
               <div className={styles.particles}>
-                {Array.from({ length: 20 }, (_, i) => (
+                {Array.from({ length: 40 }, (_, i) => (
                   <div 
                     key={i}
                     className={styles.particle}
                     style={{
-                      left: `${20 + Math.random() * 60}%`,
-                      top: `${20 + Math.random() * 60}%`,
-                      animationDelay: `${Math.random() * 2}s`,
-                      opacity: Math.min((stageProgress - 0.2) * 2, 1) * Math.max(1 - (stageProgress - 0.7) * 3.33, 0)
+                      left: `${10 + Math.random() * 80}%`,
+                      top: `${10 + Math.random() * 80}%`,
+                      animationDelay: `${Math.random() * 4}s`,
+                      animationDuration: `${3 + Math.random() * 3}s`,
+                      opacity: Math.min((stageProgress - 0.2) * 2, 1) * Math.max(1 - (stageProgress - 0.7) * 3.33, 0),
+                      transform: `scale(${0.5 + Math.random() * 1})`
                     }}
                   />
                 ))}
@@ -643,9 +645,21 @@ export default function ScrollWorkflowDemo() {
         
         
         {/* Build Stage */}
-        {currentStage === 'build' && (
+        {(currentStage === 'build' || (currentStage === 'transform' && stageProgress > 0.9)) && (
           <div className={`${styles.stage} ${styles.buildStage}`} style={{
-            opacity: Math.min(stageProgress * 2, 1)  // Fade in during first 50% of build stage
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            opacity: (() => {
+              if (currentStage === 'transform' && stageProgress > 0.9) {
+                // Start fading in during last 10% of transform stage
+                return (stageProgress - 0.9) * 10
+              } else if (currentStage === 'build') {
+                // Quickly reach full opacity in first 10% of build stage
+                return Math.min(0.9 + stageProgress * 10, 1)
+              }
+              return 0
+            })()
           }}>
             <div className={styles.buildContainer}>
               {/* Use actual BuildViewer component */}
@@ -656,7 +670,7 @@ export default function ScrollWorkflowDemo() {
                   pointerEvents: 'none' // Disable interaction
                 }}
               >
-                {diceGrid ? (
+                {diceGrid && (currentStage === 'build' || (currentStage === 'transform' && stageProgress > 0.9)) ? (
                   <BuildViewer 
                     key={`build-${buildViewerKey.current}`} // Only remount when entering build stage
                     grid={diceGrid}
