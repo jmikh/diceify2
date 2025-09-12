@@ -1054,13 +1054,18 @@ export default function Editor() {
             setShowProjectModal(true)
           }
         } else {
-          // No work in progress
-          if (projectCount < 3) {
-            // Under limit - create fresh project
-            console.log('[DEBUG] No work in progress and under limit - creating fresh project')
+          // No work in progress - load most recent project if available
+          if (projects && projects.length > 0) {
+            // Load the most recent project (already sorted by updatedAt desc from API)
+            const mostRecentProject = projects[0]
+            console.log('[DEBUG] No work in progress - loading most recent project:', mostRecentProject.name)
+            loadProject(mostRecentProject)
+          } else if (projectCount < 3) {
+            // No existing projects and under limit - create fresh project
+            console.log('[DEBUG] No existing projects and under limit - creating fresh project')
             createProject()
           } else {
-            // At capacity - show deletion modal (though unusual case)
+            // At capacity with no projects (shouldn't happen)
             console.log('[DEBUG] No work but at capacity - showing deletion modal') 
             setShowProjectModal(true)
           }

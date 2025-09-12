@@ -86,6 +86,14 @@ const BuildViewer = memo(function BuildViewer({
   const animationRef = useRef<any>(null)
   const [containerDimensions, setContainerDimensions] = useState({ width: 600, height: 600 })
   
+  // Update position when props change
+  useEffect(() => {
+    if (initialX !== undefined && initialY !== undefined) {
+      setCurrentX(initialX)
+      setCurrentY(initialY)
+    }
+  }, [initialX, initialY])
+
   // Calculate index for progress (counting from bottom-left as position 0)
   // Since (0,0) is now bottom-left, the index is straightforward
   const currentIndex = useMemo(() => currentY * totalCols + currentX, [currentY, totalCols, currentX])
@@ -376,8 +384,8 @@ const BuildViewer = memo(function BuildViewer({
       const currentColor = currentDice?.color
       // Check if there's a different dice on the same row
       for (let x = currentX - 1; x >= 0; x--) {
-        const dice = grid.dice[x][currentY]
-        if (dice.face !== currentFace || dice.color !== currentColor) {
+        const dice = grid.dice[x]?.[currentY]
+        if (dice && (dice.face !== currentFace || dice.color !== currentColor)) {
           return true
         }
       }
@@ -389,8 +397,8 @@ const BuildViewer = memo(function BuildViewer({
       const currentColor = currentDice?.color
       // Check if there's a different dice on the same row
       for (let x = currentX + 1; x < totalCols; x++) {
-        const dice = grid.dice[x][currentY]
-        if (dice.face !== currentFace || dice.color !== currentColor) {
+        const dice = grid.dice[x]?.[currentY]
+        if (dice && (dice.face !== currentFace || dice.color !== currentColor)) {
           return true
         }
       }

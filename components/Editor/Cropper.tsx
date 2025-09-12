@@ -11,6 +11,10 @@ interface CropperProps {
   imageUrl: string
   onCropComplete: (croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => void
   initialCrop?: { x: number, y: number, width: number, height: number, rotation: number }
+  containerWidth?: number
+  containerHeight?: number
+  onCropperReady?: (cropper: FixedCropperRef) => void
+  hideControls?: boolean
 }
 
 type AspectRatio = '4:3' | '3:2' | '1:1' | '2:3' | '3:4'
@@ -88,7 +92,9 @@ const aspectRatioOptions: AspectRatioOption[] = [
 ]
 
 export default function Cropper({
-  imageUrl, onCropComplete, initialCrop }: CropperProps) {
+  imageUrl, onCropComplete, initialCrop, containerWidth, containerHeight, onCropperReady, hideControls = false }: CropperProps) {
+  console.log('Cropper component rendering, imageUrl:', imageUrl)
+  console.log('Cropper initialCrop:', initialCrop)
   const fixedCropperRef = useRef<FixedCropperRef>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
@@ -101,6 +107,20 @@ export default function Cropper({
     setHasAppliedInitialCrop(false)
   }, [imageUrl, initialCrop])
 
+  // Recalculate coordinates when container size changes
+  useEffect(() => {
+    if (fixedCropperRef.current && imageLoaded && (containerWidth || containerHeight)) {
+      // Force the cropper to refresh its calculations
+      const cropper = fixedCropperRef.current
+      cropper.refresh()
+      
+      // Re-notify parent in case it needs the updated ref
+      if (onCropperReady) {
+        onCropperReady(cropper)
+      }
+    }
+  }, [containerWidth, containerHeight, imageLoaded, onCropperReady])
+
   const selectedOption = aspectRatioOptions.find(opt => opt.value === selectedRatio) || aspectRatioOptions[2]
   
   // Update current ratio when fixed ratio is selected
@@ -111,20 +131,32 @@ export default function Cropper({
   }, [selectedRatio, selectedOption])
   
   // Calculate stencil size to maintain 3% padding from top and bottom
-  const containerHeight = 500  // Height of the container div
-  const containerWidth = 700  // Approximate max width we want for the stencil
+  const defaultContainerHeight = 500  // Default height of the container div
+  const defaultContainerWidth = 700  // Default max width we want for the stencil
+  const actualContainerHeight = containerHeight || defaultContainerHeight
+  const actualContainerWidth = containerWidth || defaultContainerWidth
   const paddingPercent = 0.94  // 94% of container (3% padding on each side)
   
   
   // Calculate based on height with 3% padding
-  let stencilHeight = containerHeight * paddingPercent
+  let stencilHeight = actualContainerHeight * paddingPercent
   let stencilWidth = selectedOption.ratio ? stencilHeight * selectedOption.ratio : stencilHeight
   
   // If width would exceed container, scale down proportionally
-  if (stencilWidth > containerWidth * paddingPercent) {
-    stencilWidth = containerWidth * paddingPercent
+  if (stencilWidth > actualContainerWidth * paddingPercent) {
+    stencilWidth = actualContainerWidth * paddingPercent
     stencilHeight = selectedOption.ratio ? stencilWidth / selectedOption.ratio : stencilWidth
   }
+  
+  console.log('Stencil size calculation:', {
+    actualContainerHeight,
+    actualContainerWidth,
+    paddingPercent,
+    selectedRatio,
+    selectedOption,
+    stencilWidth,
+    stencilHeight
+  })
 
 
 
@@ -211,11 +243,10 @@ export default function Cropper({
 
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4">
-          <div className="relative rounded-2xl overflow-hidden w-full mx-auto border" style={{ 
-            minWidth: '300px',
-            maxWidth: '700px',
-            height: '500px',
+    <div className={containerWidth ? "" : "w-full max-w-4xl mx-auto px-4"}>
+          <div className="relative rounded-2xl overflow-hidden mx-auto border" style={{ 
+            width: containerWidth ? `${containerWidth}px` : '700px',
+            height: containerHeight ? `${containerHeight}px` : '500px',
             background: 'rgba(255, 255, 255, 0.05)',
             backdropFilter: 'blur(10px)',
             borderColor: 'rgba(139, 92, 246, 0.2)',
@@ -242,10 +273,34 @@ export default function Cropper({
               }}
               imageRestriction={ImageRestriction.stencil}
               onReady={() => {
+                console.log('Cropper onReady fired')
                 setImageLoaded(true)
+                
+                if (fixedCropperRef.current) {
+                  const state = fixedCropperRef.current.getState()
+                  console.log('Cropper state on ready:', {
+                    image: state?.image,
+                    stencil: state?.stencil,
+                    coordinates: fixedCropperRef.current.getCoordinates(),
+                    visibleArea: state?.visibleArea,
+                    boundary: state?.boundary
+                  })
+                  
+                  // Refresh to ensure proper sizing
+                  fixedCropperRef.current.refresh()
+                  
+                  // Notify parent component that cropper is ready
+                  if (onCropperReady) {
+                    console.log('Cropper ready, passing ref to parent')
+                    console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(fixedCropperRef.current)).filter(m => typeof fixedCropperRef.current[m] === 'function'))
+                    onCropperReady(fixedCropperRef.current)
+                  }
+                }
+                
                 // Apply initial crop if provided, but only once
                 if (initialCrop && fixedCropperRef.current && !hasAppliedInitialCrop) {
                   const cropper = fixedCropperRef.current
+                  console.log('Applying initial crop:', initialCrop)
                   // Don't apply rotation - it's cumulative and causes issues
                   // The rotation is already applied when we generate the cropped image
                   // Just set the crop coordinates
@@ -262,30 +317,35 @@ export default function Cropper({
             />
             
             {/* Floating card for ratio display */}
-            <div className="absolute top-6 left-6 bg-gray-900/80 border border-white/20 text-white px-4 py-3 rounded-2xl shadow-xl z-10">
-              <div className="text-xs text-white/60 mb-1">
-                Aspect Ratio
+            {!hideControls && (
+              <div className="absolute top-6 left-6 bg-gray-900/80 border border-white/20 text-white px-4 py-3 rounded-2xl shadow-xl z-10">
+                <div className="text-xs text-white/60 mb-1">
+                  Aspect Ratio
+                </div>
+                <div className="text-xl font-bold tracking-wider">
+                  {currentRatio}
+                </div>
               </div>
-              <div className="text-xl font-bold tracking-wider">
-                {currentRatio}
-              </div>
-            </div>
+            )}
             
             {/* Floating rotate button */}
-            <button
-              onClick={() => handleRotate(90)}
-              className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-gray-900/80 hover:bg-gray-800/90 border border-white/20 text-white rounded-2xl transition-all hover:scale-110 shadow-xl z-10"
-              title="Rotate 90°"
-            >
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M23 4v6h-6M1 20v-6h6" />
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-              </svg>
-            </button>
+            {!hideControls && (
+              <button
+                onClick={() => handleRotate(90)}
+                className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-gray-900/80 hover:bg-gray-800/90 border border-white/20 text-white rounded-2xl transition-all hover:scale-110 shadow-xl z-10"
+                title="Rotate 90°"
+              >
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M23 4v6h-6M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+              </button>
+            )}
             
             {/* Floating aspect ratio selector */}
-            <div className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-gray-900/80 rounded-2xl border border-white/20 overflow-hidden shadow-2xl z-10">
-              {aspectRatioOptions.map((option, index) => (
+            {!hideControls && (
+              <div className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-gray-900/80 rounded-2xl border border-white/20 overflow-hidden shadow-2xl z-10">
+                {aspectRatioOptions.map((option, index) => (
                 <button
                   key={option.value}
                   onClick={() => setSelectedRatio(option.value)}
@@ -306,8 +366,9 @@ export default function Cropper({
                     {option.icon}
                   </div>
                 </button>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
     </div>
   )

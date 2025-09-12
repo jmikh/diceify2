@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, FolderOpen, Clock, Trash2, AlertCircle } from 'lucide-react'
+import { X, FolderOpen, Clock, Trash2, AlertCircle } from 'lucide-react'
 import { theme } from '@/lib/theme'
 
 interface Project {
@@ -36,7 +36,6 @@ export default function ProjectSelectionModal({
   hasCurrentState,
   maxProjects = 3
 }: ProjectSelectionModalProps) {
-  const [selectedProject, setSelectedProject] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   
   // Debug logging
@@ -113,21 +112,6 @@ export default function ProjectSelectionModal({
         
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Required selection message */}
-          {!onClose && (
-            <div 
-              className="p-3 rounded-lg border flex items-center gap-2"
-              style={{ 
-                borderColor: theme.colors.accent.blue + '40',
-                backgroundColor: theme.colors.accent.blue + '10'
-              }}
-            >
-              <AlertCircle size={16} style={{ color: theme.colors.accent.blue }} />
-              <span className="text-sm" style={{ color: theme.colors.text.primary }}>
-                Please select or create a project to continue
-              </span>
-            </div>
-          )}
           
           {/* Capacity Message */}
           <div 
@@ -155,19 +139,14 @@ export default function ProjectSelectionModal({
                 Existing Projects
               </h3>
               
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2">
                 {sortedProjects.map(project => (
                   <div
                     key={project.id}
-                    onClick={() => onSelectProject(project.id)}
-                    className="p-4 rounded-lg border flex items-center gap-3 cursor-pointer transition-all hover:bg-white/5 group"
+                    className="p-4 rounded-lg border flex items-center gap-3 transition-all group"
                     style={{ 
-                      borderColor: selectedProject === project.id 
-                        ? theme.colors.accent.blue 
-                        : theme.colors.glass.border,
-                      backgroundColor: selectedProject === project.id 
-                        ? theme.colors.accent.blue + '10' 
-                        : 'rgba(255, 255, 255, 0.02)'
+                      borderColor: theme.colors.glass.border,
+                      backgroundColor: 'rgba(255, 255, 255, 0.02)'
                     }}
                   >
                     {/* Project Thumbnail */}
@@ -211,16 +190,31 @@ export default function ProjectSelectionModal({
                       </div>
                     </div>
                     
-                    {/* Delete Button */}
-                    {onDeleteProject && (
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                      {/* Load Button */}
                       <button
-                        onClick={(e) => handleDeleteProject(project.id, e)}
-                        disabled={isDeleting}
-                        className="p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-white/10"
+                        onClick={() => onSelectProject(project.id)}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:bg-white/10"
+                        style={{ 
+                          color: theme.colors.accent.blue,
+                          border: `1px solid ${theme.colors.accent.blue}40`
+                        }}
                       >
-                        <Trash2 size={16} style={{ color: theme.colors.accent.pink }} />
+                        Load
                       </button>
-                    )}
+                      
+                      {/* Delete Button */}
+                      {onDeleteProject && (
+                        <button
+                          onClick={(e) => handleDeleteProject(project.id, e)}
+                          disabled={isDeleting}
+                          className="p-2 rounded-lg transition-all hover:bg-white/10"
+                        >
+                          <Trash2 size={16} style={{ color: theme.colors.accent.pink }} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

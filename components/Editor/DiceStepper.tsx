@@ -9,6 +9,8 @@ interface DiceStepperProps {
   onStepClick?: (step: WorkflowStep) => void
   hasImage?: boolean
   lastReachedStep?: WorkflowStep
+  vertical?: boolean
+  demoMode?: boolean
 }
 
 const steps: { id: WorkflowStep; dice: string; label: string }[] = [
@@ -19,7 +21,7 @@ const steps: { id: WorkflowStep; dice: string; label: string }[] = [
 ]
 
 const DiceStepper = memo(function DiceStepper({
-  currentStep, onStepClick, hasImage, lastReachedStep }: DiceStepperProps) {
+  currentStep, onStepClick, hasImage, lastReachedStep, vertical = false, demoMode = false }: DiceStepperProps) {
   const [justActivated, setJustActivated] = useState<WorkflowStep | null>(null)
 
   useEffect(() => {
@@ -31,7 +33,7 @@ const DiceStepper = memo(function DiceStepper({
   }, [currentStep])
 
   return (
-    <div className="flex items-center justify-center gap-3 px-5 py-2 ">
+    <div className={`flex ${vertical ? 'flex-col' : 'items-center'} justify-center gap-3 ${vertical ? 'py-5 px-2' : 'px-5 py-2'}`}>
       {steps.map((step, index) => {
         const isActive = step.id === currentStep
         
@@ -75,11 +77,11 @@ const DiceStepper = memo(function DiceStepper({
                       ? `${styles.diceInactive} hover:scale-110`
                       : styles.diceInactive
                   }
-                  ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-30'}
+                  ${isClickable ? 'cursor-pointer' : demoMode ? '' : 'cursor-not-allowed opacity-30'}
                 `}
               >
                 <span className={`
-                  ${isActive ? 'text-white/90' : isClickable ? 'text-gray-400' : 'text-gray-600/50'}
+                  ${isActive ? 'text-white/90' : (isClickable || demoMode) ? 'text-gray-400' : 'text-gray-600/50'}
                 `}>
                   {step.dice}
                 </span>
@@ -88,7 +90,7 @@ const DiceStepper = memo(function DiceStepper({
               {/* Label */}
               <div className={`
                 mt-1 text-xs font-medium text-center transition-colors
-                ${isActive ? 'text-blue-400/80' : isClickable ? 'text-gray-500' : 'text-gray-600/50'}
+                ${isActive ? 'text-blue-400/80' : (isClickable || demoMode) ? 'text-gray-500' : 'text-gray-600/50'}
               `}>
                 {step.label}
               </div>

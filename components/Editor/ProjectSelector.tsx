@@ -214,7 +214,7 @@ export default function ProjectSelector({
             }}
             className="text-left text-sm font-medium transition-all px-2 py-1 rounded hover:bg-white/10"
             style={{ 
-              color: isUntitled ? theme.colors.text.muted : theme.colors.text.primary
+              color: theme.colors.text.primary
             }}
           >
             {displayName}

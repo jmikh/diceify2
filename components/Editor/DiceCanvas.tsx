@@ -49,10 +49,11 @@ interface DiceCanvasProps {
   maxWidth?: number
   maxHeight?: number
   currentStep?: WorkflowStep
+  cropArea?: { x: number, y: number, width: number, height: number } | null
 }
 
 export default function DiceCanvas({
-  imageUrl, params, onStatsUpdate, onGridUpdate, onProcessedImageReady, maxWidth = 700, maxHeight = 500, currentStep }: DiceCanvasProps) {
+  imageUrl, params, onStatsUpdate, onGridUpdate, onProcessedImageReady, maxWidth = 700, maxHeight = 500, currentStep, cropArea }: DiceCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const svgContainerRef = useRef<HTMLDivElement>(null)
@@ -107,7 +108,8 @@ export default function DiceCanvas({
         params.numRows,
         params.contrast,
         params.gamma,
-        params.edgeSharpening
+        params.edgeSharpening,
+        cropArea
       )
       setGrayscaleImage(grayscale)
       
@@ -121,7 +123,8 @@ export default function DiceCanvas({
         params.edgeSharpening,
         params.rotate6,
         params.rotate3,
-        params.rotate2
+        params.rotate2,
+        cropArea
       )
 
       // Store current grid

@@ -53,14 +53,17 @@ export class DiceGenerator {
     edgeSharpening: number = 0,
     rotate6: boolean = false,
     rotate3: boolean = false,
-    rotate2: boolean = false
+    rotate2: boolean = false,
+    cropArea?: { x: number, y: number, width: number, height: number } | null
   ): Promise<DiceGrid> {
     // Load image
     const img = await this.loadImage(imageUrl)
     
     // Calculate grid dimensions respecting aspect ratio
-    // numRows determines the number of rows, columns are calculated from aspect ratio
-    const aspectRatio = img.width / img.height
+    // If cropArea is provided, use its aspect ratio, otherwise use full image
+    const sourceWidth = cropArea ? cropArea.width : img.width
+    const sourceHeight = cropArea ? cropArea.height : img.height
+    const aspectRatio = sourceWidth / sourceHeight
     const rows = numRows
     const cols = Math.round(numRows * aspectRatio)
 
@@ -72,7 +75,18 @@ export class DiceGenerator {
     // Draw image scaled down to grid size with smoothing for better averaging
     this.ctx.imageSmoothingEnabled = true
     this.ctx.imageSmoothingQuality = 'high'
-    this.ctx.drawImage(img, 0, 0, cols, rows)
+    
+    if (cropArea) {
+      // Draw only the cropped area
+      this.ctx.drawImage(
+        img, 
+        cropArea.x, cropArea.y, cropArea.width, cropArea.height, // Source rectangle
+        0, 0, cols, rows // Destination rectangle
+      )
+    } else {
+      // Draw full image
+      this.ctx.drawImage(img, 0, 0, cols, rows)
+    }
     
     // Get resized image data - each pixel is now one dice
     const imageData = this.ctx.getImageData(0, 0, cols, rows)
@@ -263,12 +277,14 @@ export class DiceGenerator {
     }
   }
 
-  async generateGrayscalePreview(imageUrl: string, numRows: number, contrast: number, gamma: number = 1.0, edgeSharpening: number = 0): Promise<string> {
+  async generateGrayscalePreview(imageUrl: string, numRows: number, contrast: number, gamma: number = 1.0, edgeSharpening: number = 0, cropArea?: { x: number, y: number, width: number, height: number } | null): Promise<string> {
     // Load image
     const img = await this.loadImage(imageUrl)
     
     // Calculate grid dimensions respecting aspect ratio (same as generateDiceGrid)
-    const aspectRatio = img.width / img.height
+    const sourceWidth = cropArea ? cropArea.width : img.width
+    const sourceHeight = cropArea ? cropArea.height : img.height
+    const aspectRatio = sourceWidth / sourceHeight
     const rows = numRows
     const cols = Math.round(numRows * aspectRatio)
     
@@ -279,7 +295,18 @@ export class DiceGenerator {
     // Draw image scaled down to grid size
     this.ctx.imageSmoothingEnabled = true
     this.ctx.imageSmoothingQuality = 'high'
-    this.ctx.drawImage(img, 0, 0, cols, rows)
+    
+    if (cropArea) {
+      // Draw only the cropped area
+      this.ctx.drawImage(
+        img,
+        cropArea.x, cropArea.y, cropArea.width, cropArea.height, // Source rectangle
+        0, 0, cols, rows // Destination rectangle
+      )
+    } else {
+      // Draw full image
+      this.ctx.drawImage(img, 0, 0, cols, rows)
+    }
     
     // Get downsampled image data
     let imageData = this.ctx.getImageData(0, 0, cols, rows)
