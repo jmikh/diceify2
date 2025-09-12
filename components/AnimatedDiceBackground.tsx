@@ -11,7 +11,7 @@ const generateDiceColumn = (height: number) => {
   const diceCount = Math.floor(height / 60) + 5 // Extra dice for seamless loop
   return Array.from({ length: diceCount }, () => ({
     face: generateDiceFace(),
-    color: Math.random() > 0.5 ? 'black' : 'white',
+    color: Math.random() > 0.5 ? 'black' : 'white' as 'black' | 'white',
     id: Math.random()
   }))
 }

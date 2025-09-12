@@ -279,11 +279,8 @@ export default function Cropper({
                 if (fixedCropperRef.current) {
                   const state = fixedCropperRef.current.getState()
                   console.log('Cropper state on ready:', {
-                    image: state?.image,
-                    stencil: state?.stencil,
-                    coordinates: fixedCropperRef.current.getCoordinates(),
-                    visibleArea: state?.visibleArea,
-                    boundary: state?.boundary
+                    state: state,
+                    coordinates: fixedCropperRef.current.getCoordinates()
                   })
                   
                   // Refresh to ensure proper sizing
@@ -292,7 +289,6 @@ export default function Cropper({
                   // Notify parent component that cropper is ready
                   if (onCropperReady) {
                     console.log('Cropper ready, passing ref to parent')
-                    console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(fixedCropperRef.current)).filter(m => typeof fixedCropperRef.current[m] === 'function'))
                     onCropperReady(fixedCropperRef.current)
                   }
                 }
