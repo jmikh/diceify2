@@ -27,12 +27,8 @@ export class DiceRenderer {
     const diceCountX = grid.width  // Number of columns
     const diceCountY = grid.height // Number of rows
     
-    // Calculate dice size to fit within max dimensions while maintaining aspect ratio
-    const diceSize = Math.min(
-      maxWidth / diceCountX,
-      maxHeight / diceCountY,
-      30 // Max dice size for performance
-    ) * scale
+    // Use fixed 24x24 pixel size per dice
+    const diceSize = 24 * scale
     
     // Set canvas size to exactly fit the dice grid at calculated size
     this.canvas.width = diceCountX * diceSize

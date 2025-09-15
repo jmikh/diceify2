@@ -301,7 +301,7 @@ const DiceStats = memo(function DiceStats({
             {/* Cost Input */}
             <div className="flex items-center justify-between">
               <label className="text-xs" style={{ color: theme.colors.text.secondary }}>
-                cost / 1k
+                cost / 1000
               </label>
               <div className="relative">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: theme.colors.text.muted }}>$</span>

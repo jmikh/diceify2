@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dice outline with 2 dots matching the logo (fallback without theme support) -->
+  <rect fill="none" stroke="#fff" stroke-width="2" x="5" y="5" width="22" height="22" rx="3" ry="3"/>
+  <!-- Dot 1 (top-left) -->
+  <circle fill="#fff" cx="11" cy="11" r="3"/>
+  <!-- Dot 2 (bottom-right) -->
+  <circle fill="#fff" cx="21" cy="21" r="3"/>
+</svg>

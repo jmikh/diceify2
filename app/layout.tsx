@@ -9,6 +9,20 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Dice Art Generator',
   description: 'Transform your photos into stunning dice art',
+  icons: {
+    icon: [
+      {
+        url: '/favicon.svg',
+        type: 'image/svg+xml',
+      },
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      }
+    ],
+    shortcut: '/favicon.svg',
+    apple: '/icon.svg',
+  }
 }
 
 export default function RootLayout({

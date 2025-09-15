@@ -6,6 +6,8 @@ import 'react-advanced-cropper/dist/style.css'
 import 'react-advanced-cropper/dist/themes/corners.css'
 import styles from './Cropper.module.css'
 import { theme } from '@/lib/theme'
+import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
+import { RotateCw } from 'lucide-react'
 
 interface CropperProps {
   imageUrl: string
@@ -101,6 +103,7 @@ export default function Cropper({
   const [imageLoaded, setImageLoaded] = useState(false)
   const [currentRatio, setCurrentRatio] = useState<string>('1:1')
   const [hasAppliedInitialCrop, setHasAppliedInitialCrop] = useState(false)
+  const [hoveredRatio, setHoveredRatio] = useState<AspectRatio | null>(null)
   
   // Reset the flag when imageUrl or initialCrop changes
   useEffect(() => {
@@ -244,7 +247,7 @@ export default function Cropper({
 
   return (
     <div className={containerWidth ? "" : "w-full max-w-4xl mx-auto px-4"}>
-          <div className="relative rounded-2xl overflow-hidden mx-auto border" style={{ 
+          <div className="relative rounded-xl overflow-hidden mx-auto border" style={{ 
             width: containerWidth ? `${containerWidth}px` : '700px',
             height: containerHeight ? `${containerHeight}px` : '500px',
             background: 'rgba(255, 255, 255, 0.05)',
@@ -312,56 +315,54 @@ export default function Cropper({
               onChange={handleCropperChange}
             />
             
-            {/* Floating card for ratio display */}
-            {!hideControls && (
-              <div className="absolute top-6 left-6 bg-gray-900/80 border border-white/20 text-white px-4 py-3 rounded-2xl shadow-xl z-10">
-                <div className="text-xs text-white/60 mb-1">
-                  Aspect Ratio
-                </div>
-                <div className="text-xl font-bold tracking-wider">
-                  {currentRatio}
-                </div>
-              </div>
-            )}
-            
             {/* Floating rotate button */}
             {!hideControls && (
-              <button
-                onClick={() => handleRotate(90)}
-                className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-gray-900/80 hover:bg-gray-800/90 border border-white/20 text-white rounded-2xl transition-all hover:scale-110 shadow-xl z-10"
-                title="Rotate 90°"
-              >
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M23 4v6h-6M1 20v-6h6" />
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                </svg>
-              </button>
+              <div className={overlayButtonStyles.container}>
+                <button
+                  onClick={() => handleRotate(90)}
+                  className={overlayButtonStyles.button}
+                  style={getOverlayButtonStyle('rotate', false, theme)}
+                  title="Rotate 90°"
+                >
+                  <RotateCw className={overlayButtonStyles.iconSmall} style={{ color: 'white' }} />
+                </button>
+              </div>
             )}
             
             {/* Floating aspect ratio selector */}
             {!hideControls && (
-              <div className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-gray-900/80 rounded-2xl border border-white/20 overflow-hidden shadow-2xl z-10">
+              <div className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-gray-900/80 rounded-l border border-white/20 overflow-hidden shadow-2xl z-10">
                 {aspectRatioOptions.map((option, index) => (
-                <button
-                  key={option.value}
-                  onClick={() => setSelectedRatio(option.value)}
-                  className={`relative flex items-center justify-center p-3 transition-all w-full ${
-                    selectedRatio === option.value
-                      ? 'text-white'
-                      : 'text-white/60 hover:bg-white/10 hover:text-white'
-                  } ${index !== 0 ? 'border-t border-white/10' : ''}`}
-                  style={{
-                    backgroundColor: selectedRatio === option.value ? theme.colors.glass.heavy : 'transparent'
-                  }}
-                  title={option.label}
-                >
-                  {selectedRatio === option.value && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: theme.colors.accent.blue }}></div>
+                <div key={option.value} className="relative">
+                  <button
+                    onClick={() => setSelectedRatio(option.value)}
+                    onMouseEnter={() => setHoveredRatio(option.value)}
+                    onMouseLeave={() => setHoveredRatio(null)}
+                    className={`relative flex items-center justify-center p-3 transition-all w-full ${
+                      selectedRatio === option.value
+                        ? 'text-white'
+                        : 'text-white/60 hover:bg-white/10 hover:text-white'
+                    } ${index !== 0 ? 'border-t border-white/10' : ''}`}
+                    style={{
+                      backgroundColor: selectedRatio === option.value ? theme.colors.glass.heavy : 'transparent'
+                    }}
+                  >
+                    {selectedRatio === option.value && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: theme.colors.accent.purple }}></div>
+                    )}
+                    <div className="flex items-center justify-center" style={{ height: '24px', width: '32px' }}>
+                      {option.icon}
+                    </div>
+                  </button>
+                  
+                  {/* Tooltip */}
+                  {hoveredRatio === option.value && (
+                    <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 pointer-events-none z-20 whitespace-nowrap">
+                      <div className="text-xs text-white/60 mb-1">Aspect Ratio</div>
+                      <div className="text-sm font-medium text-white">{option.label}</div>
+                    </div>
                   )}
-                  <div className="flex items-center justify-center" style={{ height: '24px', width: '32px' }}>
-                    {option.icon}
-                  </div>
-                </button>
+                </div>
                 ))}
               </div>
             )}

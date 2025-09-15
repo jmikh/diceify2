@@ -2,17 +2,22 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { theme } from '@/lib/theme'
+import { Cloud, CloudOff } from 'lucide-react'
 
 interface ProjectSelectorProps {
   currentProject: string
   currentProjectId?: string | null
   onProjectChange: (name: string) => void
+  lastSaved?: Date | null
+  isSaving?: boolean
 }
 
 export default function ProjectSelector({ 
   currentProject,
   currentProjectId,
-  onProjectChange
+  onProjectChange,
+  lastSaved,
+  isSaving = false
 }: ProjectSelectorProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(currentProject)
@@ -22,7 +27,12 @@ export default function ProjectSelector({
   const isDefaultName = !currentProject || 
     currentProject.startsWith('Untitled Project') || 
     currentProject.trim() === ''
-  const displayName = currentProject || 'Untitled Project'
+  
+  // Format display name with ellipsis if needed
+  const rawDisplayName = currentProject || 'Untitled Project'
+  const displayName = rawDisplayName.length > 20 
+    ? rawDisplayName.substring(0, 17) + '...' 
+    : rawDisplayName
   
   // Update edit value when current project changes
   useEffect(() => {
@@ -84,6 +94,31 @@ export default function ProjectSelector({
   }
 
   const [isHovering, setIsHovering] = useState(false)
+  const [isCloudHovering, setIsCloudHovering] = useState(false)
+  
+  // Format the last saved time
+  const formatSaveTime = (date: Date | null | undefined) => {
+    if (!date) return 'Never saved'
+    
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    
+    if (seconds < 15) return 'Just now'
+    if (seconds < 60) return `${seconds} seconds ago`
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`
+    return date.toLocaleDateString()
+  }
+  
+  // Determine save status text
+  const getSaveStatus = () => {
+    if (isSaving) return 'Saving...'
+    if (!lastSaved) return 'Not saved'
+    return `Saved ${formatSaveTime(lastSaved)}`
+  }
 
   return (
     <div 
@@ -101,10 +136,45 @@ export default function ProjectSelector({
           : isHovering
             ? 'rgba(255, 255, 255, 0.3)'
             : 'rgba(255, 255, 255, 0.1)',
-        minWidth: '200px',
+        minWidth: isEditing ? '200px' : `100px`,
+        transition: 'width 0.2s ease',
         cursor: !isEditing ? 'pointer' : 'text'
       }}
     >
+      {/* Cloud icon with save status */}
+      <div className="relative mr-2">
+        <div
+          onMouseEnter={() => setIsCloudHovering(true)}
+          onMouseLeave={() => setIsCloudHovering(false)}
+          className="relative"
+        >
+          <Cloud 
+            size={16} 
+            className={`transition-all ${isSaving ? 'animate-pulse' : ''}`}
+            style={{ 
+              color: isSaving 
+                ? theme.colors.accent.blue 
+                : lastSaved 
+                  ? theme.colors.text.secondary 
+                  : theme.colors.text.muted 
+            }} 
+          />
+          
+          {/* Tooltip */}
+          {isCloudHovering && (
+            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs rounded-lg transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md border z-50"
+              style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                borderColor: theme.colors.glass.border,
+                color: theme.colors.text.primary
+              }}
+            >
+              {getSaveStatus()}
+            </div>
+          )}
+        </div>
+      </div>
+      
       {isEditing ? (
         <input
           ref={inputRef}
@@ -132,6 +202,7 @@ export default function ProjectSelector({
           style={{ 
             color: isDefaultName ? theme.colors.text.muted : theme.colors.text.primary
           }}
+          title={rawDisplayName.length > 20 ? rawDisplayName : undefined}
         >
           {displayName}
         </button>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .dice-border {
+      fill: none;
+      stroke: #000;
+      stroke-width: 2;
+    }
+    .dice-dots {
+      fill: #000;
+    }
+    @media (prefers-color-scheme: dark) {
+      .dice-border {
+        stroke: #fff;
+      }
+      .dice-dots {
+        fill: #fff;
+      }
+    }
+  </style>
+  <!-- Dice outline with 2 dots matching the logo -->
+  <rect class="dice-border" x="5" y="5" width="22" height="22" rx="3" ry="3"/>
+  <!-- Dot 1 (top-left) -->
+  <circle class="dice-dots" cx="11" cy="11" r="3"/>
+  <!-- Dot 2 (bottom-right) -->
+  <circle class="dice-dots" cx="21" cy="21" r="3"/>
+</svg>

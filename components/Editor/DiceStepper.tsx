@@ -79,9 +79,15 @@ const DiceStepper = memo(function DiceStepper({
                   ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-30'}
                 `}
               >
-                <span className={`
+                <span 
+                className={`
                   ${isActive ? 'text-white/90' : isClickable ? 'text-gray-400' : 'text-gray-600/50'}
-                `}>
+                `}
+                style={{
+                  display: 'inline-block',
+                  transform: (step.id === 'crop' || step.id === 'tune') ? 'rotate(90deg)' : 'none'
+                }}
+              >
                   {step.dice}
                 </span>
               </button>

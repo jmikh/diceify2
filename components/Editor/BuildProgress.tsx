@@ -56,13 +56,6 @@ export default function BuildProgress({
 }: BuildProgressProps) {
   return (
     <div className="space-y-3">
-      {/* Position Info */}
-      <div className="text-center">
-        <div className="text-sm" style={{ color: theme.colors.accent.blue }}>
-          Row: {currentY + 1}, Column: {currentX + 1}
-        </div>
-      </div>
-
       {/* Navigation Controls */}
       <div className="flex items-center justify-center gap-1">
         <button

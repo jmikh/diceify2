@@ -28,7 +28,7 @@
 import { DiceParams, ColorMode } from '@/lib/types'
 import { theme } from '@/lib/theme'
 import { useState } from 'react'
-import { Grid3x3, Contrast, Sun, Sparkles, RotateCw } from 'lucide-react'
+import { Grid3x3, Contrast, Sun, Sparkles, RotateCw, Palette } from 'lucide-react'
 
 interface ControlPanelProps {
   params: DiceParams
@@ -92,9 +92,11 @@ export default function ControlPanel({
     <div className="p-4">
       <div className="space-y-4">
         {/* Color Mode - FIRST */}
-        <div>
+        <div className="flex items-center gap-2">
+          <Palette size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
+          
           <div 
-            className="flex rounded-lg overflow-hidden border"
+            className="flex flex-1 rounded-lg overflow-hidden border"
             style={{ 
               backgroundColor: theme.colors.glass.light,
               borderColor: theme.colors.glass.border
@@ -106,13 +108,13 @@ export default function ControlPanel({
               className="flex-1 h-10 flex items-center justify-center transition-all relative"
               style={{ 
                 backgroundColor: params.colorMode === 'both' ? theme.colors.accent.blue : 'transparent',
-                borderRight: `1px solid ${theme.colors.glass.border}`
               }}
             >
               {/* Diagonally split square */}
-              <svg width="20" height="20" viewBox="0 0 20 20">
-                <path d="M0 0 L20 20 L20 0 Z" fill="white" />
-                <path d="M0 0 L0 20 L20 20 Z" fill="black" />
+              <svg width="22" height="22" viewBox="0 0 22 22">
+                <path d="M1 1 L21 21 L21 1 Z" fill="white" />
+                <path d="M1 1 L1 21 L21 21 Z" fill="black" />
+                <rect x="0.5" y="0.5" width="21" height="21" fill="none" stroke="white" strokeWidth="1" />
               </svg>
             </button>
             
@@ -126,7 +128,7 @@ export default function ControlPanel({
               }}
             >
               {/* Black square */}
-              <div className="w-5 h-5 rounded-sm" style={{ backgroundColor: 'black' }} />
+              <div className="w-5 h-5 rounded-sm border" style={{ backgroundColor: 'black', borderColor: 'white' }} />
             </button>
             
             {/* White Only */}
@@ -138,7 +140,7 @@ export default function ControlPanel({
               }}
             >
               {/* White square */}
-              <div className="w-5 h-5 rounded-sm border" style={{ backgroundColor: 'white', borderColor: theme.colors.glass.border }} />
+              <div className="w-5 h-5 rounded-sm border" style={{ backgroundColor: 'white', borderColor: 'white' }} />
             </button>
           </div>
         </div>

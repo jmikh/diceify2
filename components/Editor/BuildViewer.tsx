@@ -29,6 +29,7 @@ import { animate } from 'motion'
 import { DiceGrid, Dice } from '@/lib/dice/types'
 import { DiceSVGRenderer } from '@/lib/dice/svg-renderer'
 import { theme } from '@/lib/theme'
+import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
 
 interface BuildViewerProps {
   grid: DiceGrid
@@ -507,7 +508,7 @@ const BuildViewer = memo(function BuildViewer({
   }, [canNavigate, navigatePrev, navigateNext, navigatePrevDiff, navigateNextDiff])
 
   return (
-    <div className="flex-1 w-full lg:w-auto">
+    <div className="flex w-full justify-center">
       <style jsx>{`
         .no-scrollbar::-webkit-scrollbar {
           display: none;
@@ -517,15 +518,16 @@ const BuildViewer = memo(function BuildViewer({
           scrollbar-width: none;
         }
       `}</style>
-      <div className="w-full">
+      <div className="w-full" style={{ minWidth: '320px', maxWidth: '720px' }}>
         <div 
             ref={containerRef}
             className="relative backdrop-blur-xl rounded-2xl border overflow-hidden w-full"
             style={{ 
               backgroundColor: theme.colors.glass.medium,
               borderColor: theme.colors.glass.border,
-              minWidth: '400px',
-              maxWidth: '900px',
+              width: '100%',
+              minWidth: '320px',
+              maxWidth: '720px',
               height: '600px'
             }}
           >
@@ -656,6 +658,11 @@ const BuildViewer = memo(function BuildViewer({
                     badgeY = totalRows - 1 - currentY + 1.3 // Move below
                   }
                   
+                  // Determine stick direction based on badge position
+                  const stickY1 = isAtTopEdge ? -0.20 : 0.20 // Start from top if badge is below
+                  const stickY2 = isAtTopEdge ? -0.35 : 0.35 // End at dice
+                  const stickY1Blue = isAtTopEdge ? -0.22 : 0.22 // Slightly bigger for blue badge
+                  
                   if (!showBadge) return null
                   
                   return (
@@ -682,9 +689,9 @@ const BuildViewer = memo(function BuildViewer({
                             
                             <line 
                               x1="0" 
-                              y1="0.20" 
+                              y1={stickY1} 
                               x2="0" 
-                              y2="0.35" 
+                              y2={stickY2} 
                               stroke={theme.colors.accent.purple} 
                               strokeWidth="0.1"
                               strokeOpacity="1"
@@ -719,9 +726,9 @@ const BuildViewer = memo(function BuildViewer({
                           
                           <line 
                             x1="0" 
-                            y1="0.22" 
+                            y1={stickY1Blue} 
                             x2="0" 
-                            y2="0.35" 
+                            y2={stickY2} 
                             stroke={theme.colors.accent.blue} 
                             strokeWidth="0.1"
                             strokeOpacity="1"
@@ -738,25 +745,31 @@ const BuildViewer = memo(function BuildViewer({
               </svg>
             </div>
 
+            {/* Position Display - top left */}
+            <div className="absolute top-3 left-3 px-3 py-2 rounded-lg backdrop-blur-md z-10"
+              style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <div className="text-white text-sm font-medium">
+                X: {currentX + 1}, Y: {currentY + 1}
+              </div>
+            </div>
+
             {/* Zoom Controls */}
-            <div className="absolute bottom-4 right-4 flex items-center gap-2">
+            <div className={overlayButtonStyles.container}>
               <button
                 onClick={() => setZoomLevel(Math.min(20, zoomLevel + 2))}
-                className="w-10 h-10 flex items-center justify-center rounded-lg backdrop-blur-md hover:opacity-80 transition-all text-white text-xl font-bold"
-                style={{ 
-                  backgroundColor: theme.colors.glass.pink, 
-                  border: `1px solid ${theme.colors.glass.pinkBorder}` 
-                }}
+                className={`${overlayButtonStyles.button} text-white text-xl font-bold`}
+                style={getOverlayButtonStyle('zoom', false, theme)}
               >
                 −
               </button>
               <button
                 onClick={() => setZoomLevel(Math.max(4, zoomLevel - 2))}
-                className="w-10 h-10 flex items-center justify-center rounded-lg backdrop-blur-md hover:opacity-80 transition-all text-white text-xl font-bold"
-                style={{ 
-                  backgroundColor: theme.colors.glass.pink, 
-                  border: `1px solid ${theme.colors.glass.pinkBorder}` 
-                }}
+                className={`${overlayButtonStyles.button} text-white text-xl font-bold`}
+                style={getOverlayButtonStyle('zoom', false, theme)}
               >
                 +
               </button>
