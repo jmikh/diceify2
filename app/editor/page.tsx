@@ -1127,28 +1127,55 @@ function EditorContent() {
   // Save state to localStorage whenever it changes (for recovery on refresh)
   useEffect(() => {
     // Only save if NOT logged in and we have meaningful state
-    if (!session?.user?.id && (originalImage || croppedImage || (cropParams && Object.keys(cropParams).length > 0))) {
-      const stateToSave = {
-        originalImage,
-        croppedImage,
-        processedImageUrl,
-        cropParams,
-        diceParams,
-        step,
-        lastReachedStep,
-        dieSize,
-        costPer1000,
-        projectName,
-        buildProgress,
-        diceStats
+    if (!session?.user?.id && (originalImage || (cropParams && Object.keys(cropParams).length > 0))) {
+      try {
+        // Only store what the database stores - no generated images
+        const stateToSave = {
+          originalImage,  // Keep this as it's the source image
+          // Don't save croppedImage or processedImageUrl - they're regenerated
+          cropParams,     // Used to regenerate cropped image
+          diceParams,     // Used to regenerate dice grid
+          step,
+          lastReachedStep,
+          dieSize,
+          costPer1000,
+          projectName,
+          buildProgress,
+          diceStats
+        }
+        localStorage.setItem('editorState', JSON.stringify(stateToSave))
+        devLog('[LOCAL STORAGE] Saved editor state (params only, not logged in)')
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          devError('[LOCAL STORAGE] Quota exceeded - clearing and retrying without image')
+          localStorage.removeItem('editorState')
+          // Try again without the original image
+          try {
+            const minimalState = {
+              cropParams,
+              diceParams,
+              step,
+              lastReachedStep,
+              dieSize,
+              costPer1000,
+              projectName,
+              buildProgress,
+              diceStats
+            }
+            localStorage.setItem('editorState', JSON.stringify(minimalState))
+            devLog('[LOCAL STORAGE] Saved minimal state without images')
+          } catch (retryError) {
+            devError('[LOCAL STORAGE] Failed to save even minimal state:', retryError)
+          }
+        } else {
+          devError('[LOCAL STORAGE] Failed to save state:', error)
+        }
       }
-      localStorage.setItem('editorState', JSON.stringify(stateToSave))
-      devLog('[LOCAL STORAGE] Saved editor state (not logged in)')
     } else if (session?.user?.id) {
       // Clear localStorage when logged in (using database instead)
       localStorage.removeItem('editorState')
     }
-  }, [session?.user?.id, originalImage, croppedImage, processedImageUrl, cropParams, diceParams, step, lastReachedStep, dieSize, costPer1000, projectName, buildProgress, diceStats])
+  }, [session?.user?.id, originalImage, cropParams, diceParams, step, lastReachedStep, dieSize, costPer1000, projectName, buildProgress, diceStats])
 
   // Restore state from localStorage on mount (if no project is loaded)
   useEffect(() => {
@@ -1164,11 +1191,10 @@ function EditorContent() {
           devLog('[LOCAL STORAGE] Found saved editor state, restoring...')
           
           // Only restore if the saved state has actual content
-          if (state.originalImage || state.croppedImage) {
+          if (state.originalImage || state.cropParams) {
             // Restore all state
             if (state.originalImage) setOriginalImage(state.originalImage)
-            if (state.croppedImage) setCroppedImage(state.croppedImage)
-            if (state.processedImageUrl) setProcessedImageUrl(state.processedImageUrl)
+            // Don't restore croppedImage or processedImageUrl - they'll be regenerated
             if (state.cropParams) setCropParams(state.cropParams)
             if (state.diceParams) setDiceParams(state.diceParams)
             if (state.dieSize) setDieSize(state.dieSize)
@@ -1178,7 +1204,37 @@ function EditorContent() {
             if (state.diceStats) setDiceStats(state.diceStats)
             if (state.step) setStep(state.step)
             if (state.lastReachedStep) setLastReachedStep(state.lastReachedStep)
-            
+
+            // If we have crop params and original image, regenerate the cropped image
+            // This is needed for the tune and build steps
+            if (state.cropParams && state.originalImage && (state.step === 'tune' || state.step === 'build')) {
+              devLog('[LOCAL STORAGE] Regenerating cropped image from params')
+              // Create a canvas to generate the cropped image
+              const img = new Image()
+              img.onload = () => {
+                const canvas = document.createElement('canvas')
+                canvas.width = state.cropParams.width
+                canvas.height = state.cropParams.height
+                const ctx = canvas.getContext('2d')
+                if (ctx) {
+                  // Draw the cropped portion
+                  ctx.drawImage(img,
+                    state.cropParams.x,
+                    state.cropParams.y,
+                    state.cropParams.width,
+                    state.cropParams.height,
+                    0, 0,
+                    state.cropParams.width,
+                    state.cropParams.height
+                  )
+                  const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.95)
+                  devLog('[LOCAL STORAGE] Cropped image regenerated successfully')
+                  setCroppedImage(croppedDataUrl)
+                }
+              }
+              img.src = state.originalImage
+            }
+
             devLog('[LOCAL STORAGE] State restored successfully')
             // Add small delay to ensure state is applied before showing UI
             setTimeout(() => setIsInitializing(false), 500)
