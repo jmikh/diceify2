@@ -336,6 +336,29 @@ const DiceStats = memo(function DiceStats({
                 />
               </span>
             </div>
+
+            {/* Amazon Buy Button */}
+            <div className="flex justify-center mt-6">
+              <a
+                href="https://amzn.to/3VRTOMM"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:opacity-80 border"
+                style={{
+                  backgroundColor: theme.colors.glass.light,
+                  borderColor: 'rgba(255, 153, 0, 0.2)',
+                  color: theme.colors.text.secondary
+                }}
+              >
+                <img
+                  src="/images/amazon-smile.png"
+                  alt="Amazon"
+                  className="h-4 w-4"
+                  style={{ filter: 'brightness(0) saturate(100%) invert(69%) sepia(89%) saturate(1517%) hue-rotate(360deg) brightness(107%) contrast(106%)' }}
+                />
+                <span className="text-xs">Buy Dice on Amazon</span>
+              </a>
+            </div>
           </div>
         </div>
       )}
