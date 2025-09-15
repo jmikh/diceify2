@@ -34,6 +34,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useSession, signOut } from 'next-auth/react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import ImageUploader from '@/components/Editor/ImageUploader'
 import Cropper from '@/components/Editor/Cropper'
@@ -53,6 +54,8 @@ import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
 
 export default function Editor() {
   const { data: session, status } = useSession()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState<WorkflowStep>('upload')
   const [lastReachedStep, setLastReachedStep] = useState<WorkflowStep>('upload')
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -86,9 +89,10 @@ export default function Editor() {
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null) // Processed dice grid image
   const [dieSize, setDieSize] = useState(16) // mm
   const [costPer1000, setCostPer1000] = useState(60) // dollars
-  const [projectName, setProjectName] = useState('Untitled Project')
+  const [projectName, setProjectName] = useState(`Untitled Project ${Math.random().toString(36).substring(2, 5).toUpperCase()}`)
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showProjectsSubmenu, setShowProjectsSubmenu] = useState(false)
   const [isRestoringOAuthState, setIsRestoringOAuthState] = useState(false)
   const [userProjects, setUserProjects] = useState<any[]>([])
   const [hasCropChanged, setHasCropChanged] = useState(false)
@@ -142,6 +146,7 @@ export default function Editor() {
       const target = event.target as HTMLElement
       if (!target.closest('.user-menu-container')) {
         setShowUserMenu(false)
+        setShowProjectsSubmenu(false)
       }
     }
 
@@ -213,7 +218,7 @@ export default function Editor() {
            Math.abs(params1.rotation - params2.rotation) < tolerance
   }
 
-  const handleCropComplete = (croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => {
+  const handleCropComplete = useCallback((croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => {
     // Check if crop parameters actually changed
     const hasChanged = !areCropParamsEqual(cropParams, params)
     
@@ -241,7 +246,7 @@ export default function Editor() {
     } else {
       console.log('[CROP] Crop parameters unchanged')
     }
-  }
+  }, [cropParams, lastReachedStep, buildProgress.x, buildProgress.y])
 
   // Generate hash from grid parameters to detect changes
   const generateGridHash = (params: DiceParams): string => {
@@ -353,6 +358,18 @@ export default function Editor() {
   
   // Handle stepper click navigation - simplified: allow clicking any step if image is uploaded
   
+  // Update URL with project ID
+  const updateURLWithProject = useCallback((projectId: string | null) => {
+    const params = new URLSearchParams(window.location.search)
+    if (projectId) {
+      params.set('project', projectId)
+    } else {
+      params.delete('project')
+    }
+    const newUrl = params.toString() ? `/editor?${params.toString()}` : '/editor'
+    router.push(newUrl, { scroll: false })
+  }, [router])
+
   // Fetch user projects
   const fetchUserProjects = useCallback(async () => {
     if (!session?.user?.id) return
@@ -381,6 +398,10 @@ export default function Editor() {
     // Reset all states for new project
     resetWorkflow()
     
+    // Generate random 3 characters for default name
+    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
+    const defaultName = `Untitled Project ${randomChars}`
+    
     // Saving automatically
     console.log(`[DB] Creating new empty project`)
     try {
@@ -388,7 +409,7 @@ export default function Editor() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'Untitled Project',
+          name: defaultName,
           lastReachedStep: 'upload',
           originalImage: null,
           croppedImage: null,
@@ -415,6 +436,7 @@ export default function Editor() {
         const project = await response.json()
         setCurrentProjectId(project.id)
         setProjectName(project.name)
+        updateURLWithProject(project.id)
         // Save completed
         setShowProjectModal(false)
         await fetchUserProjects()
@@ -437,6 +459,10 @@ export default function Editor() {
   const createProjectFromCurrent = useCallback(async () => {
     if (!session?.user?.id) return
     
+    // Generate random 3 characters for default name
+    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
+    const defaultName = `Untitled Project ${randomChars}`
+    
     // Saving automatically
     console.log(`[DB] Creating new project with current state`)
     console.log('[DB] Current state when creating project:')
@@ -449,7 +475,7 @@ export default function Editor() {
     
     try {
       const payload = {
-        name: 'Untitled Project',
+        name: defaultName,
         lastReachedStep,
         originalImage,
         croppedImage,
@@ -491,6 +517,7 @@ export default function Editor() {
         const project = await response.json()
         setCurrentProjectId(project.id)
         setProjectName(project.name)
+        updateURLWithProject(project.id)
         // Save completed
         setShowProjectModal(false)
         await fetchUserProjects()
@@ -520,6 +547,9 @@ export default function Editor() {
         if (projectId === currentProjectId) {
           // Reset if we deleted the current project
           resetWorkflow()
+          setCurrentProjectId(null)
+          setProjectName(`Untitled Project ${Math.random().toString(36).substring(2, 5).toUpperCase()}`)
+          updateURLWithProject(null)
         }
         
         // Check if we're in capacity modal and have work to save
@@ -773,6 +803,7 @@ export default function Editor() {
     // Set project info
     setCurrentProjectId(project.id)
     setProjectName(project.name)
+    updateURLWithProject(project.id)
     
     // Load images
     if (project.originalImage) {
@@ -939,6 +970,31 @@ export default function Editor() {
     setBuildNavigation(wrappedNav)
   }, [scheduleBuildAutoSave])
 
+  // Handle project loading from URL
+  useEffect(() => {
+    const projectId = searchParams.get('project')
+    if (projectId && session?.user?.id && !currentProjectId) {
+      console.log('[URL] Loading project from URL:', projectId)
+      // Fetch and load the specific project
+      fetch(`/api/projects/${projectId}`)
+        .then(response => {
+          if (response.ok) {
+            return response.json()
+          }
+          throw new Error('Project not found')
+        })
+        .then(project => {
+          console.log('[URL] Project loaded from URL')
+          loadProject(project)
+        })
+        .catch(error => {
+          console.error('[URL] Failed to load project from URL:', error)
+          // Clear invalid project ID from URL
+          updateURLWithProject(null)
+        })
+    }
+  }, [searchParams, session?.user?.id, currentProjectId, loadProject, updateURLWithProject])
+
   // Handle OAuth restoration after redirect
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -993,9 +1049,13 @@ export default function Editor() {
           sessionStorage.removeItem('editorStateBeforeAuth')
           window.history.replaceState({}, '', '/editor')
           
-          // Set flag for auto-save to be handled after restoration completes
-          console.log('[DEBUG] Setting flag for auto-save after restoration completes')
-          sessionStorage.setItem('shouldAutoSaveRestoredState', 'true')
+          // Set flag for auto-save ONLY if there's actual work (an image) to save
+          if (state.originalImage || state.processedImageUrl) {
+            console.log('[DEBUG] Setting flag for auto-save after restoration completes (has image)')
+            sessionStorage.setItem('shouldAutoSaveRestoredState', 'true')
+          } else {
+            console.log('[DEBUG] No image in restored state, skipping auto-save flag')
+          }
           
           // Check if user intended to go to build step after login
           const intendedStep = sessionStorage.getItem('intendedStepAfterLogin')
@@ -1023,53 +1083,86 @@ export default function Editor() {
 
   // Handle user login - auto-create project or show capacity modal
   useEffect(() => {
+    console.log('[LOGIN EFFECT] Triggered with:', {
+      hasSession: !!session?.user?.id,
+      currentProjectId,
+      isRestoringOAuthState,
+      originalImage: !!originalImage,
+      processedImageUrl: !!processedImageUrl,
+      croppedImage: !!croppedImage
+    })
+    
+    // Only run this logic when user just logged in and has no project loaded yet
     if (session?.user?.id && !currentProjectId && !isRestoringOAuthState) {
+      console.log('[LOGIN EFFECT] User logged in without current project, fetching user projects...')
       fetchUserProjects().then((projects) => {
         const projectCount = (projects || []).length
-        console.log('[DEBUG] User logged in - Project count:', projectCount, '/ 3 max')
+        console.log('[LOGIN EFFECT] Projects fetched:', {
+          projectCount,
+          projects: projects?.map((p: any) => ({ id: p.id, name: p.name, updatedAt: p.updatedAt }))
+        })
         
         // Check if user has work in progress (including restored OAuth state)
         const shouldAutoSaveRestoredState = sessionStorage.getItem('shouldAutoSaveRestoredState') === 'true'
         const hasWorkInProgress = originalImage || processedImageUrl || shouldAutoSaveRestoredState
         
+        console.log('[LOGIN EFFECT] Work state check:', {
+          shouldAutoSaveRestoredState,
+          hasOriginalImage: !!originalImage,
+          hasProcessedImageUrl: !!processedImageUrl,
+          hasCroppedImage: !!croppedImage,
+          hasWorkInProgress
+        })
+        
         if (shouldAutoSaveRestoredState) {
-          console.log('[DEBUG] Found shouldAutoSaveRestoredState flag - state should now be restored')
-          console.log('[DEBUG] Current state - originalImage:', !!originalImage, 'processedImageUrl:', !!processedImageUrl, 'croppedImage:', !!croppedImage)
+          console.log('[LOGIN EFFECT] Found shouldAutoSaveRestoredState flag - state should now be restored')
           sessionStorage.removeItem('shouldAutoSaveRestoredState')
         }
         
         if (hasWorkInProgress) {
           // User has work - try to save it
+          console.log('[LOGIN EFFECT] User has work in progress')
           if (projectCount < 3) {
             // Under limit - auto-create project from current state
-            console.log('[DEBUG] User has work and under project limit - auto-creating project')
+            console.log('[LOGIN EFFECT] Creating project from current state...')
             createProjectFromCurrent().then(() => {
-              console.log('[DEBUG] Work saved successfully as new project')
+              console.log('[LOGIN EFFECT] Work saved successfully as new project')
             }).catch(err => {
-              console.error('[DEBUG] Failed to auto-save work:', err)
+              console.error('[LOGIN EFFECT] Failed to auto-save work:', err)
             })
           } else {
             // At capacity - show deletion modal 
-            console.log('[DEBUG] User has work but at project capacity - showing deletion modal')
+            console.log('[LOGIN EFFECT] At capacity with unsaved work - showing deletion modal')
             setShowProjectModal(true)
           }
         } else {
           // No work in progress - load most recent project if available
-          if (projects && projects.length > 0) {
+          console.log('[LOGIN EFFECT] No work in progress')
+          // Don't load a project if URL already has a project ID (will be handled by URL effect)
+          const urlProjectId = searchParams.get('project')
+          if (!urlProjectId && projects && projects.length > 0) {
             // Load the most recent project (already sorted by updatedAt desc from API)
             const mostRecentProject = projects[0]
-            console.log('[DEBUG] No work in progress - loading most recent project:', mostRecentProject.name)
+            console.log('[LOGIN EFFECT] Loading most recent project:', mostRecentProject.name, mostRecentProject.id)
             loadProject(mostRecentProject)
-          } else if (projectCount < 3) {
+          } else if (!urlProjectId && projectCount < 3) {
             // No existing projects and under limit - create fresh project
-            console.log('[DEBUG] No existing projects and under limit - creating fresh project')
+            console.log('[LOGIN EFFECT] No existing projects - creating fresh project')
             createProject()
-          } else {
+          } else if (!urlProjectId && projectCount >= 3) {
             // At capacity with no projects (shouldn't happen)
-            console.log('[DEBUG] No work but at capacity - showing deletion modal') 
+            console.log('[LOGIN EFFECT] At capacity with no projects - showing deletion modal') 
             setShowProjectModal(true)
           }
         }
+      }).catch(err => {
+        console.error('[LOGIN EFFECT] Failed to fetch projects:', err)
+      })
+    } else {
+      console.log('[LOGIN EFFECT] Conditions not met, skipping:', {
+        hasSession: !!session?.user?.id,
+        hasCurrentProjectId: !!currentProjectId,
+        isRestoringOAuthState
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1150,24 +1243,30 @@ export default function Editor() {
           pointerEvents: headerOpacity < 0.1 ? 'none' : 'auto'
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 py-4 relative flex items-center">
-          
-          {/* Logo on the left - clickable to go home */}
-          <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
-            <Logo />
-          </Link>
-          
-          {/* Spacer */}
-          <div className="flex-1"></div>
-          
-          {/* Auth Button */}
-          <div className="absolute right-4">
-            {status === 'authenticated' && session ? (
+        <div className="max-w-7xl mx-auto px-4 py-4 relative">
+          {/* Top row with logo and auth */}
+          <div className="flex items-center">
+            {/* Logo - always on left */}
+            <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
+              <Logo />
+            </Link>
+            
+            {/* Spacer for desktop */}
+            <div className="flex-1 hidden sm:block"></div>
+            
+            {/* Auth Button - always on right */}
+            <div className="ml-auto">
+              {status === 'authenticated' && session ? (
               <div className="flex items-center gap-3">
                 <div className="relative user-menu-container">
                   <div 
                     className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-600 hover:border-gray-400 transition-colors cursor-pointer"
-                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    onClick={() => {
+                      setShowUserMenu(!showUserMenu)
+                      if (!showUserMenu) {
+                        fetchUserProjects()
+                      }
+                    }}
                   >
                     {session.user?.image ? (
                       <img 
@@ -1194,7 +1293,7 @@ export default function Editor() {
                   
                   {/* Dropdown menu */}
                   {showUserMenu && (
-                    <div className="absolute top-full right-0 mt-2 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden z-50">
+                    <div className="absolute top-full right-0 mt-2 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden z-50" style={{ minWidth: '250px' }}>
                       <div className="px-4 py-3 border-b border-gray-700">
                         <div className="text-sm font-medium text-white">
                           {session.user?.name || 'User'}
@@ -1203,12 +1302,124 @@ export default function Editor() {
                           {session.user?.email}
                         </div>
                       </div>
+                      
+                      {/* Projects Menu Item */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowProjectsSubmenu(!showProjectsSubmenu)}
+                          className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-between"
+                        >
+                          <span>Projects</span>
+                          <svg 
+                            className={`w-4 h-4 transition-transform ${showProjectsSubmenu ? 'rotate-180' : ''}`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        
+                        {/* Projects Submenu */}
+                        {showProjectsSubmenu && (
+                          <div className="border-t border-gray-700">
+                            {userProjects.length > 0 ? (
+                              <>
+                                {userProjects.map((project) => (
+                                  <div
+                                    key={project.id}
+                                    className="w-full px-6 py-2 text-sm hover:bg-white/10 transition-colors flex items-center justify-between group"
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        loadProject(project)
+                                        setShowUserMenu(false)
+                                        setShowProjectsSubmenu(false)
+                                      }}
+                                      className="flex-1 min-w-0 text-left flex items-center"
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-white/80 truncate">
+                                          {project.name || 'Untitled Project'}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {new Date(project.updatedAt).toLocaleDateString()}
+                                          {project.percentComplete !== undefined && (
+                                            <span className="ml-1">• {Math.round(project.percentComplete)}%</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </button>
+                                    <div className="flex items-center gap-2 ml-2">
+                                      {project.id === currentProjectId ? (
+                                        <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      ) : (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            deleteProject(project.id)
+                                          }}
+                                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
+                                          title="Delete project"
+                                        >
+                                          <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                {userProjects.length < 3 && (
+                                  <button
+                                    onClick={() => {
+                                      createProject()
+                                      setShowUserMenu(false)
+                                      setShowProjectsSubmenu(false)
+                                    }}
+                                    className="w-full px-6 py-2 text-sm text-left text-blue-400 hover:text-blue-300 hover:bg-white/10 transition-colors flex items-center border-t border-gray-700"
+                                  >
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Create New Project
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <div className="px-6 py-3">
+                                <div className="text-xs text-gray-500 mb-2">No projects yet</div>
+                                <button
+                                  onClick={() => {
+                                    createProject()
+                                    setShowUserMenu(false)
+                                    setShowProjectsSubmenu(false)
+                                  }}
+                                  className="text-sm text-blue-400 hover:text-blue-300"
+                                >
+                                  Create your first project
+                                </button>
+                              </div>
+                            )}
+                            {userProjects.length >= 3 && (
+                              <div className="px-6 py-2 text-xs text-gray-500 border-t border-gray-700">
+                                At capacity (3 max)
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Sign Out */}
                       <button
                         onClick={() => {
                           setShowUserMenu(false)
+                          setShowProjectsSubmenu(false)
                           signOut()
                         }}
-                        className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+                        className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors border-t border-gray-700"
                       >
                         Sign out
                       </button>
@@ -1224,34 +1435,33 @@ export default function Editor() {
                 Sign in
               </button>
             )}
+            </div>
+          </div>
+          
+          {/* Project name - absolutely positioned center on desktop, below logo on mobile */}
+          <div className="sm:absolute sm:left-1/2 sm:top-4 sm:transform sm:-translate-x-1/2 mt-3 sm:mt-0 flex justify-center py-2">
+            {session?.user && (
+              <ProjectSelector 
+                currentProject={projectName}
+                currentProjectId={currentProjectId}
+                onProjectChange={(name: string) => {
+                  // Just update the local state - ProjectSelector handles the API call
+                  setProjectName(name)
+                  // Update the local projects list to reflect the change
+                  setUserProjects(prev => prev.map(p => 
+                    p.id === currentProjectId ? { ...p, name: name } : p
+                  ))
+                }}
+              />
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="relative h-screen overflow-y-auto p-8 pt-24">
-        {/* Center: Project Selector and Stepper */}
-        <div className="flex justify-center items-center gap-8 mb-4">
-          {/* Project selector */}
-          {session?.user && (
-            <ProjectSelector 
-              currentProject={projectName}
-              currentProjectId={currentProjectId}
-              projects={userProjects}
-              onProjectChange={(name: string) => {
-                // Just update the local state - ProjectSelector handles the API call
-                setProjectName(name)
-                // Update the local projects list to reflect the change
-                setUserProjects(prev => prev.map(p => 
-                  p.id === currentProjectId ? { ...p, name: name } : p
-                ))
-              }}
-              onProjectSelect={loadProject}
-              onCreateProject={createProject}
-              onProjectsChange={fetchUserProjects}
-            />
-          )}
-          
+      <main className="relative h-screen overflow-y-auto p-8 pt-36 sm:pt-24">
+        {/* Center: Stepper */}
+        <div className="flex justify-center items-center mb-4">
           {/* Stepper */}
           <DiceStepper
             currentStep={step} 

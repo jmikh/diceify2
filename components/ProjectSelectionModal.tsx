@@ -63,8 +63,6 @@ export default function ProjectSelectionModal({
     e.stopPropagation()
     if (isDeleting) return
     
-    if (!window.confirm('Are you sure you want to delete this project?')) return
-    
     setIsDeleting(true)
     try {
       await onDeleteProject?.(projectId)

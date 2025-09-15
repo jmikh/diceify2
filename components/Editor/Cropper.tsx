@@ -93,8 +93,8 @@ const aspectRatioOptions: AspectRatioOption[] = [
 
 export default function Cropper({
   imageUrl, onCropComplete, initialCrop, containerWidth, containerHeight, onCropperReady, hideControls = false }: CropperProps) {
-  console.log('Cropper component rendering, imageUrl:', imageUrl)
-  console.log('Cropper initialCrop:', initialCrop)
+  // console.log('Cropper component rendering, imageUrl:', imageUrl)
+  // console.log('Cropper initialCrop:', initialCrop)
   const fixedCropperRef = useRef<FixedCropperRef>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
