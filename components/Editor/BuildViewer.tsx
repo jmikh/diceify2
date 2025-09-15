@@ -746,17 +746,6 @@ const BuildViewer = memo(function BuildViewer({
               </svg>
             </div>
 
-            {/* Position Display - top left */}
-            <div className="absolute top-3 left-3 px-3 py-2 rounded-lg backdrop-blur-md z-10"
-              style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
-              }}
-            >
-              <div className="text-white text-sm font-medium">
-                X: {currentX + 1}, Y: {currentY + 1}
-              </div>
-            </div>
 
             {/* Zoom Controls */}
             <div className="absolute top-3 right-3 flex gap-2 z-10">

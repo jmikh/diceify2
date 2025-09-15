@@ -75,7 +75,7 @@ export default function BuildProgress({
           onClick={() => onNavigate('prev')}
           disabled={!canNavigate.prev}
           className="p-2 rounded-lg transition-all disabled:opacity-30"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.glass.light,
             color: canNavigate.prev ? theme.colors.text.primary : theme.colors.text.muted
           }}
@@ -84,11 +84,78 @@ export default function BuildProgress({
           <ChevronLeft size={20} />
         </button>
 
+        {/* Position Display - X and Y in separate squares */}
+        <div className="flex items-center gap-1.5">
+          {/* X Square */}
+          <fieldset className="relative"
+            style={{
+              width: '36px',
+              height: '36px',
+              backgroundColor: theme.colors.glass.medium,
+              border: `2px solid ${theme.colors.glass.border}`,
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: 0,
+              padding: 0
+            }}
+          >
+            {/* X label in border gap */}
+            <legend style={{
+              padding: '0 3px',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              color: theme.colors.text.muted,
+              fontSize: '10px',
+              lineHeight: '1',
+              transform: 'translateY(-2px)'
+            }}>
+              x
+            </legend>
+            <span className="text-white text-sm font-medium" style={{ position: 'absolute' }}>
+              {currentX + 1}
+            </span>
+          </fieldset>
+
+          {/* Y Square */}
+          <fieldset className="relative"
+            style={{
+              width: '36px',
+              height: '36px',
+              backgroundColor: theme.colors.glass.medium,
+              border: `2px solid ${theme.colors.glass.border}`,
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: 0,
+              padding: 0
+            }}
+          >
+            {/* Y label in border gap */}
+            <legend style={{
+              padding: '0 3px',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              color: theme.colors.text.muted,
+              fontSize: '10px',
+              lineHeight: '1',
+              transform: 'translateY(-2px)'
+            }}>
+              y
+            </legend>
+            <span className="text-white text-sm font-medium" style={{ position: 'absolute' }}>
+              {currentY + 1}
+            </span>
+          </fieldset>
+        </div>
+
         <button
           onClick={() => onNavigate('next')}
           disabled={!canNavigate.next}
           className="p-2 rounded-lg transition-all disabled:opacity-30"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.glass.light,
             color: canNavigate.next ? theme.colors.text.primary : theme.colors.text.muted
           }}
