@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { theme } from '@/lib/theme'
 import { X } from 'lucide-react'
+import { devLog } from '@/lib/utils/debug'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -36,7 +37,7 @@ export default function AuthModal({
       // OAuth providers require redirect, so save state to sessionStorage first
       // The editor will restore this state after redirect
       if (editorState) {
-        console.log('[DEBUG] Saving editor state before OAuth redirect')
+        devLog('[DEBUG] Saving editor state before OAuth redirect')
         sessionStorage.setItem('editorStateBeforeAuth', JSON.stringify(editorState))
       }
       

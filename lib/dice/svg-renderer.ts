@@ -30,6 +30,7 @@
 
 import { DiceGrid, DiceColor, DiceFace } from './types'
 import { DICE_RENDERING } from './constants'
+import { devWarn } from '../utils/debug'
 
 export class DiceSVGRenderer {
   private getSvgDice(side: DiceFace, color: DiceColor, rotate90: boolean = false): string {
@@ -122,7 +123,7 @@ export class DiceSVGRenderer {
       for (let y = 0; y < rows; y++) {
         const dice = grid.dice[x]?.[y]
         if (!dice) {
-          console.warn(`Missing dice at x ${x}, y ${y}`)
+          devWarn(`Missing dice at x ${x}, y ${y}`)
           continue
         }
         

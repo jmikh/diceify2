@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, FolderOpen, Clock, Trash2, AlertCircle } from 'lucide-react'
 import { theme } from '@/lib/theme'
+import { devLog } from '@/lib/utils/debug'
 
 interface Project {
   id: string
@@ -41,12 +42,12 @@ export default function ProjectSelectionModal({
   // Debug logging
   useEffect(() => {
     if (isOpen) {
-      console.log('[DEBUG] ProjectSelectionModal opened with:')
-      console.log('[DEBUG] - hasCurrentState:', hasCurrentState)
-      console.log('[DEBUG] - onCreateFromCurrent:', onCreateFromCurrent ? 'function provided' : 'undefined')
-      console.log('[DEBUG] - projects count:', projects.length)
-      console.log('[DEBUG] - isAtCapacity:', projects.length >= maxProjects)
-      console.log('[DEBUG] - Button will show:', hasCurrentState && onCreateFromCurrent ? 'YES' : 'NO')
+      devLog('[DEBUG] ProjectSelectionModal opened with:')
+      devLog('[DEBUG] - hasCurrentState:', hasCurrentState)
+      devLog('[DEBUG] - onCreateFromCurrent:', onCreateFromCurrent ? 'function provided' : 'undefined')
+      devLog('[DEBUG] - projects count:', projects.length)
+      devLog('[DEBUG] - isAtCapacity:', projects.length >= maxProjects)
+      devLog('[DEBUG] - Button will show:', hasCurrentState && onCreateFromCurrent ? 'YES' : 'NO')
     }
   }, [isOpen, hasCurrentState, onCreateFromCurrent, projects.length, maxProjects])
   

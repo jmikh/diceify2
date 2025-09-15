@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { devLog, devError } from '@/lib/utils/debug'
 
 // GET /api/projects/[id] - Get single project
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] GET /api/projects/${params.id} - Fetching project for user ${session.user.id}`)
+  devLog(`[DB] GET /api/projects/${params.id} - Fetching project for user ${session.user.id}`)
   try {
     const project = await prisma.project.findFirst({
       where: {
@@ -23,14 +24,14 @@ export async function GET(
     })
     
     if (!project) {
-      console.log(`[DB] Project ${params.id} not found`)
+      devLog(`[DB] Project ${params.id} not found`)
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
-    console.log(`[DB] Found project ${params.id}`)
+    devLog(`[DB] Found project ${params.id}`)
     return NextResponse.json(project)
   } catch (error) {
-    console.error('Error fetching project:', error)
+    devError('Error fetching project:', error)
     return NextResponse.json({ error: 'Failed to fetch project' }, { status: 500 })
   }
 }
@@ -46,13 +47,13 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] PATCH /api/projects/${params.id} - Updating project for user ${session.user.id}`)
+  devLog(`[DB] PATCH /api/projects/${params.id} - Updating project for user ${session.user.id}`)
   try {
     const body = await request.json()
-    console.log(`[DB] Update data keys: ${Object.keys(body).join(', ')}`)
+    devLog(`[DB] Update data keys: ${Object.keys(body).join(', ')}`)
     
     // Check if project belongs to user
-    console.log(`[DB] Checking project ownership`)
+    devLog(`[DB] Checking project ownership`)
     const existingProject = await prisma.project.findFirst({
       where: {
         id: params.id,
@@ -65,7 +66,7 @@ export async function PATCH(
     }
     
     // Update project
-    console.log(`[DB] Updating project ${params.id}`)
+    devLog(`[DB] Updating project ${params.id}`)
     const project = await prisma.project.update({
       where: {
         id: params.id
@@ -79,10 +80,10 @@ export async function PATCH(
       }
     })
     
-    console.log(`[DB] Successfully updated project ${params.id}`)
+    devLog(`[DB] Successfully updated project ${params.id}`)
     return NextResponse.json(project)
   } catch (error) {
-    console.error('Error updating project:', error)
+    devError('Error updating project:', error)
     return NextResponse.json({ error: 'Failed to update project' }, { status: 500 })
   }
 }
@@ -98,10 +99,10 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] DELETE /api/projects/${params.id} - Deleting project for user ${session.user.id}`)
+  devLog(`[DB] DELETE /api/projects/${params.id} - Deleting project for user ${session.user.id}`)
   try {
     // Check if project belongs to user
-    console.log(`[DB] Checking project ownership before deletion`)
+    devLog(`[DB] Checking project ownership before deletion`)
     const project = await prisma.project.findFirst({
       where: {
         id: params.id,
@@ -114,17 +115,17 @@ export async function DELETE(
     }
     
     // Delete project
-    console.log(`[DB] Deleting project ${params.id}`)
+    devLog(`[DB] Deleting project ${params.id}`)
     await prisma.project.delete({
       where: {
         id: params.id
       }
     })
     
-    console.log(`[DB] Successfully deleted project ${params.id}`)
+    devLog(`[DB] Successfully deleted project ${params.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting project:', error)
+    devError('Error deleting project:', error)
     return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 })
   }
 }

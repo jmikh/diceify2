@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { devLog, devError } from '@/lib/utils/debug'
 
 // Shared function for updating progress
 async function updateProgress(
@@ -13,14 +14,14 @@ async function updateProgress(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  console.log(`[DB] /api/projects/${params.id}/progress - Updating progress for user ${session.user.id}`)
+  devLog(`[DB] /api/projects/${params.id}/progress - Updating progress for user ${session.user.id}`)
   try {
     const body = await request.json()
     const { currentX, currentY, completedDice, lastReachedStep } = body
-    console.log(`[DB] Progress update: x=${currentX}, y=${currentY}, completed=${completedDice}, lastReachedStep=${lastReachedStep}`)
+    devLog(`[DB] Progress update: x=${currentX}, y=${currentY}, completed=${completedDice}, lastReachedStep=${lastReachedStep}`)
     
     // Check if project belongs to user
-    console.log(`[DB] Checking project ownership`)
+    devLog(`[DB] Checking project ownership`)
     const existingProject = await prisma.project.findFirst({
       where: {
         id: params.id,
@@ -33,7 +34,7 @@ async function updateProgress(
     }
     
     // Update progress fields and lastReachedStep
-    console.log(`[DB] Updating progress for project ${params.id}`)
+    devLog(`[DB] Updating progress for project ${params.id}`)
     const project = await prisma.project.update({
       where: {
         id: params.id
@@ -49,10 +50,10 @@ async function updateProgress(
       }
     })
     
-    console.log(`[DB] Successfully updated progress for project ${params.id}`)
+    devLog(`[DB] Successfully updated progress for project ${params.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating progress:', error)
+    devError('Error updating progress:', error)
     return NextResponse.json({ error: 'Failed to update progress' }, { status: 500 })
   }
 }

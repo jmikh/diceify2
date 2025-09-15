@@ -30,6 +30,7 @@ import { DiceGrid, Dice } from '@/lib/dice/types'
 import { DiceSVGRenderer } from '@/lib/dice/svg-renderer'
 import { theme } from '@/lib/theme'
 import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
+import { devLog } from '@/lib/utils/debug'
 
 interface BuildViewerProps {
   grid: DiceGrid
@@ -58,8 +59,8 @@ const BuildViewer = memo(function BuildViewer({
   onNavigationReady 
 }: BuildViewerProps) {
   
-  console.log(`[BuildViewer] Rendering with grid ${grid.width}x${grid.height}, initial position (${initialX}, ${initialY})`)
-  console.log('[DEBUG BuildViewer] Props received:', { initialX, initialY })
+  devLog(`[BuildViewer] Rendering with grid ${grid.width}x${grid.height}, initial position (${initialX}, ${initialY})`)
+  devLog('[DEBUG BuildViewer] Props received:', { initialX, initialY })
   
   // Use refs to track the initial values but don't use them as state initializers
   // This prevents re-renders when initialX/Y change

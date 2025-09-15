@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { theme } from '@/lib/theme'
 import { Cloud, CloudOff } from 'lucide-react'
+import { devError } from '@/lib/utils/debug'
 
 interface ProjectSelectorProps {
   currentProject: string
@@ -101,7 +102,7 @@ export default function ProjectSelector({
         onProjectChange(trimmedValue)
       }
     } catch (error) {
-      console.error('Failed to rename project:', error)
+      devError('Failed to rename project:', error)
       setEditValue(currentProject)
     }
   }

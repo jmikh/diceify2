@@ -49,8 +49,11 @@ import ProjectSelectionModal from '@/components/ProjectSelectionModal'
 import DiceStepper from '@/components/Editor/DiceStepper'
 import Logo from '@/components/Logo'
 import AuthModal from '@/components/AuthModal'
+import DonationModal from '@/components/DonationModal'
+import Footer from '@/components/Footer'
 import { theme } from '@/lib/theme'
 import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
+import { devLog, devError } from '@/lib/utils/debug'
 
 function EditorContent() {
   const { data: session, status } = useSession()
@@ -100,6 +103,8 @@ function EditorContent() {
   const [hasCropChanged, setHasCropChanged] = useState(false)
   const [hasTuneChanged, setHasTuneChanged] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
+  const [showDonationModal, setShowDonationModal] = useState(false)
+  const lastDiceIndexRef = useRef(0)
   
   // Memoize frame dimensions to prevent re-renders
   const frameWidth = useMemo(() => {
@@ -122,11 +127,11 @@ function EditorContent() {
     if (typeof value === 'function') {
       setBuildProgressRaw((prev) => {
         const newValue = value(prev)
-        console.log('[DEBUG] setBuildProgress (function) - prev:', prev, 'new:', newValue)
+        devLog('[DEBUG] setBuildProgress (function) - prev:', prev, 'new:', newValue)
         return newValue
       })
     } else {
-      console.log('[DEBUG] setBuildProgress - setting to:', value)
+      devLog('[DEBUG] setBuildProgress - setting to:', value)
       setBuildProgressRaw(value)
     }
   }
@@ -230,12 +235,12 @@ function EditorContent() {
       if (hasChanged) {
         // Changes tracked internally
         setHasCropChanged(true) // Mark that crop has changed
-        console.log('[CROP] Crop parameters changed')
+        devLog('[CROP] Crop parameters changed')
         
         // When crop changes, reset lastReachedStep to 'tune' if needed
         setLastReachedStep(prev => {
           if (prev === 'build') {
-            console.log('[CROP] Resetting lastReachedStep to tune - user must re-tune after crop change')
+            devLog('[CROP] Resetting lastReachedStep to tune - user must re-tune after crop change')
             return 'tune'
           }
           return prev
@@ -244,13 +249,13 @@ function EditorContent() {
         // Reset build progress if there was any
         setBuildProgress(prevProgress => {
           if (prevProgress.x !== 0 || prevProgress.y !== 0) {
-            console.log('[CROP] Reset build progress due to crop change')
+            devLog('[CROP] Reset build progress due to crop change')
             return { x: 0, y: 0, percentage: 0 }
           }
           return prevProgress
         })
       } else {
-        console.log('[CROP] Crop parameters unchanged')
+        devLog('[CROP] Crop parameters unchanged')
       }
       
       return params
@@ -283,7 +288,7 @@ function EditorContent() {
       // Reset build progress if there was any
       if (buildProgress.x !== 0 || buildProgress.y !== 0) {
         setBuildProgress({ x: 0, y: 0, percentage: 0 })
-        console.log('[TUNE] Reset build progress due to parameter change')
+        devLog('[TUNE] Reset build progress due to parameter change')
       }
     }
   }
@@ -314,15 +319,15 @@ function EditorContent() {
     // Check if grid has changed
     const newHash = generateGridHash(diceParams)
     if (newHash !== lastGridHash) {
-      console.log('[DEBUG] Grid hash changed:', { old: lastGridHash, new: newHash })
+      devLog('[DEBUG] Grid hash changed:', { old: lastGridHash, new: newHash })
       setLastGridHash(newHash)
       // Only reset build progress if we're not in the process of loading a project
       // The loadingProjectRef will be true when we're loading a project
       if (!loadingProjectRef.current) {
-        console.log('[DEBUG] Resetting build progress due to grid change (not loading project)')
+        devLog('[DEBUG] Resetting build progress due to grid change (not loading project)')
         setBuildProgress({ x: 0, y: 0, percentage: 0 })
       } else {
-        console.log('[DEBUG] Skipping build progress reset - loading project')
+        devLog('[DEBUG] Skipping build progress reset - loading project')
       }
     }
   }
@@ -375,7 +380,7 @@ function EditorContent() {
     setCostPer1000(60)
     // Clear localStorage when resetting
     localStorage.removeItem('editorState')
-    console.log('[LOCAL STORAGE] Cleared - workflow reset')
+    devLog('[LOCAL STORAGE] Cleared - workflow reset')
   }
   
   // Handle stepper click navigation - simplified: allow clicking any step if image is uploaded
@@ -396,13 +401,13 @@ function EditorContent() {
   const fetchUserProjects = useCallback(async () => {
     if (!session?.user?.id) return
     
-    console.log('[CLIENT] fetchUserProjects called - stack trace:', new Error().stack?.split('\n').slice(1, 4).join('\n'))
-    console.log(`[DB] Fetching all projects for user`)
+    devLog('[CLIENT] fetchUserProjects called - stack trace:', new Error().stack?.split('\n').slice(1, 4).join('\n'))
+    devLog(`[DB] Fetching all projects for user`)
     try {
       const response = await fetch('/api/projects')
       if (response.ok) {
         const projects = await response.json()
-        console.log('[DEBUG] Projects fetched from API:', projects.map((p: any) => ({
+        devLog('[DEBUG] Projects fetched from API:', projects.map((p: any) => ({
           id: p.id,
           name: p.name,
           currentX: p.currentX,
@@ -413,7 +418,7 @@ function EditorContent() {
         return projects
       }
     } catch (error) {
-      console.error('Failed to fetch projects:', error)
+      devError('Failed to fetch projects:', error)
     } finally {
       // Loading state removed
     }
@@ -432,7 +437,7 @@ function EditorContent() {
     const defaultName = `Untitled Project ${randomChars}`
     
     // Saving automatically
-    console.log(`[DB] Creating new empty project`)
+    devLog(`[DB] Creating new empty project`)
     try {
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -476,10 +481,10 @@ function EditorContent() {
         const data = await response.json()
         alert(data.error || 'Project limit reached. Maximum 3 projects allowed.')
       } else {
-        console.error('Failed to create project')
+        devError('Failed to create project')
       }
     } catch (error) {
-      console.error('Failed to create project:', error)
+      devError('Failed to create project:', error)
     } finally {
       // Save operation finished
     }
@@ -494,14 +499,14 @@ function EditorContent() {
     const defaultName = `Untitled Project ${randomChars}`
     
     // Saving automatically
-    console.log(`[DB] Creating new project with current state`)
-    console.log('[DB] Current state when creating project:')
-    console.log('  - originalImage:', originalImage ? `${originalImage.substring(0, 50)}...` : 'null')
-    console.log('  - croppedImage:', croppedImage ? `${croppedImage.substring(0, 50)}...` : 'null')
-    console.log('  - processedImageUrl:', processedImageUrl ? `${processedImageUrl.substring(0, 50)}...` : 'null')
-    console.log('  - lastReachedStep:', lastReachedStep)
-    console.log('  - diceParams:', diceParams)
-    console.log('  - diceStats:', diceStats)
+    devLog(`[DB] Creating new project with current state`)
+    devLog('[DB] Current state when creating project:')
+    devLog('  - originalImage:', originalImage ? `${originalImage.substring(0, 50)}...` : 'null')
+    devLog('  - croppedImage:', croppedImage ? `${croppedImage.substring(0, 50)}...` : 'null')
+    devLog('  - processedImageUrl:', processedImageUrl ? `${processedImageUrl.substring(0, 50)}...` : 'null')
+    devLog('  - lastReachedStep:', lastReachedStep)
+    devLog('  - diceParams:', diceParams)
+    devLog('  - diceStats:', diceStats)
     
     try {
       const payload = {
@@ -533,9 +538,9 @@ function EditorContent() {
         cropRotation: cropParams?.rotation || 0
       }
       
-      console.log('[DB] Payload being sent to API:')
-      console.log('  - originalImage in payload:', payload.originalImage ? `${payload.originalImage.substring(0, 50)}...` : 'null')
-      console.log('  - croppedImage in payload:', payload.croppedImage ? `${payload.croppedImage.substring(0, 50)}...` : 'null')
+      devLog('[DB] Payload being sent to API:')
+      devLog('  - originalImage in payload:', payload.originalImage ? `${payload.originalImage.substring(0, 50)}...` : 'null')
+      devLog('  - croppedImage in payload:', payload.croppedImage ? `${payload.croppedImage.substring(0, 50)}...` : 'null')
       
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -557,7 +562,7 @@ function EditorContent() {
         alert(data.error || 'Project limit reached. Maximum 3 projects allowed.')
       }
     } catch (error) {
-      console.error('Failed to create project:', error)
+      devError('Failed to create project:', error)
     } finally {
       // Save operation finished
     }
@@ -567,7 +572,7 @@ function EditorContent() {
   const deleteProject = useCallback(async (projectId: string) => {
     if (!session?.user?.id) return
     
-    console.log(`[DB] Deleting project ${projectId}`)
+    devLog(`[DB] Deleting project ${projectId}`)
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'DELETE'
@@ -585,30 +590,30 @@ function EditorContent() {
         
         // Check if we're in capacity modal and have work to save
         if (showProjectModal) {
-          console.log('[DEBUG] Project deleted from capacity modal - checking if we need to save restored state')
+          devLog('[DEBUG] Project deleted from capacity modal - checking if we need to save restored state')
           setShowProjectModal(false)
           
           // Check if user has work in progress that needs to be saved
           const hasWorkInProgress = originalImage || processedImageUrl
           if (hasWorkInProgress) {
-            console.log('[DEBUG] User has work in progress after deletion - auto-creating project')
+            devLog('[DEBUG] User has work in progress after deletion - auto-creating project')
             // Now that we have space, auto-create project from current state
             await createProjectFromCurrent()
             // Clear localStorage after creating project from local state
             localStorage.removeItem('editorState')
-            console.log('[LOCAL STORAGE] Cleared after creating project from deletion modal')
+            devLog('[LOCAL STORAGE] Cleared after creating project from deletion modal')
           } else {
-            console.log('[DEBUG] No work in progress - creating fresh project')
+            devLog('[DEBUG] No work in progress - creating fresh project')
             // No work in progress, create fresh project
             createProject()
             // Clear localStorage after creating fresh project
             localStorage.removeItem('editorState')
-            console.log('[LOCAL STORAGE] Cleared after creating fresh project from deletion modal')
+            devLog('[LOCAL STORAGE] Cleared after creating fresh project from deletion modal')
           }
         }
       }
     } catch (error) {
-      console.error('Failed to delete project:', error)
+      devError('Failed to delete project:', error)
     }
   }, [session, currentProjectId, fetchUserProjects, resetWorkflow, showProjectModal, originalImage, processedImageUrl, createProjectFromCurrent, createProject])
 
@@ -619,9 +624,9 @@ function EditorContent() {
     setIsSaving(true)
     // Use ref to get the latest values, avoiding stale closure
     const currentProgress = buildProgressRef.current
-    console.log(`[PROGRESS] About to save progress for project ${currentProjectId}`)
-    console.log(`[PROGRESS] Current buildProgress from ref - x: ${currentProgress.x}, y: ${currentProgress.y}, percentage: ${currentProgress.percentage}`)
-    console.log(`[PROGRESS] Total dice count: ${diceStats.totalCount}`)
+    devLog(`[PROGRESS] About to save progress for project ${currentProjectId}`)
+    devLog(`[PROGRESS] Current buildProgress from ref - x: ${currentProgress.x}, y: ${currentProgress.y}, percentage: ${currentProgress.percentage}`)
+    devLog(`[PROGRESS] Total dice count: ${diceStats.totalCount}`)
     try {
       const response = await fetch(`/api/projects/${currentProjectId}/progress`, {
         method: 'PATCH',
@@ -635,16 +640,16 @@ function EditorContent() {
       })
 
       if (response.ok) {
-        console.log('Progress saved successfully')
+        devLog('Progress saved successfully')
         setLastSaved(new Date())
         // Update local lastReachedStep to build if it wasn't already
         setLastReachedStep(prev => prev === 'build' ? prev : 'build')
         // Clear localStorage since data is saved to database
         localStorage.removeItem('editorState')
-        console.log('[LOCAL STORAGE] Cleared - progress saved to database')
+        devLog('[LOCAL STORAGE] Cleared - progress saved to database')
       }
     } catch (error) {
-      console.error('Failed to save progress:', error)
+      devError('Failed to save progress:', error)
     } finally {
       setIsSaving(false)
     }
@@ -656,7 +661,7 @@ function EditorContent() {
 
     // Use provided image or fall back to originalImage state
     const image = imageToSave || originalImage
-    console.log(`[UPLOAD] Saving upload data for project ${currentProjectId}, hasImage=${!!image}`)
+    devLog(`[UPLOAD] Saving upload data for project ${currentProjectId}, hasImage=${!!image}`)
     try {
       const response = await fetch(`/api/projects/${currentProjectId}/upload`, {
         method: 'PATCH',
@@ -668,14 +673,14 @@ function EditorContent() {
       })
 
       if (response.ok) {
-        console.log('Upload data saved successfully')
+        devLog('Upload data saved successfully')
         setLastSaved(new Date())
         // Clear localStorage since data is saved to database
         localStorage.removeItem('editorState')
-        console.log('[LOCAL STORAGE] Cleared - upload saved to database')
+        devLog('[LOCAL STORAGE] Cleared - upload saved to database')
       }
     } catch (error) {
-      console.error('Failed to save upload data:', error)
+      devError('Failed to save upload data:', error)
     }
   }, [session, currentProjectId, originalImage, step, lastReachedStep])
 
@@ -683,7 +688,7 @@ function EditorContent() {
   const saveCropStep = useCallback(async () => {
     if (!session?.user?.id || !currentProjectId || !cropParams) return
 
-    console.log(`[CROP] Saving crop parameters for project ${currentProjectId}`)
+    devLog(`[CROP] Saving crop parameters for project ${currentProjectId}`)
     try {
       const response = await fetch(`/api/projects/${currentProjectId}/crop`, {
         method: 'PATCH',
@@ -699,14 +704,14 @@ function EditorContent() {
       })
 
       if (response.ok) {
-        console.log('Crop data saved successfully')
+        devLog('Crop data saved successfully')
         setLastSaved(new Date())
         // Clear localStorage since data is saved to database
         localStorage.removeItem('editorState')
-        console.log('[LOCAL STORAGE] Cleared - crop saved to database')
+        devLog('[LOCAL STORAGE] Cleared - crop saved to database')
       }
     } catch (error) {
-      console.error('Failed to save crop data:', error)
+      devError('Failed to save crop data:', error)
     }
   }, [session, currentProjectId, croppedImage, lastReachedStep])
 
@@ -714,7 +719,7 @@ function EditorContent() {
   const saveTuneStep = useCallback(async () => {
     if (!session?.user?.id || !currentProjectId) return
 
-    console.log(`[TUNE] Saving tune parameters for project ${currentProjectId} - called from:`, new Error().stack?.split('\n').slice(1, 3).join('\n'))
+    devLog(`[TUNE] Saving tune parameters for project ${currentProjectId} - called from:`, new Error().stack?.split('\n').slice(1, 3).join('\n'))
     // Saving automatically
     try {
       const response = await fetch(`/api/projects/${currentProjectId}/tune`, {
@@ -740,14 +745,14 @@ function EditorContent() {
       })
 
       if (response.ok) {
-        console.log('Tune parameters saved successfully')
+        devLog('Tune parameters saved successfully')
         setLastSaved(new Date())
         // Clear localStorage since data is saved to database
         localStorage.removeItem('editorState')
-        console.log('[LOCAL STORAGE] Cleared - tune saved to database')
+        devLog('[LOCAL STORAGE] Cleared - tune saved to database')
       }
     } catch (error) {
-      console.error('Failed to save tune parameters:', error)
+      devError('Failed to save tune parameters:', error)
     } finally {
       // Save operation finished
     }
@@ -755,7 +760,7 @@ function EditorContent() {
 
   // Helper function to navigate to a step
   const navigateToStep = useCallback(async (newStep: WorkflowStep) => {
-    console.log(`[CLIENT] navigateToStep called: ${step} -> ${newStep}`)
+    devLog(`[CLIENT] navigateToStep called: ${step} -> ${newStep}`)
     const steps: WorkflowStep[] = ['upload', 'crop', 'tune', 'build']
     const newIndex = steps.indexOf(newStep)
     const lastReachedIndex = steps.indexOf(lastReachedStep)
@@ -765,31 +770,31 @@ function EditorContent() {
       // Save on specific transitions as requested:
       // 1. Moving from crop to tune: save crop parameters only if they changed
       if (step === 'crop' && newStep === 'tune' && cropParams && hasCropChanged) {
-        console.log('[CLIENT] Moving from crop to tune, saving crop parameters')
+        devLog('[CLIENT] Moving from crop to tune, saving crop parameters')
         if (currentProjectId && session?.user?.id) {
           await saveCropStep()
           setHasCropChanged(false) // Reset flag after saving
         }
       } else if (step === 'crop' && newStep === 'tune' && !hasCropChanged) {
-        console.log('[CLIENT] Moving from crop to tune, no changes to save')
+        devLog('[CLIENT] Moving from crop to tune, no changes to save')
       }
 
       // 2. Moving from tune to build: save tune parameters only if they changed
       if (step === 'tune' && newStep === 'build' && hasTuneChanged) {
-        console.log('[CLIENT] Moving from tune to build, saving tune parameters')
+        devLog('[CLIENT] Moving from tune to build, saving tune parameters')
         if (currentProjectId && session?.user?.id) {
           await saveTuneStep()
           setHasTuneChanged(false) // Reset flag after saving
         }
       } else if (step === 'tune' && newStep === 'build' && !hasTuneChanged) {
-        console.log('[CLIENT] Moving from tune to build, no changes to save')
+        devLog('[CLIENT] Moving from tune to build, no changes to save')
       }
 
       // 3. LEAVING build step: save progress if we have any
       if (step === 'build' && newStep !== 'build' && currentProjectId && session?.user?.id) {
         const currentProgress = buildProgressRef.current
         if (currentProgress.x > 0 || currentProgress.y > 0) {
-          console.log('[CLIENT] Leaving build step, saving progress')
+          devLog('[CLIENT] Leaving build step, saving progress')
           await saveProgressOnly()
         }
       }
@@ -814,7 +819,7 @@ function EditorContent() {
 
   // Handle navigation with build progress check
   const handleStepNavigation = useCallback((newStep: WorkflowStep) => {
-    console.log(`[CLIENT] handleStepNavigation called: ${newStep}`)
+    devLog(`[CLIENT] handleStepNavigation called: ${newStep}`)
     // Check if trying to enter build step without auth
     if (newStep === 'build' && status !== 'authenticated') {
       // Store that user wanted to go to build after login
@@ -840,8 +845,8 @@ function EditorContent() {
 
   // Load a project
   const loadProject = useCallback(async (project: any) => {
-    console.log('[CLIENT] Loading project:', project.name, 'step:', project.lastReachedStep)
-    console.log('[DEBUG] Project data received:', {
+    devLog('[CLIENT] Loading project:', project.name, 'step:', project.lastReachedStep)
+    devLog('[DEBUG] Project data received:', {
       id: project.id,
       currentX: project.currentX,
       currentY: project.currentY,
@@ -857,13 +862,13 @@ function EditorContent() {
 
     // If project doesn't have image data but needs it, fetch full project
     if (!project.croppedImage && !project.originalImage && project.lastReachedStep !== 'upload') {
-      console.log(`[DB] Fetching full project data for ${project.id}`)
+      devLog(`[DB] Fetching full project data for ${project.id}`)
       try {
         const response = await fetch(`/api/projects/${project.id}`)
         if (response.ok) {
           const fullProject = await response.json()
-          console.log('Fetched full project with image data')
-          console.log('[DEBUG] Full project data:', {
+          devLog('Fetched full project with image data')
+          devLog('[DEBUG] Full project data:', {
             id: fullProject.id,
             currentX: fullProject.currentX,
             currentY: fullProject.currentY,
@@ -872,7 +877,7 @@ function EditorContent() {
           project = fullProject // Just use the full project data - it has everything
         }
       } catch (error) {
-        console.error('Failed to fetch full project:', error)
+        devError('Failed to fetch full project:', error)
       }
     }
     
@@ -890,7 +895,7 @@ function EditorContent() {
     // Don't reset build progress here - we'll set it to the correct values below
     
     // Set project info
-    console.log('[DEBUG] About to set currentProjectId from', currentProjectId, 'to', project.id)
+    devLog('[DEBUG] About to set currentProjectId from', currentProjectId, 'to', project.id)
     setCurrentProjectId(project.id)
     setProjectName(project.name)
     updateURLWithProject(project.id)
@@ -902,7 +907,7 @@ function EditorContent() {
     
     // Load images
     if (project.originalImage) {
-      console.log('Setting original image')
+      devLog('Setting original image')
       setOriginalImage(project.originalImage)
     }
     
@@ -916,7 +921,7 @@ function EditorContent() {
         rotation: project.cropRotation || 0
       }
       setCropParams(params)
-      console.log('Loaded crop parameters:', params)
+      devLog('Loaded crop parameters:', params)
       
       // If we have the original image and crop params, regenerate the cropped image
       if (project.originalImage) {
@@ -932,7 +937,7 @@ function EditorContent() {
             // Draw the cropped portion
             ctx.drawImage(img, params.x, params.y, params.width, params.height, 0, 0, params.width, params.height)
             const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.95)
-            console.log('Regenerated cropped image from parameters')
+            devLog('Regenerated cropped image from parameters')
             setCroppedImage(croppedDataUrl)
           }
         }
@@ -940,18 +945,18 @@ function EditorContent() {
       }
     } else if (project.croppedImage) {
       // Fallback to old cropped image if no crop params
-      console.log('Setting cropped image (legacy)')
+      devLog('Setting cropped image (legacy)')
       setCroppedImage(project.croppedImage)
       // If we have a cropped image and are loading into build state,
       // use the cropped image as the processed image so the build view has something to display
       if (project.currentStep === 'build') {
-        console.log('Setting processed image for build state')
+        devLog('Setting processed image for build state')
         setProcessedImageUrl(project.croppedImage)
       }
     }
     
     // Load parameters
-    console.log('[CLIENT] Setting dice params from project')
+    devLog('[CLIENT] Setting dice params from project')
     const newDiceParams = {
       numRows: project.numRows || 30,
       colorMode: project.colorMode || 'both',
@@ -970,7 +975,7 @@ function EditorContent() {
     // Set the grid hash to prevent reset when grid is generated
     const newHash = generateGridHash(newDiceParams)
     setLastGridHash(newHash)
-    console.log('[DEBUG] Set initial grid hash during project load:', newHash)
+    devLog('[DEBUG] Set initial grid hash during project load:', newHash)
     
     // Load die size and cost
     setDieSize(project.dieSize || 16)
@@ -987,7 +992,7 @@ function EditorContent() {
     }
     
     // Load build progress - do this AFTER setting project ID to avoid saving to wrong project
-    console.log('[CLIENT] Loading build progress from project:', {
+    devLog('[CLIENT] Loading build progress from project:', {
       currentX: project.currentX,
       currentY: project.currentY,
       percentComplete: project.percentComplete
@@ -997,26 +1002,26 @@ function EditorContent() {
       y: project.currentY || 0,
       percentage: project.percentComplete || 0
     }
-    console.log('[DEBUG] Setting buildProgress to:', newProgress)
+    devLog('[DEBUG] Setting buildProgress to:', newProgress)
     setBuildProgress(newProgress)
 
     // Always load to lastReachedStep
     if (project.lastReachedStep) {
-      console.log('[CLIENT] Setting step to lastReachedStep:', project.lastReachedStep)
+      devLog('[CLIENT] Setting step to lastReachedStep:', project.lastReachedStep)
       setStep(project.lastReachedStep)
       setLastReachedStep(project.lastReachedStep)
     } else {
       // Fallback to determining step from data
       if (project.croppedImage) {
-        console.log('Navigating to tune step')
+        devLog('Navigating to tune step')
         setStep('tune')
         setLastReachedStep('tune')
       } else if (project.originalImage) {
-        console.log('Navigating to crop step')
+        devLog('Navigating to crop step')
         setStep('crop')
         setLastReachedStep('crop')
       } else {
-        console.log('Starting at upload step')
+        devLog('Starting at upload step')
         setStep('upload')
         setLastReachedStep('upload')
       }
@@ -1025,12 +1030,12 @@ function EditorContent() {
     // Clear loading flag after a short delay
     setTimeout(() => {
       loadingProjectRef.current = false
-      console.log('[DEBUG] Project loading complete - clearing loading flag')
+      devLog('[DEBUG] Project loading complete - clearing loading flag')
     }, 100)
   }, [saveProgressOnly])
 
   const handleStepperClick = useCallback((clickedStep: WorkflowStep) => {
-    console.log(`[CLIENT] handleStepperClick called: ${clickedStep}`)
+    devLog(`[CLIENT] handleStepperClick called: ${clickedStep}`)
     // Use handleStepNavigation for all navigation to ensure auth checks
     handleStepNavigation(clickedStep)
   }, [handleStepNavigation])
@@ -1040,14 +1045,14 @@ function EditorContent() {
     // Clear any existing timeout
     if (buildAutoSaveTimeoutRef.current) {
       clearTimeout(buildAutoSaveTimeoutRef.current)
-      console.log('[AUTO-SAVE] Resetting 15-second auto-save timer')
+      devLog('[AUTO-SAVE] Resetting 15-second auto-save timer')
     } else {
-      console.log('[AUTO-SAVE] Starting 15-second auto-save timer')
+      devLog('[AUTO-SAVE] Starting 15-second auto-save timer')
     }
     
     // Schedule new save after 15 seconds
     buildAutoSaveTimeoutRef.current = setTimeout(() => {
-      console.log('[AUTO-SAVE] Saving build progress after 15 seconds of inactivity')
+      devLog('[AUTO-SAVE] Saving build progress after 15 seconds of inactivity')
       saveProgressOnly()
     }, 15000) // 15 seconds delay
   }, [saveProgressOnly])
@@ -1059,7 +1064,7 @@ function EditorContent() {
       if (step === 'build' && currentProjectId && session?.user?.id) {
         const currentProgress = buildProgressRef.current
         if (currentProgress.x > 0 || currentProgress.y > 0) {
-          console.log('[CLIENT] Page unloading, saving build progress')
+          devLog('[CLIENT] Page unloading, saving build progress')
           // Use navigator.sendBeacon for reliable saving on page unload
           const data = JSON.stringify({
             currentX: currentProgress.x,
@@ -1098,7 +1103,7 @@ function EditorContent() {
   useEffect(() => {
     const projectId = searchParams.get('project')
     if (projectId && session?.user?.id && !currentProjectId) {
-      console.log('[URL] Loading project from URL:', projectId)
+      devLog('[URL] Loading project from URL:', projectId)
       // Fetch and load the specific project
       fetch(`/api/projects/${projectId}`)
         .then(response => {
@@ -1108,11 +1113,11 @@ function EditorContent() {
           throw new Error('Project not found')
         })
         .then(project => {
-          console.log('[URL] Project loaded from URL')
+          devLog('[URL] Project loaded from URL')
           loadProject(project)
         })
         .catch(error => {
-          console.error('[URL] Failed to load project from URL:', error)
+          devError('[URL] Failed to load project from URL:', error)
           // Clear invalid project ID from URL
           updateURLWithProject(null)
         })
@@ -1138,7 +1143,7 @@ function EditorContent() {
         diceStats
       }
       localStorage.setItem('editorState', JSON.stringify(stateToSave))
-      console.log('[LOCAL STORAGE] Saved editor state (not logged in)')
+      devLog('[LOCAL STORAGE] Saved editor state (not logged in)')
     } else if (session?.user?.id) {
       // Clear localStorage when logged in (using database instead)
       localStorage.removeItem('editorState')
@@ -1156,7 +1161,7 @@ function EditorContent() {
       if (savedState) {
         try {
           const state = JSON.parse(savedState)
-          console.log('[LOCAL STORAGE] Found saved editor state, restoring...')
+          devLog('[LOCAL STORAGE] Found saved editor state, restoring...')
           
           // Only restore if the saved state has actual content
           if (state.originalImage || state.croppedImage) {
@@ -1174,7 +1179,7 @@ function EditorContent() {
             if (state.step) setStep(state.step)
             if (state.lastReachedStep) setLastReachedStep(state.lastReachedStep)
             
-            console.log('[LOCAL STORAGE] State restored successfully')
+            devLog('[LOCAL STORAGE] State restored successfully')
             // Add small delay to ensure state is applied before showing UI
             setTimeout(() => setIsInitializing(false), 500)
           } else {
@@ -1182,7 +1187,7 @@ function EditorContent() {
             setIsInitializing(false)
           }
         } catch (err) {
-          console.error('[LOCAL STORAGE] Failed to restore state:', err)
+          devError('[LOCAL STORAGE] Failed to restore state:', err)
           setIsInitializing(false)
         }
       } else {
@@ -1196,49 +1201,49 @@ function EditorContent() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.get('restored') === 'true') {
-      console.log('[DEBUG] OAuth redirect detected, checking for saved state')
+      devLog('[DEBUG] OAuth redirect detected, checking for saved state')
       setIsRestoringOAuthState(true)
       const savedState = sessionStorage.getItem('editorStateBeforeAuth')
       if (savedState) {
         try {
           const state = JSON.parse(savedState)
-          console.log('[DEBUG] Restoring editor state after OAuth redirect')
-          console.log('[DEBUG] Saved state contains:')
-          console.log('  - originalImage:', state.originalImage ? `${state.originalImage.substring(0, 50)}...` : 'null')
-          console.log('  - croppedImage:', state.croppedImage ? `${state.croppedImage.substring(0, 50)}...` : 'null')
-          console.log('  - processedImageUrl:', state.processedImageUrl ? `${state.processedImageUrl.substring(0, 50)}...` : 'null')
-          console.log('  - step:', state.step)
-          console.log('  - lastReachedStep:', state.lastReachedStep)
-          console.log('  - cropParams:', state.cropParams)
-          console.log('  - diceParams:', state.diceParams)
+          devLog('[DEBUG] Restoring editor state after OAuth redirect')
+          devLog('[DEBUG] Saved state contains:')
+          devLog('  - originalImage:', state.originalImage ? `${state.originalImage.substring(0, 50)}...` : 'null')
+          devLog('  - croppedImage:', state.croppedImage ? `${state.croppedImage.substring(0, 50)}...` : 'null')
+          devLog('  - processedImageUrl:', state.processedImageUrl ? `${state.processedImageUrl.substring(0, 50)}...` : 'null')
+          devLog('  - step:', state.step)
+          devLog('  - lastReachedStep:', state.lastReachedStep)
+          devLog('  - cropParams:', state.cropParams)
+          devLog('  - diceParams:', state.diceParams)
           
           // Restore the state
           if (state.originalImage) {
-            console.log('[DEBUG] Restoring originalImage')
+            devLog('[DEBUG] Restoring originalImage')
             setOriginalImage(state.originalImage)
           }
           if (state.croppedImage) {
-            console.log('[DEBUG] Restoring croppedImage')
+            devLog('[DEBUG] Restoring croppedImage')
             setCroppedImage(state.croppedImage)
           }
           if (state.processedImageUrl) {
-            console.log('[DEBUG] Restoring processedImageUrl')
+            devLog('[DEBUG] Restoring processedImageUrl')
             setProcessedImageUrl(state.processedImageUrl)
           }
           if (state.cropParams) {
-            console.log('[DEBUG] Restoring cropParams')
+            devLog('[DEBUG] Restoring cropParams')
             setCropParams(state.cropParams)
           }
           if (state.diceParams) {
-            console.log('[DEBUG] Restoring diceParams')
+            devLog('[DEBUG] Restoring diceParams')
             setDiceParams(state.diceParams)
           }
           if (state.step) {
-            console.log('[DEBUG] Restoring step')
+            devLog('[DEBUG] Restoring step')
             setStep(state.step)
           }
           if (state.lastReachedStep) {
-            console.log('[DEBUG] Restoring lastReachedStep')
+            devLog('[DEBUG] Restoring lastReachedStep')
             setLastReachedStep(state.lastReachedStep)
           }
           
@@ -1248,16 +1253,16 @@ function EditorContent() {
           
           // Set flag for auto-save ONLY if there's actual work (an image) to save
           if (state.originalImage || state.processedImageUrl) {
-            console.log('[DEBUG] Setting flag for auto-save after restoration completes (has image)')
+            devLog('[DEBUG] Setting flag for auto-save after restoration completes (has image)')
             sessionStorage.setItem('shouldAutoSaveRestoredState', 'true')
           } else {
-            console.log('[DEBUG] No image in restored state, skipping auto-save flag')
+            devLog('[DEBUG] No image in restored state, skipping auto-save flag')
           }
           
           // Check if user intended to go to build step after login
           const intendedStep = sessionStorage.getItem('intendedStepAfterLogin')
           if (intendedStep === 'build') {
-            console.log('[DEBUG] User intended to go to build step after login - navigating there')
+            devLog('[DEBUG] User intended to go to build step after login - navigating there')
             sessionStorage.removeItem('intendedStepAfterLogin')
             // Set step to build after restoration
             setStep('build')
@@ -1265,11 +1270,11 @@ function EditorContent() {
           }
           
           // Mark restoration as complete - this will trigger auto-save logic
-          console.log('[DEBUG] OAuth state restoration complete')
+          devLog('[DEBUG] OAuth state restoration complete')
           // Note: The state variables here will show old values due to closure, but setState calls have been made
           setIsRestoringOAuthState(false)
         } catch (err) {
-          console.error('[DEBUG] Failed to restore state:', err)
+          devError('[DEBUG] Failed to restore state:', err)
           setIsRestoringOAuthState(false)
         }
       } else {
@@ -1283,7 +1288,7 @@ function EditorContent() {
     // Skip if still determining session status
     if (status === 'loading') return
     
-    console.log('[LOGIN EFFECT] Triggered with:', {
+    devLog('[LOGIN EFFECT] Triggered with:', {
       sessionStatus: status,
       hasSession: !!session?.user?.id,
       currentProjectId,
@@ -1295,10 +1300,10 @@ function EditorContent() {
     
     // Only run this logic when user just logged in and has no project loaded yet
     if (session?.user?.id && !currentProjectId && !isRestoringOAuthState) {
-      console.log('[LOGIN EFFECT] User logged in without current project, fetching user projects...')
+      devLog('[LOGIN EFFECT] User logged in without current project, fetching user projects...')
       fetchUserProjects().then((projects) => {
         const projectCount = (projects || []).length
-        console.log('[LOGIN EFFECT] Projects fetched:', {
+        devLog('[LOGIN EFFECT] Projects fetched:', {
           projectCount,
           projects: projects?.map((p: any) => ({ id: p.id, name: p.name, updatedAt: p.updatedAt }))
         })
@@ -1307,7 +1312,7 @@ function EditorContent() {
         const shouldAutoSaveRestoredState = sessionStorage.getItem('shouldAutoSaveRestoredState') === 'true'
         const hasWorkInProgress = originalImage || processedImageUrl || shouldAutoSaveRestoredState
         
-        console.log('[LOGIN EFFECT] Work state check:', {
+        devLog('[LOGIN EFFECT] Work state check:', {
           shouldAutoSaveRestoredState,
           hasOriginalImage: !!originalImage,
           hasProcessedImageUrl: !!processedImageUrl,
@@ -1316,55 +1321,55 @@ function EditorContent() {
         })
         
         if (shouldAutoSaveRestoredState) {
-          console.log('[LOGIN EFFECT] Found shouldAutoSaveRestoredState flag - state should now be restored')
+          devLog('[LOGIN EFFECT] Found shouldAutoSaveRestoredState flag - state should now be restored')
           sessionStorage.removeItem('shouldAutoSaveRestoredState')
         }
         
         if (hasWorkInProgress) {
           // User has work - try to save it
-          console.log('[LOGIN EFFECT] User has work in progress')
+          devLog('[LOGIN EFFECT] User has work in progress')
           if (projectCount < 3) {
             // Under limit - auto-create project from current state
-            console.log('[LOGIN EFFECT] Creating project from current state...')
+            devLog('[LOGIN EFFECT] Creating project from current state...')
             createProjectFromCurrent().then(() => {
-              console.log('[LOGIN EFFECT] Work saved successfully as new project')
+              devLog('[LOGIN EFFECT] Work saved successfully as new project')
             }).catch(err => {
-              console.error('[LOGIN EFFECT] Failed to auto-save work:', err)
+              devError('[LOGIN EFFECT] Failed to auto-save work:', err)
             })
           } else {
             // At capacity - show deletion modal 
-            console.log('[LOGIN EFFECT] At capacity with unsaved work - showing deletion modal')
+            devLog('[LOGIN EFFECT] At capacity with unsaved work - showing deletion modal')
             setShowProjectModal(true)
           }
         } else {
           // No work in progress - load most recent project if available
-          console.log('[LOGIN EFFECT] No work in progress')
+          devLog('[LOGIN EFFECT] No work in progress')
           // Don't load a project if URL already has a project ID (will be handled by URL effect)
           const urlProjectId = searchParams.get('project')
           if (!urlProjectId && projects && projects.length > 0) {
             // Load the most recent project (already sorted by updatedAt desc from API)
             const mostRecentProject = projects[0]
-            console.log('[LOGIN EFFECT] Loading most recent project:', mostRecentProject.name, mostRecentProject.id)
+            devLog('[LOGIN EFFECT] Loading most recent project:', mostRecentProject.name, mostRecentProject.id)
             loadProject(mostRecentProject)
           } else if (!urlProjectId && projectCount < 3) {
             // No existing projects and under limit - create fresh project
-            console.log('[LOGIN EFFECT] No existing projects - creating fresh project')
+            devLog('[LOGIN EFFECT] No existing projects - creating fresh project')
             createProject()
           } else if (!urlProjectId && projectCount >= 3) {
             // At capacity with no projects (shouldn't happen)
-            console.log('[LOGIN EFFECT] At capacity with no projects - showing deletion modal') 
+            devLog('[LOGIN EFFECT] At capacity with no projects - showing deletion modal') 
             setShowProjectModal(true)
           }
         }
         // Mark initialization as complete after handling all login logic with small delay
         setTimeout(() => setIsInitializing(false), 500)
       }).catch(err => {
-        console.error('[LOGIN EFFECT] Failed to fetch projects:', err)
+        devError('[LOGIN EFFECT] Failed to fetch projects:', err)
         // Still mark as complete even on error
         setTimeout(() => setIsInitializing(false), 500)
       })
     } else {
-      console.log('[LOGIN EFFECT] Conditions not met, skipping:', {
+      devLog('[LOGIN EFFECT] Conditions not met, skipping:', {
         hasSession: !!session?.user?.id,
         hasCurrentProjectId: !!currentProjectId,
         isRestoringOAuthState
@@ -1383,7 +1388,7 @@ function EditorContent() {
     if (currentProjectId) {
       // Clear localStorage when a project is loaded
       localStorage.removeItem('editorState')
-      console.log('[LOCAL STORAGE] Cleared - project loaded')
+      devLog('[LOCAL STORAGE] Cleared - project loaded')
     }
   }, [currentProjectId])
 
@@ -1393,7 +1398,7 @@ function EditorContent() {
 
     // Check if user is trying to go beyond x=3 without authentication
     if (!session && x > 3) {
-      console.log('[AUTH] User tried to navigate beyond x=3 without authentication')
+      devLog('[AUTH] User tried to navigate beyond x=3 without authentication')
       setShowAuthModal(true)
       return // Prevent the update
     }
@@ -1410,6 +1415,15 @@ function EditorContent() {
     // Store the pending update
     pendingUpdateRef.current = { x, y }
     
+    // Calculate current index for threshold check
+    const currentIndex = y * diceGrid.width + x
+
+    // Check for crossing dice 50 threshold
+    if (currentIndex >= 50 && lastDiceIndexRef.current < 50) {
+      setShowDonationModal(true)
+    }
+    lastDiceIndexRef.current = currentIndex
+
     // Throttle updates to max 10 per second (100ms)
     if (timeSinceLastUpdate >= 100) {
       // Enough time has passed, update immediately
@@ -1418,19 +1432,18 @@ function EditorContent() {
         if (prev.x === x && prev.y === y) {
           return prev // No change, return same reference
         }
-        
+
         const totalDice = diceGrid.width * diceGrid.height
-        const currentIndex = y * diceGrid.width + x
         const percentage = Math.round((currentIndex / totalDice) * 100)
-        
+
         const newProgress = { x, y, percentage }
-        console.log(`[BUILD] Setting buildProgress to x: ${x}, y: ${y}, percentage: ${percentage}`)
-        
+        devLog(`[BUILD] Setting buildProgress to x: ${x}, y: ${y}, percentage: ${percentage}`)
+
         // Schedule auto-save
         if (session?.user?.id && currentProjectId) {
           scheduleBuildAutoSave()
         }
-        
+
         return newProgress
       })
       pendingUpdateRef.current = null
@@ -1449,14 +1462,14 @@ function EditorContent() {
             const totalDice = diceGrid.width * diceGrid.height
             const currentIndex = pending.y * diceGrid.width + pending.x
             const percentage = Math.round((currentIndex / totalDice) * 100)
-            
+
             const newProgress = { x: pending.x, y: pending.y, percentage }
-            
+
             // Schedule auto-save
             if (session?.user?.id && currentProjectId) {
               scheduleBuildAutoSave()
             }
-            
+
             return newProgress
           })
           pendingUpdateRef.current = null
@@ -1481,7 +1494,7 @@ function EditorContent() {
   }
 
   return (
-    <div className="min-h-screen relative" style={{ backgroundColor: '#000000' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#000000' }}>
       
       <header 
         className="relative" 
@@ -1521,7 +1534,7 @@ function EditorContent() {
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
                         onError={(e) => {
-                          console.error('Image failed to load:', session.user?.image)
+                          devError('Image failed to load:', session.user?.image)
                           // Hide the broken image and show fallback
                           e.currentTarget.style.display = 'none'
                           const fallback = e.currentTarget.nextElementSibling as HTMLElement
@@ -1578,7 +1591,7 @@ function EditorContent() {
                                   >
                                     <button
                                       onClick={() => {
-                                        console.log('[DEBUG] Loading project from menu:', {
+                                        devLog('[DEBUG] Loading project from menu:', {
                                           id: project.id,
                                           name: project.name,
                                           currentX: project.currentX,
@@ -1714,7 +1727,7 @@ function EditorContent() {
       </header>
 
       {/* Main Content Area */}
-      <main className="relative p-4">
+      <main className="relative p-4 flex-grow">
         {/* Center: Stepper */}
         <div className="flex justify-center items-center mb-4">
           {/* Stepper */}
@@ -1839,7 +1852,7 @@ function EditorContent() {
                     onNavigate={(direction) => {
                       // Check if trying to go forward beyond x=3 without authentication
                       if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
-                        console.log('[AUTH] Navigation blocked at x=3 - showing auth modal')
+                        devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
                         setShowAuthModal(true)
                         return
                       }
@@ -1887,7 +1900,7 @@ function EditorContent() {
             {/* Main build viewer */}
             <div className="flex-1 min-w-0">
               {(() => {
-                console.log('[DEBUG] Passing to BuildViewer:', {
+                devLog('[DEBUG] Passing to BuildViewer:', {
                   currentProjectId,
                   buildProgress,
                   'buildProgress.x': buildProgress.x,
@@ -1984,6 +1997,15 @@ function EditorContent() {
         hasCurrentState={!!originalImage}
         maxProjects={3}
       />
+
+      {/* Donation Modal */}
+      <DonationModal
+        isOpen={showDonationModal}
+        onClose={() => setShowDonationModal(false)}
+      />
+
+      {/* Footer */}
+      <Footer />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { devLog, devError } from '@/lib/utils/debug'
 
 // PATCH /api/projects/[id]/metadata - Update project metadata only
 export async function PATCH(
@@ -13,14 +14,14 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] PATCH /api/projects/${params.id}/metadata - Updating metadata for user ${session.user.id}`)
+  devLog(`[DB] PATCH /api/projects/${params.id}/metadata - Updating metadata for user ${session.user.id}`)
   try {
     const body = await request.json()
     const { name } = body
-    console.log(`[DB] Metadata update: name="${name}"`)
+    devLog(`[DB] Metadata update: name="${name}"`)
     
     // Check if project belongs to user
-    console.log(`[DB] Checking project ownership`)
+    devLog(`[DB] Checking project ownership`)
     const existingProject = await prisma.project.findFirst({
       where: {
         id: params.id,
@@ -33,7 +34,7 @@ export async function PATCH(
     }
     
     // Update only metadata fields
-    console.log(`[DB] Updating metadata for project ${params.id}`)
+    devLog(`[DB] Updating metadata for project ${params.id}`)
     const project = await prisma.project.update({
       where: {
         id: params.id
@@ -43,10 +44,10 @@ export async function PATCH(
       }
     })
     
-    console.log(`[DB] Successfully updated metadata for project ${params.id}`)
+    devLog(`[DB] Successfully updated metadata for project ${params.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating metadata:', error)
+    devError('Error updating metadata:', error)
     return NextResponse.json({ error: 'Failed to update metadata' }, { status: 500 })
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { devLog, devError } from '@/lib/utils/debug'
 
 // PATCH /api/projects/[id]/upload - Update upload step data only
 export async function PATCH(
@@ -13,14 +14,14 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] PATCH /api/projects/${params.id}/upload - Updating upload data for user ${session.user.id}`)
+  devLog(`[DB] PATCH /api/projects/${params.id}/upload - Updating upload data for user ${session.user.id}`)
   try {
     const body = await request.json()
     const { originalImage, lastReachedStep } = body
-    console.log(`[DB] Upload update: hasImage=${!!originalImage}, lastReached=${lastReachedStep}`)
+    devLog(`[DB] Upload update: hasImage=${!!originalImage}, lastReached=${lastReachedStep}`)
     
     // Check if project belongs to user
-    console.log(`[DB] Checking project ownership`)
+    devLog(`[DB] Checking project ownership`)
     const existingProject = await prisma.project.findFirst({
       where: {
         id: params.id,
@@ -33,7 +34,7 @@ export async function PATCH(
     }
     
     // Update only upload-related fields
-    console.log(`[DB] Updating upload data for project ${params.id}`)
+    devLog(`[DB] Updating upload data for project ${params.id}`)
     const project = await prisma.project.update({
       where: {
         id: params.id
@@ -44,10 +45,10 @@ export async function PATCH(
       }
     })
     
-    console.log(`[DB] Successfully updated upload data for project ${params.id}`)
+    devLog(`[DB] Successfully updated upload data for project ${params.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating upload data:', error)
+    devError('Error updating upload data:', error)
     return NextResponse.json({ error: 'Failed to update upload data' }, { status: 500 })
   }
 }

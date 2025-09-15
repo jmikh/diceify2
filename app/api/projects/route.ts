@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { devLog, devError } from '@/lib/utils/debug'
 
 // GET /api/projects - Get all projects for current user
 export async function GET() {
@@ -10,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] GET /api/projects - Fetching all projects for user ${session.user.id}`)
+  devLog(`[DB] GET /api/projects - Fetching all projects for user ${session.user.id}`)
   try {
     const projects = await prisma.project.findMany({
       where: {
@@ -35,10 +36,10 @@ export async function GET() {
       }
     })
     
-    console.log(`[DB] Found ${projects.length} projects for user`)
+    devLog(`[DB] Found ${projects.length} projects for user`)
     return NextResponse.json(projects)
   } catch (error) {
-    console.error('Error fetching projects:', error)
+    devError('Error fetching projects:', error)
     return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 })
   }
 }
@@ -51,10 +52,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] POST /api/projects - Creating new project for user ${session.user.id}`)
+  devLog(`[DB] POST /api/projects - Creating new project for user ${session.user.id}`)
   try {
     // Check if user already has 3 projects
-    console.log(`[DB] Checking project count for user`)
+    devLog(`[DB] Checking project count for user`)
     const projectCount = await prisma.project.count({
       where: {
         userId: session.user.id
@@ -97,8 +98,8 @@ export async function POST(request: NextRequest) {
       cropRotation
     } = body
     
-    console.log(`[DB] Creating new project with name: ${name}`)
-    console.log(`[DB] Has originalImage: ${!!originalImage}, Has croppedImage: ${!!croppedImage}`)
+    devLog(`[DB] Creating new project with name: ${name}`)
+    devLog(`[DB] Has originalImage: ${!!originalImage}, Has croppedImage: ${!!croppedImage}`)
     
     // Use croppedImage as originalImage if originalImage is not provided
     // This happens when user crops before saving
@@ -135,10 +136,10 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    console.log(`[DB] Created project ${project.id}`)
+    devLog(`[DB] Created project ${project.id}`)
     return NextResponse.json(project)
   } catch (error) {
-    console.error('Error creating project:', error)
+    devError('Error creating project:', error)
     return NextResponse.json({ error: 'Failed to create project' }, { status: 500 })
   }
 }

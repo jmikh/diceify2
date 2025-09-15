@@ -8,6 +8,7 @@ import styles from './Cropper.module.css'
 import { theme } from '@/lib/theme'
 import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
 import { RotateCw } from 'lucide-react'
+import { devLog, devError } from '@/lib/utils/debug'
 
 interface CropperProps {
   imageUrl: string
@@ -95,8 +96,8 @@ const aspectRatioOptions: AspectRatioOption[] = [
 
 export default function Cropper({
   imageUrl, onCropComplete, initialCrop, containerWidth, containerHeight, onCropperReady, hideControls = false }: CropperProps) {
-  // console.log('Cropper component rendering, imageUrl:', imageUrl)
-  // console.log('Cropper initialCrop:', initialCrop)
+  // devLog('Cropper component rendering, imageUrl:', imageUrl)
+  // devLog('Cropper initialCrop:', initialCrop)
   const fixedCropperRef = useRef<FixedCropperRef>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
@@ -174,7 +175,7 @@ export default function Cropper({
     stencilHeight = selectedOption.ratio ? stencilWidth / selectedOption.ratio : stencilWidth
   }
   
-  console.log('Stencil size calculation:', {
+  devLog('Stencil size calculation:', {
     actualContainerHeight,
     actualContainerWidth,
     paddingPercent,
@@ -215,7 +216,7 @@ export default function Cropper({
         })
       }
     } catch (error) {
-      console.error('Error auto-cropping image:', error)
+      devError('Error auto-cropping image:', error)
     }
   }, [isProcessing, selectedOption.ratio, onCropComplete])
 
@@ -299,12 +300,12 @@ export default function Cropper({
               }}
               imageRestriction={ImageRestriction.stencil}
               onReady={() => {
-                console.log('Cropper onReady fired')
+                devLog('Cropper onReady fired')
                 setImageLoaded(true)
                 
                 if (fixedCropperRef.current) {
                   const state = fixedCropperRef.current.getState()
-                  console.log('Cropper state on ready:', {
+                  devLog('Cropper state on ready:', {
                     state: state,
                     coordinates: fixedCropperRef.current.getCoordinates()
                   })
@@ -314,7 +315,7 @@ export default function Cropper({
                   
                   // Notify parent component that cropper is ready
                   if (onCropperReady) {
-                    console.log('Cropper ready, passing ref to parent')
+                    devLog('Cropper ready, passing ref to parent')
                     onCropperReady(fixedCropperRef.current)
                   }
                 }
@@ -322,7 +323,7 @@ export default function Cropper({
                 // Apply initial crop if provided, but only once
                 if (initialCrop && fixedCropperRef.current && !hasAppliedInitialCrop) {
                   const cropper = fixedCropperRef.current
-                  console.log('Applying initial crop:', initialCrop)
+                  devLog('Applying initial crop:', initialCrop)
                   // Don't apply rotation - it's cumulative and causes issues
                   // The rotation is already applied when we generate the cropped image
                   // Just set the crop coordinates

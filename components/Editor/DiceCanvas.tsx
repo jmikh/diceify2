@@ -40,6 +40,7 @@ import { DiceGrid } from '@/lib/dice/types'
 import { theme } from '@/lib/theme'
 import { Eye, Download } from 'lucide-react'
 import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
+import { devError } from '@/lib/utils/debug'
 
 interface DiceCanvasProps {
   imageUrl: string
@@ -162,7 +163,7 @@ export default function DiceCanvas({
       
       setProgress(100)
     } catch (error) {
-      console.error('Error generating dice art:', error)
+      devError('Error generating dice art:', error)
     } finally {
       setIsGenerating(false)
     }
@@ -296,7 +297,7 @@ export default function DiceCanvas({
         URL.revokeObjectURL(url)
       }
     } catch (error) {
-      console.error('Error downloading image:', error)
+      devError('Error downloading image:', error)
     }
   }
 

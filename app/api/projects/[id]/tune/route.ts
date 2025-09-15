@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { devLog, devError } from '@/lib/utils/debug'
 
 // PATCH /api/projects/[id]/tune - Update tune step parameters only
 export async function PATCH(
@@ -13,7 +14,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  console.log(`[DB] PATCH /api/projects/${params.id}/tune - Updating tune parameters for user ${session.user.id}`)
+  devLog(`[DB] PATCH /api/projects/${params.id}/tune - Updating tune parameters for user ${session.user.id}`)
   try {
     const body = await request.json()
     const { 
@@ -33,10 +34,10 @@ export async function PATCH(
       lastReachedStep
     } = body
     
-    console.log(`[DB] Tune update: numRows=${numRows}, colorMode=${colorMode}, contrast=${contrast}`)
+    devLog(`[DB] Tune update: numRows=${numRows}, colorMode=${colorMode}, contrast=${contrast}`)
     
     // Check if project belongs to user
-    console.log(`[DB] Checking project ownership`)
+    devLog(`[DB] Checking project ownership`)
     const existingProject = await prisma.project.findFirst({
       where: {
         id: params.id,
@@ -49,7 +50,7 @@ export async function PATCH(
     }
     
     // Update only tune-related fields (NO images, NO progress fields)
-    console.log(`[DB] Updating tune parameters for project ${params.id}`)
+    devLog(`[DB] Updating tune parameters for project ${params.id}`)
     const project = await prisma.project.update({
       where: {
         id: params.id
@@ -76,10 +77,10 @@ export async function PATCH(
       }
     })
     
-    console.log(`[DB] Successfully updated tune parameters for project ${params.id}`)
+    devLog(`[DB] Successfully updated tune parameters for project ${params.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating tune parameters:', error)
+    devError('Error updating tune parameters:', error)
     return NextResponse.json({ error: 'Failed to update tune parameters' }, { status: 500 })
   }
 }
