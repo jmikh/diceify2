@@ -26,6 +26,8 @@ export async function GET() {
         percentComplete: true,
         totalDice: true,
         completedDice: true,
+        currentX: true,
+        currentY: true,
         updatedAt: true,
         createdAt: true
         // Excluded large fields: originalImage, croppedImage, gridData

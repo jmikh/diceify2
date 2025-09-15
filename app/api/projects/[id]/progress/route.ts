@@ -2,18 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// PATCH /api/projects/[id]/progress - Update project progress (auto-save)
-export async function PATCH(
+// Shared function for updating progress
+async function updateProgress(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  params: { id: string }
 ) {
   const session = await auth()
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  
-  console.log(`[DB] PATCH /api/projects/${params.id}/progress - Updating progress for user ${session.user.id}`)
+
+  console.log(`[DB] /api/projects/${params.id}/progress - Updating progress for user ${session.user.id}`)
   try {
     const body = await request.json()
     const { currentX, currentY, completedDice, lastReachedStep } = body
@@ -55,4 +55,20 @@ export async function PATCH(
     console.error('Error updating progress:', error)
     return NextResponse.json({ error: 'Failed to update progress' }, { status: 500 })
   }
+}
+
+// PATCH /api/projects/[id]/progress - Update project progress (auto-save)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return updateProgress(request, params)
+}
+
+// POST /api/projects/[id]/progress - Update project progress (for navigator.sendBeacon)
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return updateProgress(request, params)
 }

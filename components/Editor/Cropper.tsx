@@ -104,6 +104,29 @@ export default function Cropper({
   const [currentRatio, setCurrentRatio] = useState<string>('1:1')
   const [hasAppliedInitialCrop, setHasAppliedInitialCrop] = useState(false)
   const [hoveredRatio, setHoveredRatio] = useState<AspectRatio | null>(null)
+
+  // Track window size for responsive cropper
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 800)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth)
+    }
+
+    handleResize() // Set initial size
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Calculate responsive cropper size: max 720px, min 320px
+  const getResponsiveCropperSize = () => {
+    // Use 90% of window width for smaller screens, with padding
+    const availableWidth = windowWidth * 0.9
+    const cropperSize = Math.min(720, Math.max(320, availableWidth))
+    return cropperSize
+  }
+
+  const responsiveCropperSize = getResponsiveCropperSize()
   
   // Reset the flag when imageUrl or initialCrop changes
   useEffect(() => {
@@ -134,8 +157,8 @@ export default function Cropper({
   }, [selectedRatio, selectedOption])
   
   // Calculate stencil size to maintain 3% padding from top and bottom
-  const defaultContainerHeight = 500  // Default height of the container div
-  const defaultContainerWidth = 700  // Default max width we want for the stencil
+  const defaultContainerHeight = responsiveCropperSize * 0.714  // Maintain aspect ratio (~500/700)
+  const defaultContainerWidth = responsiveCropperSize
   const actualContainerHeight = containerHeight || defaultContainerHeight
   const actualContainerWidth = containerWidth || defaultContainerWidth
   const paddingPercent = 0.94  // 94% of container (3% padding on each side)
@@ -247,9 +270,9 @@ export default function Cropper({
 
   return (
     <div className={containerWidth ? "" : "w-full max-w-4xl mx-auto px-4"}>
-          <div className="relative rounded-xl overflow-hidden mx-auto border" style={{ 
-            width: containerWidth ? `${containerWidth}px` : '700px',
-            height: containerHeight ? `${containerHeight}px` : '500px',
+          <div className="relative rounded-xl overflow-hidden mx-auto border" style={{
+            width: containerWidth ? `${containerWidth}px` : `${responsiveCropperSize}px`,
+            height: containerHeight ? `${containerHeight}px` : `${responsiveCropperSize * 0.714}px`, // Maintain aspect ratio
             background: 'rgba(255, 255, 255, 0.05)',
             backdropFilter: 'blur(10px)',
             borderColor: 'rgba(139, 92, 246, 0.2)',

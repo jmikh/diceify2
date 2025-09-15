@@ -111,11 +111,25 @@ function EditorContent() {
   }, [diceGrid?.height, dieSize])
   
   // Build progress tracking
-  const [buildProgress, setBuildProgress] = useState<{ x: number; y: number; percentage: number }>({ 
-    x: 0, 
-    y: 0, 
-    percentage: 0 
+  const [buildProgress, setBuildProgressRaw] = useState<{ x: number; y: number; percentage: number }>({
+    x: 0,
+    y: 0,
+    percentage: 0
   })
+
+  // Wrap setBuildProgress to add logging
+  const setBuildProgress = (value: React.SetStateAction<{ x: number; y: number; percentage: number }>) => {
+    if (typeof value === 'function') {
+      setBuildProgressRaw((prev) => {
+        const newValue = value(prev)
+        console.log('[DEBUG] setBuildProgress (function) - prev:', prev, 'new:', newValue)
+        return newValue
+      })
+    } else {
+      console.log('[DEBUG] setBuildProgress - setting to:', value)
+      setBuildProgressRaw(value)
+    }
+  }
   const [lastGridHash, setLastGridHash] = useState<string>('')
   
   // Compute if we should warn when exiting build step (only true if not at starting position)
@@ -148,6 +162,9 @@ function EditorContent() {
   // Keep latest buildProgress in a ref to avoid stale closures
   const buildProgressRef = useRef(buildProgress)
   buildProgressRef.current = buildProgress
+
+  // Track when we're loading a project to prevent resetting build progress
+  const loadingProjectRef = useRef(false)
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -297,13 +314,20 @@ function EditorContent() {
 
   const handleGridUpdate = (grid: DiceGrid) => {
     setDiceGrid(grid)
-    
+
     // Check if grid has changed
     const newHash = generateGridHash(diceParams)
     if (newHash !== lastGridHash) {
+      console.log('[DEBUG] Grid hash changed:', { old: lastGridHash, new: newHash })
       setLastGridHash(newHash)
-      // Reset build progress when grid changes
-      setBuildProgress({ x: 0, y: 0, percentage: 0 })
+      // Only reset build progress if we're not in the process of loading a project
+      // The loadingProjectRef will be true when we're loading a project
+      if (!loadingProjectRef.current) {
+        console.log('[DEBUG] Resetting build progress due to grid change (not loading project)')
+        setBuildProgress({ x: 0, y: 0, percentage: 0 })
+      } else {
+        console.log('[DEBUG] Skipping build progress reset - loading project')
+      }
     }
   }
   
@@ -382,6 +406,13 @@ function EditorContent() {
       const response = await fetch('/api/projects')
       if (response.ok) {
         const projects = await response.json()
+        console.log('[DEBUG] Projects fetched from API:', projects.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          currentX: p.currentX,
+          currentY: p.currentY,
+          percentComplete: p.percentComplete
+        })))
         setUserProjects(projects)
         return projects
       }
@@ -720,7 +751,7 @@ function EditorContent() {
     const steps: WorkflowStep[] = ['upload', 'crop', 'tune', 'build']
     const newIndex = steps.indexOf(newStep)
     const lastReachedIndex = steps.indexOf(lastReachedStep)
-    
+
     // Allow navigation to any previous step or the next step after lastReachedStep
     if (newIndex <= lastReachedIndex + 1) {
       // Save on specific transitions as requested:
@@ -734,7 +765,7 @@ function EditorContent() {
       } else if (step === 'crop' && newStep === 'tune' && !hasCropChanged) {
         console.log('[CLIENT] Moving from crop to tune, no changes to save')
       }
-      
+
       // 2. Moving from tune to build: save tune parameters only if they changed
       if (step === 'tune' && newStep === 'build' && hasTuneChanged) {
         console.log('[CLIENT] Moving from tune to build, saving tune parameters')
@@ -745,7 +776,16 @@ function EditorContent() {
       } else if (step === 'tune' && newStep === 'build' && !hasTuneChanged) {
         console.log('[CLIENT] Moving from tune to build, no changes to save')
       }
-      
+
+      // 3. LEAVING build step: save progress if we have any
+      if (step === 'build' && newStep !== 'build' && currentProjectId && session?.user?.id) {
+        const currentProgress = buildProgressRef.current
+        if (currentProgress.x > 0 || currentProgress.y > 0) {
+          console.log('[CLIENT] Leaving build step, saving progress')
+          await saveProgressOnly()
+        }
+      }
+
       setStep(newStep)
       // Navigation complete
       
@@ -761,7 +801,7 @@ function EditorContent() {
         setLastReachedStep(newStep)
       }
     }
-  }, [step, lastReachedStep, cropParams, currentProjectId, session, saveCropStep, saveTuneStep])
+  }, [step, lastReachedStep, cropParams, currentProjectId, session, saveCropStep, saveTuneStep, saveProgressOnly, hasCropChanged, hasTuneChanged])
 
 
   // Handle navigation with build progress check
@@ -807,7 +847,20 @@ function EditorContent() {
   // Load a project
   const loadProject = useCallback(async (project: any) => {
     console.log('[CLIENT] Loading project:', project.name, 'step:', project.lastReachedStep)
-    
+    console.log('[DEBUG] Project data received:', {
+      id: project.id,
+      currentX: project.currentX,
+      currentY: project.currentY,
+      percentComplete: project.percentComplete,
+      totalDice: project.totalDice,
+      completedDice: project.completedDice
+    })
+
+    // Set loading flag to prevent build progress reset
+    loadingProjectRef.current = true
+
+    // Don't save progress when loading a new project - it causes contamination issues
+
     // If project doesn't have image data but needs it, fetch full project
     if (!project.croppedImage && !project.originalImage && project.lastReachedStep !== 'upload') {
       console.log(`[DB] Fetching full project data for ${project.id}`)
@@ -816,7 +869,13 @@ function EditorContent() {
         if (response.ok) {
           const fullProject = await response.json()
           console.log('Fetched full project with image data')
-          project = fullProject // Use the full project data
+          console.log('[DEBUG] Full project data:', {
+            id: fullProject.id,
+            currentX: fullProject.currentX,
+            currentY: fullProject.currentY,
+            percentComplete: fullProject.percentComplete
+          })
+          project = fullProject // Just use the full project data - it has everything
         }
       } catch (error) {
         console.error('Failed to fetch full project:', error)
@@ -834,17 +893,14 @@ function EditorContent() {
       whiteCount: 0,
       totalCount: 0,
     })
-    setBuildProgress({
-      x: 0,
-      y: 0,
-      percentage: 0
-    })
+    // Don't reset build progress here - we'll set it to the correct values below
     
     // Set project info
+    console.log('[DEBUG] About to set currentProjectId from', currentProjectId, 'to', project.id)
     setCurrentProjectId(project.id)
     setProjectName(project.name)
     updateURLWithProject(project.id)
-    
+
     // Set last saved date from project's updatedAt
     if (project.updatedAt) {
       setLastSaved(new Date(project.updatedAt))
@@ -902,8 +958,7 @@ function EditorContent() {
     
     // Load parameters
     console.log('[CLIENT] Setting dice params from project')
-    setDiceParams(prev => ({
-      ...prev,
+    const newDiceParams = {
       numRows: project.numRows || 30,
       colorMode: project.colorMode || 'both',
       contrast: project.contrast || 0,
@@ -912,7 +967,16 @@ function EditorContent() {
       rotate2: project.rotate2 || false,
       rotate3: project.rotate3 || false,
       rotate6: project.rotate6 || false
+    }
+    setDiceParams(prev => ({
+      ...prev,
+      ...newDiceParams
     }))
+
+    // Set the grid hash to prevent reset when grid is generated
+    const newHash = generateGridHash(newDiceParams)
+    setLastGridHash(newHash)
+    console.log('[DEBUG] Set initial grid hash during project load:', newHash)
     
     // Load die size and cost
     setDieSize(project.dieSize || 16)
@@ -928,13 +992,20 @@ function EditorContent() {
       })
     }
     
-    // Load progress
-    setBuildProgress({
+    // Load build progress - do this AFTER setting project ID to avoid saving to wrong project
+    console.log('[CLIENT] Loading build progress from project:', {
+      currentX: project.currentX,
+      currentY: project.currentY,
+      percentComplete: project.percentComplete
+    })
+    const newProgress = {
       x: project.currentX || 0,
       y: project.currentY || 0,
       percentage: project.percentComplete || 0
-    })
-    
+    }
+    console.log('[DEBUG] Setting buildProgress to:', newProgress)
+    setBuildProgress(newProgress)
+
     // Always load to lastReachedStep
     if (project.lastReachedStep) {
       console.log('[CLIENT] Setting step to lastReachedStep:', project.lastReachedStep)
@@ -956,7 +1027,13 @@ function EditorContent() {
         setLastReachedStep('upload')
       }
     }
-  }, [])
+
+    // Clear loading flag after a short delay
+    setTimeout(() => {
+      loadingProjectRef.current = false
+      console.log('[DEBUG] Project loading complete - clearing loading flag')
+    }, 100)
+  }, [saveProgressOnly])
 
   const handleStepperClick = useCallback((clickedStep: WorkflowStep) => {
     console.log(`[CLIENT] handleStepperClick called: ${clickedStep}`)
@@ -981,17 +1058,45 @@ function EditorContent() {
     }, 15000) // 15 seconds delay
   }, [saveProgressOnly])
   
-  // Clean up timeouts on unmount
+  // Clean up timeouts on unmount and save build progress
   useEffect(() => {
+    // Handle browser tab close/refresh
+    const handleBeforeUnload = () => {
+      if (step === 'build' && currentProjectId && session?.user?.id) {
+        const currentProgress = buildProgressRef.current
+        if (currentProgress.x > 0 || currentProgress.y > 0) {
+          console.log('[CLIENT] Page unloading, saving build progress')
+          // Use navigator.sendBeacon for reliable saving on page unload
+          const data = JSON.stringify({
+            currentX: currentProgress.x,
+            currentY: currentProgress.y,
+            completedDice: Math.floor((currentProgress.percentage / 100) * diceStats.totalCount),
+            lastReachedStep: 'build'
+          })
+          navigator.sendBeacon(`/api/projects/${currentProjectId}/progress`, data)
+        }
+      }
+    }
+
+    // Add event listener
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
     return () => {
+      // Remove event listener
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+
+      // Clear timeouts
       if (buildAutoSaveTimeoutRef.current) {
         clearTimeout(buildAutoSaveTimeoutRef.current)
       }
       if (authModalTimeoutRef.current) {
         clearTimeout(authModalTimeoutRef.current)
       }
+
+      // Save build progress on component unmount
+      handleBeforeUnload()
     }
-  }, [])
+  }, [step, currentProjectId, session?.user?.id, diceStats.totalCount])
   
   // Memoize the navigation ready handler
   const handleNavigationReady = useCallback((nav: any) => {
@@ -1475,6 +1580,13 @@ function EditorContent() {
                                   >
                                     <button
                                       onClick={() => {
+                                        console.log('[DEBUG] Loading project from menu:', {
+                                          id: project.id,
+                                          name: project.name,
+                                          currentX: project.currentX,
+                                          currentY: project.currentY,
+                                          percentComplete: project.percentComplete
+                                        })
                                         loadProject(project)
                                         setShowUserMenu(false)
                                         setShowProjectsSubmenu(false)
@@ -1769,7 +1881,16 @@ function EditorContent() {
             
             {/* Main build viewer */}
             <div className="flex-1 min-w-0">
-              <BuildViewer 
+              {(() => {
+                console.log('[DEBUG] Passing to BuildViewer:', {
+                  currentProjectId,
+                  buildProgress,
+                  'buildProgress.x': buildProgress.x,
+                  'buildProgress.y': buildProgress.y
+                })
+                return null
+              })()}
+              <BuildViewer
                 key={`${currentProjectId}-viewer`}
                 grid={diceGrid}
                 initialX={buildProgress.x}

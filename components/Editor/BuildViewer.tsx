@@ -59,6 +59,7 @@ const BuildViewer = memo(function BuildViewer({
 }: BuildViewerProps) {
   
   console.log(`[BuildViewer] Rendering with grid ${grid.width}x${grid.height}, initial position (${initialX}, ${initialY})`)
+  console.log('[DEBUG BuildViewer] Props received:', { initialX, initialY })
   
   // Use refs to track the initial values but don't use them as state initializers
   // This prevents re-renders when initialX/Y change

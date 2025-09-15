@@ -1,13 +1,29 @@
 export const theme = {
   colors: {
+    // Primary color system - easily change the entire theme
+    primary: '#9333ea', // Purple
+    primaryRgb: '147, 51, 234',
+    secondary: '#6495ff', // Blue
+    secondaryRgb: '100, 149, 255',
+    tertiary: '#ec4899', // Pink
+    tertiaryRgb: '236, 72, 153',
+
+    // Status colors
+    success: '#22c55e',
+    error: '#ef4444',
+    warning: '#f59e0b',
+
+    // Amazon brand color (for affiliate button)
+    amazon: '#FF9900',
+
     // Background colors
     background: {
-      primary: '#000000ff', // Main dark purple background
-      secondary: '#ffffffff', // Secondary dark purple
+      primary: '#000000ff', // Main black background
+      secondary: '#ffffffff', // White background
       dark: '#000000', // Pure black
       overlay: 'rgba(0, 0, 0, 0.4)', // Dark overlay
     },
-    
+
     // Glass effects
     glass: {
       light: 'rgba(255, 255, 255, 0.05)', // Light glass bg
@@ -15,10 +31,8 @@ export const theme = {
       heavy: 'rgba(255, 255, 255, 0.2)', // Heavy glass bg
       border: 'rgba(255, 255, 255, 0.1)', // Glass border
       borderHover: 'rgba(255, 255, 255, 0.2)', // Glass border hover
-      pink: 'rgba(236, 72, 153, 0.15)', // Pink glass for special controls
-      pinkBorder: 'rgba(236, 72, 153, 0.3)', // Pink glass border
     },
-    
+
     // Text colors
     text: {
       primary: 'rgba(255, 255, 255, 0.9)', // Primary white text
@@ -26,21 +40,21 @@ export const theme = {
       muted: 'rgba(255, 255, 255, 0.5)', // Muted white text
       dim: 'rgba(255, 255, 255, 0.3)', // Dim white text
     },
-    
-    // Accent colors
+
+    // Legacy accent colors (for backward compatibility - will be removed)
     accent: {
-      blue: '#6495ff', // Primary blue
-      purple: '#9333ea', // Primary purple
-      pink: '#ec4899', // Primary pink
-      green: '#22c55e', // Success green
-      red: '#ef4444', // Error red
+      blue: '#6495ff', // Use theme.colors.secondary instead
+      purple: '#9333ea', // Use theme.colors.primary instead
+      pink: '#ec4899', // Use theme.colors.tertiary instead
+      green: '#22c55e', // Use theme.colors.success instead
+      red: '#ef4444', // Use theme.colors.error instead
     },
-    
+
     // Glow colors (for shadows and effects)
     glow: {
-      blue: 'rgba(100, 149, 255, 0.2)',
-      purple: 'rgba(147, 51, 234, 0.2)',
-      pink: 'rgba(236, 72, 153, 0.2)',
+      blue: 'rgba(100, 149, 255, 0.2)', // Use with theme.colors.secondary
+      purple: 'rgba(147, 51, 234, 0.2)', // Use with theme.colors.primary
+      pink: 'rgba(236, 72, 153, 0.2)', // Use with theme.colors.tertiary
       green: 'rgba(34, 197, 94, 0.2)',
     },
     

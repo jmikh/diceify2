@@ -164,8 +164,8 @@ export default function ControlPanel({
                 borderRight: `1px solid ${theme.colors.glass.border}`
               }}
             >
-              <span 
-                className="text-2xl inline-block transition-transform"
+              <span
+                className="text-xl inline-block transition-transform"
                 style={{ 
                   transform: `rotate(${rotations.dice2}deg)`,
                   transformOrigin: 'center',
@@ -192,8 +192,8 @@ export default function ControlPanel({
                 borderRight: `1px solid ${theme.colors.glass.border}`
               }}
             >
-              <span 
-                className="text-2xl inline-block transition-transform"
+              <span
+                className="text-xl inline-block transition-transform"
                 style={{ 
                   transform: `rotate(${rotations.dice3}deg)`,
                   transformOrigin: 'center',
@@ -217,8 +217,8 @@ export default function ControlPanel({
               onClick={() => handleDiceRotation(6)}
               className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
             >
-              <span 
-                className="text-2xl inline-block transition-transform"
+              <span
+                className="text-xl inline-block transition-transform"
                 style={{ 
                   transform: `rotate(${rotations.dice6}deg)`,
                   transformOrigin: 'center',

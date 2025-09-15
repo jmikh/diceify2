@@ -21,7 +21,10 @@ export default function ProjectSelector({
 }: ProjectSelectorProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(currentProject)
+  const [isCloudHovering, setIsCloudHovering] = useState(false)
+  const [showSaveAnimation, setShowSaveAnimation] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const prevIsSavingRef = useRef(isSaving)
   
   // Check if the current project name is actually empty/untitled or has the default pattern
   const isDefaultName = !currentProject || 
@@ -38,6 +41,16 @@ export default function ProjectSelector({
   useEffect(() => {
     setEditValue(currentProject)
   }, [currentProject])
+
+  // Trigger save animation when saving completes
+  useEffect(() => {
+    if (prevIsSavingRef.current && !isSaving) {
+      // Just finished saving - trigger the green flash
+      setShowSaveAnimation(true)
+      setTimeout(() => setShowSaveAnimation(false), 600) // Match animation duration
+    }
+    prevIsSavingRef.current = isSaving
+  }, [isSaving])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -94,7 +107,6 @@ export default function ProjectSelector({
   }
 
   const [isHovering, setIsHovering] = useState(false)
-  const [isCloudHovering, setIsCloudHovering] = useState(false)
   
   // Format the last saved time
   const formatSaveTime = (date: Date | null | undefined) => {
@@ -148,16 +160,16 @@ export default function ProjectSelector({
           onMouseLeave={() => setIsCloudHovering(false)}
           className="relative"
         >
-          <Cloud 
-            size={16} 
-            className={`transition-all ${isSaving ? 'animate-pulse' : ''}`}
-            style={{ 
-              color: isSaving 
-                ? theme.colors.accent.blue 
-                : lastSaved 
-                  ? theme.colors.text.secondary 
-                  : theme.colors.text.muted 
-            }} 
+          <Cloud
+            size={16}
+            className={`transition-all ${showSaveAnimation ? 'save-flash' : ''}`}
+            style={{
+              color: showSaveAnimation
+                ? undefined // Let the animation control the color
+                : lastSaved
+                  ? theme.colors.text.secondary
+                  : theme.colors.text.muted
+            }}
           />
           
           {/* Tooltip */}
