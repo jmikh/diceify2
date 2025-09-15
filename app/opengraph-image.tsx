@@ -20,114 +20,110 @@ export default async function Image() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          position: 'relative',
         }}
       >
-        {/* Content container */}
+        {/* Background Dali image using img tag */}
+        <img
+          src="https://diceify.art/images/dali-51x51.png"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -60%)',
+            width: '900px',
+            height: '900px',
+            opacity: 0.2,
+            objectFit: 'contain',
+          }}
+        />
+
+        {/* Left gradient fade - stronger blend */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '50%',
+            height: '100%',
+            background: 'linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
+            display: 'flex',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Right gradient fade - stronger blend */}
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            width: '50%',
+            height: '100%',
+            background: 'linear-gradient(270deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
+            display: 'flex',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Logo - icon + text */}
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
+            gap: '60px',
+            position: 'relative',
+            zIndex: 1,
           }}
         >
-          {/* Logo */}
+          {/* Dice icon */}
           <div
             style={{
+              width: '200px',
+              height: '200px',
+              border: '12px solid white',
+              borderRadius: '48px',
+              position: 'relative',
               display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: '40px',
             }}
           >
-            {/* Dice icon */}
+            {/* Top-left dot */}
             <div
               style={{
-                width: '70px',
-                height: '70px',
-                border: '4px solid white',
-                borderRadius: '16px',
-                position: 'relative',
-                marginRight: '25px',
-                display: 'flex',
+                position: 'absolute',
+                top: '40px',
+                left: '40px',
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'white',
+                borderRadius: '50%',
               }}
-            >
-              {/* Top-left dot */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '14px',
-                  left: '14px',
-                  width: '14px',
-                  height: '14px',
-                  backgroundColor: 'white',
-                  borderRadius: '50%',
-                }}
-              />
-              {/* Bottom-right dot */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '14px',
-                  right: '14px',
-                  width: '14px',
-                  height: '14px',
-                  backgroundColor: 'white',
-                  borderRadius: '50%',
-                }}
-              />
-            </div>
-            {/* Logo text */}
-            <span
+            />
+            {/* Bottom-right dot */}
+            <div
               style={{
-                fontSize: 52,
-                fontWeight: '600',
-                color: 'white',
-                letterSpacing: '-0.5px',
+                position: 'absolute',
+                bottom: '40px',
+                right: '40px',
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'white',
+                borderRadius: '50%',
               }}
-            >
-              Diceify
-            </span>
+            />
           </div>
-
-          {/* Main title */}
-          <div
+          {/* Logo text */}
+          <span
             style={{
-              display: 'flex',
-              fontSize: 56,
-              fontWeight: 'bold',
+              fontSize: 160,
+              fontWeight: '600',
               color: 'white',
-              marginBottom: '10px',
+              letterSpacing: '-2px',
             }}
           >
-            Transform Photos into
-          </div>
-
-          {/* Gradient text */}
-          <div
-            style={{
-              display: 'flex',
-              fontSize: 64,
-              fontWeight: 'bold',
-              background: 'linear-gradient(to right, #60a5fa, #a78bfa)',
-              backgroundClip: 'text',
-              color: 'transparent',
-              marginBottom: '30px',
-            }}
-          >
-            Dice Mosaic
-          </div>
-
-          {/* Description */}
-          <div
-            style={{
-              display: 'flex',
-              fontSize: 24,
-              color: '#cbd5e1',
-            }}
-          >
-            Helps build real dice mosaic art from your digitial photos.
-          </div>
+            Diceify
+          </span>
         </div>
       </div>
     ),
