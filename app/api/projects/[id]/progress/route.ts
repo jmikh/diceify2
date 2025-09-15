@@ -16,8 +16,8 @@ export async function PATCH(
   console.log(`[DB] PATCH /api/projects/${params.id}/progress - Updating progress for user ${session.user.id}`)
   try {
     const body = await request.json()
-    const { currentX, currentY, completedDice } = body
-    console.log(`[DB] Progress update: x=${currentX}, y=${currentY}, completed=${completedDice}`)
+    const { currentX, currentY, completedDice, lastReachedStep } = body
+    console.log(`[DB] Progress update: x=${currentX}, y=${currentY}, completed=${completedDice}, lastReachedStep=${lastReachedStep}`)
     
     // Check if project belongs to user
     console.log(`[DB] Checking project ownership`)
@@ -32,7 +32,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
-    // Update only progress fields
+    // Update progress fields and lastReachedStep
     console.log(`[DB] Updating progress for project ${params.id}`)
     const project = await prisma.project.update({
       where: {
@@ -42,9 +42,10 @@ export async function PATCH(
         currentX,
         currentY,
         completedDice,
-        percentComplete: existingProject.totalDice > 0 
+        percentComplete: existingProject.totalDice > 0
           ? (completedDice / existingProject.totalDice) * 100
-          : 0
+          : 0,
+        lastReachedStep: lastReachedStep || 'build' // Default to 'build' if not provided
       }
     })
     
