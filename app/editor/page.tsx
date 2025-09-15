@@ -155,10 +155,6 @@ function EditorContent() {
   
   // Auto-save timeout ref for build step
   const buildAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  // Auth modal timer ref
-  const authModalTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  // Track if this is the first time visiting build step
-  const hasVisitedBuildRef = useRef(false)
   // Keep latest buildProgress in a ref to avoid stale closures
   const buildProgressRef = useRef(buildProgress)
   buildProgressRef.current = buildProgress
@@ -643,6 +639,9 @@ function EditorContent() {
         setLastSaved(new Date())
         // Update local lastReachedStep to build if it wasn't already
         setLastReachedStep(prev => prev === 'build' ? prev : 'build')
+        // Clear localStorage since data is saved to database
+        localStorage.removeItem('editorState')
+        console.log('[LOCAL STORAGE] Cleared - progress saved to database')
       }
     } catch (error) {
       console.error('Failed to save progress:', error)
@@ -671,6 +670,9 @@ function EditorContent() {
       if (response.ok) {
         console.log('Upload data saved successfully')
         setLastSaved(new Date())
+        // Clear localStorage since data is saved to database
+        localStorage.removeItem('editorState')
+        console.log('[LOCAL STORAGE] Cleared - upload saved to database')
       }
     } catch (error) {
       console.error('Failed to save upload data:', error)
@@ -699,6 +701,9 @@ function EditorContent() {
       if (response.ok) {
         console.log('Crop data saved successfully')
         setLastSaved(new Date())
+        // Clear localStorage since data is saved to database
+        localStorage.removeItem('editorState')
+        console.log('[LOCAL STORAGE] Cleared - crop saved to database')
       }
     } catch (error) {
       console.error('Failed to save crop data:', error)
@@ -737,6 +742,9 @@ function EditorContent() {
       if (response.ok) {
         console.log('Tune parameters saved successfully')
         setLastSaved(new Date())
+        // Clear localStorage since data is saved to database
+        localStorage.removeItem('editorState')
+        console.log('[LOCAL STORAGE] Cleared - tune saved to database')
       }
     } catch (error) {
       console.error('Failed to save tune parameters:', error)
@@ -811,24 +819,10 @@ function EditorContent() {
     if (newStep === 'build' && status !== 'authenticated') {
       // Store that user wanted to go to build after login
       sessionStorage.setItem('intendedStepAfterLogin', 'build')
-      // Allow navigation to build step first
+      // Allow navigation to build step - user can explore up to x=3
       setStep('build')
       setLastReachedStep('build')
-      
-      // Clear any existing timer
-      if (authModalTimeoutRef.current) {
-        clearTimeout(authModalTimeoutRef.current)
-      }
-      
-      // Use 15 seconds for first visit, 3 seconds for subsequent visits
-      const delay = hasVisitedBuildRef.current ? 3000 : 15000
-      console.log(`[AUTH] Setting auth modal timer for ${delay}ms (first visit: ${!hasVisitedBuildRef.current})`)
-      
-      // Show auth modal after delay
-      authModalTimeoutRef.current = setTimeout(() => {
-        setShowAuthModal(true)
-        hasVisitedBuildRef.current = true // Mark as visited after first show
-      }, delay)
+      // Auth modal will show when they try to go beyond x=3
       return
     }
     
@@ -1088,9 +1082,6 @@ function EditorContent() {
       // Clear timeouts
       if (buildAutoSaveTimeoutRef.current) {
         clearTimeout(buildAutoSaveTimeoutRef.current)
-      }
-      if (authModalTimeoutRef.current) {
-        clearTimeout(authModalTimeoutRef.current)
       }
 
       // Save build progress on component unmount
@@ -1399,7 +1390,14 @@ function EditorContent() {
   // Handle build progress updates with throttling
   const handleBuildProgressUpdate = useCallback((x: number, y: number) => {
     if (!diceGrid) return
-    
+
+    // Check if user is trying to go beyond x=3 without authentication
+    if (!session && x > 3) {
+      console.log('[AUTH] User tried to navigate beyond x=3 without authentication')
+      setShowAuthModal(true)
+      return // Prevent the update
+    }
+
     const now = Date.now()
     const timeSinceLastUpdate = now - lastUpdateTimeRef.current
     
@@ -1466,7 +1464,7 @@ function EditorContent() {
         updateTimeoutRef.current = null
       }, delay)
     }
-  }, [diceGrid, session, currentProjectId, scheduleBuildAutoSave])
+  }, [diceGrid, session, currentProjectId, scheduleBuildAutoSave, setShowAuthModal])
   
   // No cleanup needed - removed auto-save timers
 
@@ -1839,6 +1837,13 @@ function EditorContent() {
                     currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
                     totalDice={diceGrid.width * diceGrid.height}
                     onNavigate={(direction) => {
+                      // Check if trying to go forward beyond x=3 without authentication
+                      if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
+                        console.log('[AUTH] Navigation blocked at x=3 - showing auth modal')
+                        setShowAuthModal(true)
+                        return
+                      }
+
                       if (direction === 'prev') buildNavigation.navigatePrev()
                       else if (direction === 'next') buildNavigation.navigateNext()
                       else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
@@ -1928,7 +1933,7 @@ function EditorContent() {
       <ConfirmDialog
         isOpen={showBuildProgressDialog}
         title="Build in Progress"
-        message="Changing the underlying image would reset progress. Are you sure you want to Proceed?"
+        message="Changing the underlying image would reset progress. Do you want to Proceed?"
         progress={buildProgress.percentage}
         confirmText="Yes"
         confirmButtonColor={theme.colors.accent.blue}
@@ -1943,25 +1948,14 @@ function EditorContent() {
         isOpen={showAuthModal}
         onClose={() => {
           setShowAuthModal(false)
-          // If still in build step and not authenticated, restart the timer
-          if (step === 'build' && status !== 'authenticated') {
-            // Clear any existing timer
-            if (authModalTimeoutRef.current) {
-              clearTimeout(authModalTimeoutRef.current)
-            }
-            // Restart with 3 second delay since they've already seen it once
-            console.log('[AUTH] Modal closed, restarting timer with 3 second delay')
-            authModalTimeoutRef.current = setTimeout(() => {
-              setShowAuthModal(true)
-            }, 3000)
-          }
+          // User can continue exploring up to x=3
         }}
         onSuccess={() => {
           setShowAuthModal(false)
           setStep('build')
           // Everything else is handled automatically by the login useEffect
         }}
-        message="You must have an account to use the builder and save progress"
+        message="To continue using the builder you must be signed in"
         editorState={{
           originalImage,
           croppedImage,
