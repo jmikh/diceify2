@@ -7,7 +7,7 @@ import Providers from '@/components/Providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Dice Art Generator',
+  title: 'Diceify Art',
   description: 'Transform your photos into stunning dice art',
   icons: {
     icon: [

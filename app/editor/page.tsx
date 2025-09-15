@@ -32,7 +32,7 @@
 
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -52,7 +52,7 @@ import AuthModal from '@/components/AuthModal'
 import { theme } from '@/lib/theme'
 import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
 
-export default function Editor() {
+function EditorContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -1047,6 +1047,9 @@ export default function Editor() {
 
   // Restore state from localStorage on mount (if no project is loaded)
   useEffect(() => {
+    // Skip if still determining session status
+    if (status === 'loading') return
+    
     // Only restore if not logged in, don't have a project, and aren't in OAuth flow
     if (!session?.user?.id && !currentProjectId && !searchParams.get('restored')) {
       const savedState = localStorage.getItem('editorState')
@@ -1072,15 +1075,22 @@ export default function Editor() {
             if (state.lastReachedStep) setLastReachedStep(state.lastReachedStep)
             
             console.log('[LOCAL STORAGE] State restored successfully')
+            // Add small delay to ensure state is applied before showing UI
+            setTimeout(() => setIsInitializing(false), 500)
+          } else {
+            // No state to restore
+            setIsInitializing(false)
           }
         } catch (err) {
           console.error('[LOCAL STORAGE] Failed to restore state:', err)
+          setIsInitializing(false)
         }
+      } else {
+        // No saved state
+        setIsInitializing(false)
       }
-      // Mark initialization as complete for non-logged-in users
-      setIsInitializing(false)
     }
-  }, []) // Only run on mount
+  }, [status, session?.user?.id, currentProjectId, searchParams]) // Re-run when session status changes
 
   // Handle OAuth restoration after redirect
   useEffect(() => {
@@ -1170,7 +1180,11 @@ export default function Editor() {
 
   // Handle user login - auto-create project or show capacity modal
   useEffect(() => {
+    // Skip if still determining session status
+    if (status === 'loading') return
+    
     console.log('[LOGIN EFFECT] Triggered with:', {
+      sessionStatus: status,
       hasSession: !!session?.user?.id,
       currentProjectId,
       isRestoringOAuthState,
@@ -1242,12 +1256,12 @@ export default function Editor() {
             setShowProjectModal(true)
           }
         }
-        // Mark initialization as complete after handling all login logic
-        setIsInitializing(false)
+        // Mark initialization as complete after handling all login logic with small delay
+        setTimeout(() => setIsInitializing(false), 500)
       }).catch(err => {
         console.error('[LOGIN EFFECT] Failed to fetch projects:', err)
         // Still mark as complete even on error
-        setIsInitializing(false)
+        setTimeout(() => setIsInitializing(false), 500)
       })
     } else {
       console.log('[LOGIN EFFECT] Conditions not met, skipping:', {
@@ -1257,7 +1271,7 @@ export default function Editor() {
       })
       // Mark initialization as complete if not logged in or already has project
       if (!session?.user?.id || currentProjectId) {
-        setIsInitializing(false)
+        setTimeout(() => setIsInitializing(false), 500)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1347,8 +1361,8 @@ export default function Editor() {
   
   // No cleanup needed - removed auto-save timers
 
-  // Show loading screen while initializing
-  if (isInitializing) {
+  // Show loading screen while initializing or session is loading
+  if (isInitializing || status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
         <div className="text-center">
@@ -1853,5 +1867,21 @@ export default function Editor() {
         maxProjects={3}
       />
     </div>
+  )
+}
+
+// Export the page wrapped in Suspense to handle useSearchParams
+export default function Editor() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mb-4"></div>
+          <p className="text-white text-lg">Loading workspace...</p>
+        </div>
+      </div>
+    }>
+      <EditorContent />
+    </Suspense>
   )
 }
