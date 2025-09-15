@@ -1635,10 +1635,10 @@ function EditorContent() {
         {step === 'tune' && croppedImage && (
           <div className="flex flex-col md:flex-row gap-6 justify-center items-center md:items-start">
             {/* Left floating panels */}
-            <div className="space-y-4 w-80 flex-shrink-0">
-              {/* Stats display */}
-              <div 
-                className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl"
+            <div className="flex flex-col space-y-4 w-80 flex-shrink-0">
+              {/* Control panel - desktop: first, mobile: second (right above canvas) */}
+              <div
+                className="backdrop-blur-md rounded-2xl border overflow-hidden order-2 md:order-1"
                 style={{
                   background: 'rgba(255, 255, 255, 0.05)',
                   backdropFilter: 'blur(10px)',
@@ -1648,7 +1648,25 @@ function EditorContent() {
                              0 5px 20px rgba(0, 0, 0, 0.3)`
                 }}
               >
-                <DiceStatsComponent 
+                <ControlPanel
+                  params={diceParams}
+                  onParamChange={handleParamChange}
+                />
+              </div>
+
+              {/* Stats display - desktop: second, mobile: first */}
+              <div
+                className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-1 md:order-2"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  borderColor: `${theme.colors.accent.purple}33`,
+                  boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
+                             0 0 60px rgba(59, 130, 246, 0.08),
+                             0 5px 20px rgba(0, 0, 0, 0.3)`
+                }}
+              >
+                <DiceStatsComponent
                   key={`tune-stats-${currentProjectId}-${diceStats.totalCount}-${croppedImage?.substring(0, 20)}`}
                   blackCount={diceStats.blackCount}
                   whiteCount={diceStats.whiteCount}
@@ -1662,24 +1680,6 @@ function EditorContent() {
                   onDieSizeChange={handleDieSizeChange}
                   onCostPer1000Change={handleCostChange}
                   imageUrl={processedImageUrl || croppedImage || undefined}
-                />
-              </div>
-              
-              {/* Control panel */}
-              <div 
-                className="backdrop-blur-md rounded-2xl border overflow-hidden"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)',
-                  borderColor: `${theme.colors.accent.purple}33`,
-                  boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                             0 0 60px rgba(59, 130, 246, 0.08),
-                             0 5px 20px rgba(0, 0, 0, 0.3)`
-                }}
-              >
-                <ControlPanel
-                  params={diceParams}
-                  onParamChange={handleParamChange}
                 />
               </div>
             </div>
@@ -1704,40 +1704,11 @@ function EditorContent() {
           diceGrid ? (
           <div className="flex flex-col md:flex-row gap-6 justify-center items-center md:items-start">
             {/* Left floating panels */}
-            <div className="space-y-4 w-80 flex-shrink-0">
-              {/* Stats display */}
-              <div 
-                className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)',
-                  borderColor: `${theme.colors.accent.purple}33`,
-                  boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                             0 0 60px rgba(59, 130, 246, 0.08),
-                             0 5px 20px rgba(0, 0, 0, 0.3)`
-                }}
-              >
-                <DiceStatsComponent 
-                  key={`build-stats-${currentProjectId}-${diceStats.totalCount}-${croppedImage?.substring(0, 20)}`}
-                  blackCount={diceStats.blackCount}
-                  whiteCount={diceStats.whiteCount}
-                  totalCount={diceStats.totalCount}
-                  gridWidth={diceGrid?.width}
-                  gridHeight={diceGrid?.height}
-                  frameWidth={frameWidth}
-                  frameHeight={frameHeight}
-                  dieSize={dieSize}
-                  costPer1000={costPer1000}
-                  onDieSizeChange={handleDieSizeChange}
-                  onCostPer1000Change={handleCostChange}
-                  imageUrl={processedImageUrl || croppedImage || undefined}
-                />
-              </div>
-              
-              {/* Build progress */}
+            <div className="flex flex-col space-y-4 w-80 flex-shrink-0">
+              {/* Build progress - desktop: first, mobile: second (right above builder) */}
               {buildNavigation && (
-                <div 
-                  className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl"
+                <div
+                  className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-2 md:order-1"
                   style={{
                     background: 'rgba(255, 255, 255, 0.05)',
                     backdropFilter: 'blur(10px)',
@@ -1747,7 +1718,6 @@ function EditorContent() {
                                0 5px 20px rgba(0, 0, 0, 0.3)`
                   }}
                 >
-                  
                   <BuildProgress
                     currentX={buildProgress.x}
                     currentY={buildProgress.y}
@@ -1766,6 +1736,35 @@ function EditorContent() {
                   />
                 </div>
               )}
+
+              {/* Stats display - desktop: second, mobile: first */}
+              <div
+                className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-1 md:order-2"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  borderColor: `${theme.colors.accent.purple}33`,
+                  boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
+                             0 0 60px rgba(59, 130, 246, 0.08),
+                             0 5px 20px rgba(0, 0, 0, 0.3)`
+                }}
+              >
+                <DiceStatsComponent
+                  key={`build-stats-${currentProjectId}-${diceStats.totalCount}-${croppedImage?.substring(0, 20)}`}
+                  blackCount={diceStats.blackCount}
+                  whiteCount={diceStats.whiteCount}
+                  totalCount={diceStats.totalCount}
+                  gridWidth={diceGrid?.width}
+                  gridHeight={diceGrid?.height}
+                  frameWidth={frameWidth}
+                  frameHeight={frameHeight}
+                  dieSize={dieSize}
+                  costPer1000={costPer1000}
+                  onDieSizeChange={handleDieSizeChange}
+                  onCostPer1000Change={handleCostChange}
+                  imageUrl={processedImageUrl || croppedImage || undefined}
+                />
+              </div>
             </div>
             
             {/* Main build viewer */}

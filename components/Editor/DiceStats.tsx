@@ -103,9 +103,79 @@ const DiceStats = memo(function DiceStats({
   
   return (
     <div>
-      {/* Die Size Input at top */}
+      {/* Total dice count - at the very top */}
+      <div className="text-center mb-3">
+        <div className="text-2xl font-bold" style={{ color: theme.colors.text.primary }}>
+          <CountUp
+            start={prevCountRef.current}
+            end={totalCount}
+            duration={1.5}
+            separator=","
+            useEasing={true}
+            easingFn={easeOutCubic}
+            preserveValue={true}
+          />
+        </div>
+        <div className="text-xs" style={{ color: theme.colors.text.muted }}>total dice</div>
+      </div>
+
+      {/* Proportional bar */}
+      <div className="h-4 rounded-lg overflow-hidden flex mb-2 border" style={{
+        backgroundColor: theme.colors.glass.light,
+        borderColor: 'rgba(255, 255, 255, 0.2)'
+      }}>
+        {totalCount > 0 && (
+          <>
+            <div
+              className="bg-black transition-all"
+              style={{
+                width: `${(blackCount / totalCount) * 100}%`
+              }}
+            />
+            <div
+              className="bg-white transition-all"
+              style={{
+                width: `${(whiteCount / totalCount) * 100}%`
+              }}
+            />
+          </>
+        )}
+      </div>
+
+      <div className="flex justify-between text-xs mb-4">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: 'black', borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+          <span style={{ color: theme.colors.text.secondary }}>
+            <CountUp
+              start={prevBlackRef.current}
+              end={blackCount}
+              duration={1}
+              separator=","
+              useEasing={true}
+              easingFn={easeOutCubic}
+              preserveValue={true}
+            />
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: 'white', borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+          <span style={{ color: theme.colors.text.secondary }}>
+            <CountUp
+              start={prevWhiteRef.current}
+              end={whiteCount}
+              duration={1}
+              separator=","
+              useEasing={true}
+              easingFn={easeOutCubic}
+              preserveValue={true}
+            />
+          </span>
+        </div>
+      </div>
+
+      {/* Die Size Input */}
       {onDieSizeChange && (
-        <div className="mb-3">
+        <div className="pt-3 mb-3 border-t" style={{ borderColor: theme.colors.glass.border }}>
           <div className="flex items-center justify-between">
             <label className="text-xs" style={{ color: theme.colors.text.secondary }}>
               Die Size
@@ -116,7 +186,7 @@ const DiceStats = memo(function DiceStats({
                 value={dieSize}
                 onChange={(e) => onDieSizeChange(Math.max(1, Math.min(50, parseInt(e.target.value) || 16)))}
                 className="w-20 pl-2 pr-7 py-0.5 text-xs rounded border"
-                style={{ 
+                style={{
                   backgroundColor: theme.colors.glass.light,
                   borderColor: theme.colors.glass.border,
                   color: theme.colors.text.primary
@@ -129,7 +199,7 @@ const DiceStats = memo(function DiceStats({
           </div>
         </div>
       )}
-      
+
       {/* Grid dimensions visualization */}
       {gridWidth && gridHeight && (
         <div className="mb-1 flex justify-center">
@@ -223,77 +293,7 @@ const DiceStats = memo(function DiceStats({
           </div>
         </div>
       )}
-      
-      {/* Total dice count - always shown above bar */}
-      <div className="text-center mb-3">
-        <div className="text-2xl font-bold" style={{ color: theme.colors.text.primary }}>
-          <CountUp
-            start={prevCountRef.current}
-            end={totalCount}
-            duration={1.5}
-            separator=","
-            useEasing={true}
-            easingFn={easeOutCubic}
-            preserveValue={true}
-          />
-        </div>
-        <div className="text-xs" style={{ color: theme.colors.text.muted }}>total dice</div>
-      </div>
-      
-      {/* Proportional bar */}
-      <div className="h-4 rounded-lg overflow-hidden flex mb-2 border" style={{ 
-        backgroundColor: theme.colors.glass.light,
-        borderColor: 'rgba(255, 255, 255, 0.2)'
-      }}>
-        {totalCount > 0 && (
-          <>
-            <div 
-              className="bg-black transition-all"
-              style={{ 
-                width: `${(blackCount / totalCount) * 100}%`
-              }}
-            />
-            <div 
-              className="bg-white transition-all"
-              style={{ 
-                width: `${(whiteCount / totalCount) * 100}%`
-              }}
-            />
-          </>
-        )}
-      </div>
-      
-      <div className="flex justify-between text-xs">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: 'black', borderColor: 'rgba(255, 255, 255, 0.2)' }} />
-          <span style={{ color: theme.colors.text.secondary }}>
-            <CountUp
-              start={prevBlackRef.current}
-              end={blackCount}
-              duration={1}
-              separator=","
-              useEasing={true}
-              easingFn={easeOutCubic}
-              preserveValue={true}
-            />
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: 'white', borderColor: 'rgba(255, 255, 255, 0.2)' }} />
-          <span style={{ color: theme.colors.text.secondary }}>
-            <CountUp
-              start={prevWhiteRef.current}
-              end={whiteCount}
-              duration={1}
-              separator=","
-              useEasing={true}
-              easingFn={easeOutCubic}
-              preserveValue={true}
-            />
-          </span>
-        </div>
-      </div>
-      
+
       {/* Cost Calculator */}
       {onCostPer1000Change && (
         <div className="pt-3 mt-3 border-t" style={{ borderColor: theme.colors.glass.border }}>

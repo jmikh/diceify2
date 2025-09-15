@@ -83,80 +83,56 @@ export default function ImageUploader({
       <div
         {...getRootProps()}
         className={`
-          relative rounded-2xl p-12 text-center cursor-pointer transition-all
-          backdrop-blur-md border
+          relative rounded-2xl text-center cursor-pointer transition-all
+          backdrop-blur-md border overflow-hidden
         `}
         style={{
-          background: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
+          background: currentImage ? 'transparent' : 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: currentImage ? 'none' : 'blur(10px)',
           borderColor: isDragging ? `${theme.colors.accent.blue}33` : `${theme.colors.accent.purple}33`,
-          boxShadow: isDragging 
+          boxShadow: isDragging
             ? `0 20px 60px rgba(59, 130, 246, 0.4),
                0 0 100px rgba(59, 130, 246, 0.2),
                0 10px 30px rgba(0, 0, 0, 0.3)`
             : `0 20px 60px rgba(139, 92, 246, 0.3),
                0 0 100px rgba(59, 130, 246, 0.1),
-               0 10px 30px rgba(0, 0, 0, 0.3)`
+               0 10px 30px rgba(0, 0, 0, 0.3)`,
+          height: '400px'
         }}
       >
         <input {...getInputProps()} />
-        
-        <div className="relative">
-          {/* Miniature preview box */}
-          <div className="mx-auto w-32 h-32 mb-6 relative rounded-lg overflow-hidden border-2 border-dashed border-white/10">
-            {currentImage ? (
-              <>
-                <img 
-                  src={currentImage} 
-                  alt="Current" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                  <span className="px-3 py-1 rounded-md text-white font-medium text-sm cursor-pointer transition-all hover:scale-105 hover:shadow-lg" 
-                        style={{ 
-                          backgroundColor: theme.colors.accent.blue + '99',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = theme.colors.accent.blue;
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = theme.colors.accent.blue + '99';
-                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-                        }}>
-                    Change
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center" 
-                   style={{ backgroundColor: theme.colors.glass.light }}>
-                <span className="px-3 py-1 rounded-md text-white font-medium text-sm cursor-pointer transition-all hover:scale-105 hover:shadow-lg"
-                      style={{ 
-                        backgroundColor: theme.colors.accent.blue + '99',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.colors.accent.blue;
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.colors.accent.blue + '99';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-                      }}>
-                  Upload
-                </span>
-              </div>
-            )}
+
+        <div className="relative w-full h-full">
+          {/* Background image if uploaded */}
+          {currentImage && (
+            <img
+              src={currentImage}
+              alt="Uploaded"
+              className="absolute inset-0 w-full h-full object-cover opacity-30"
+            />
+          )}
+
+          {/* Dashed border rectangle */}
+          <div
+            className="absolute inset-4 border-2 border-dashed border-gray-400/30 rounded-xl pointer-events-none"
+          />
+
+          {/* Content overlay - same for both states */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <p className="text-2xl font-medium mb-3" style={{ color: theme.colors.accent.blue }}>
+              {isDragging ? '🎲 Drop to roll the dice!' : 'Drop your image here'}
+            </p>
+            <p className="text-sm text-white/50 mb-6">
+              or click to browse your files
+            </p>
+            <span className="px-5 py-2.5 rounded-lg text-white font-medium text-base cursor-pointer transition-all hover:scale-105 hover:shadow-lg"
+                  style={{
+                    backgroundColor: theme.colors.accent.blue,
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
+                  }}>
+              {currentImage ? 'Change Image' : 'Upload Image'}
+            </span>
           </div>
-          
-          <p className="text-xl font-medium mb-2" style={{ color: theme.colors.accent.blue }}>
-            {isDragging ? '🎲 Drop to roll the dice!' : 'Drop your image here'}
-          </p>
-          <p className="text-sm text-white/50">
-            or click to browse your files
-          </p>
         </div>
         
         {error && (
