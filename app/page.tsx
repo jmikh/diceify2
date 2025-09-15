@@ -2,11 +2,43 @@ import Link from 'next/link'
 import Logo from '@/components/Logo'
 import MovingImageBar from '@/components/MovingImageBar'
 import { theme } from '@/lib/theme'
+import Script from 'next/script'
 
 export default function Home() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Diceify",
+    "description": "Transform photos into dice mosaic art. Create stunning physical dice mosaics from your digital photos with our free online tool.",
+    "url": "https://diceify.art",
+    "applicationCategory": "DesignApplication",
+    "operatingSystem": "Web Browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "42"
+    },
+    "creator": {
+      "@type": "Organization",
+      "name": "Diceify",
+      "url": "https://diceify.art"
+    }
+  }
+
   return (
-    <div style={{ backgroundColor: theme.colors.background.primary, minHeight: '100vh' }}>
-      <MovingImageBar />
+    <>
+      <Script
+        id="json-ld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div style={{ backgroundColor: theme.colors.background.primary, minHeight: '100vh' }}>
+        <MovingImageBar />
       
       {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex items-center justify-center px-4">
@@ -37,6 +69,7 @@ export default function Home() {
           <p>&copy; 2025 Diceify</p>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   )
 }

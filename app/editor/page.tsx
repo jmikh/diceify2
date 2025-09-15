@@ -1,10 +1,10 @@
 /**
  * Editor Page Component
- * 
+ *
  * Main orchestrator for the dice art creation workflow.
  * This is the top-level page component that manages the entire application state
  * and coordinates between different workflow steps.
- * 
+ *
  * Workflow Steps:
  * 1. Upload: User selects/drops an image file
  * 2. Crop: Image cropping and zooming interface
