@@ -758,7 +758,7 @@ const BuildViewer = memo(function BuildViewer({
             </div>
 
             {/* Zoom Controls */}
-            <div className={overlayButtonStyles.container}>
+            <div className="absolute top-3 right-3 flex gap-2 z-10">
               <button
                 onClick={() => setZoomLevel(Math.min(20, zoomLevel + 2))}
                 className={`${overlayButtonStyles.button} text-white text-xl font-bold`}

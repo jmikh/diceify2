@@ -11,7 +11,7 @@ export const overlayButtonStyles = {
   iconSmall: "w-4 h-4",
   iconMedium: "w-5 h-5",
   
-  // Container for button groups
+  // Container for button groups - top right positioning
   container: "absolute top-3 right-3 flex gap-2 z-10",
   
   // Bottom container variant

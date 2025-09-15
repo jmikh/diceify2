@@ -602,13 +602,16 @@ function EditorContent() {
         body: JSON.stringify({
           currentX: currentProgress.x,
           currentY: currentProgress.y,
-          completedDice: Math.floor((currentProgress.percentage / 100) * diceStats.totalCount)
+          completedDice: Math.floor((currentProgress.percentage / 100) * diceStats.totalCount),
+          lastReachedStep: 'build'
         })
       })
 
       if (response.ok) {
         console.log('Progress saved successfully')
         setLastSaved(new Date())
+        // Update local lastReachedStep to build if it wasn't already
+        setLastReachedStep(prev => prev === 'build' ? prev : 'build')
       }
     } catch (error) {
       console.error('Failed to save progress:', error)
@@ -695,7 +698,8 @@ function EditorContent() {
           gridWidth: diceGrid?.width || null,
           gridHeight: diceGrid?.height || null,
           totalDice: diceStats.totalCount,
-          lastReachedStep
+          // Always set to 'build' when saving tune params
+          lastReachedStep: 'build'
         })
       })
 

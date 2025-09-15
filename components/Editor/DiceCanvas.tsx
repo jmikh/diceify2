@@ -358,7 +358,7 @@ export default function DiceCanvas({
         
         {/* Control buttons - only in tune step */}
         {currentStep === 'tune' && (
-        <div className={overlayButtonStyles.container}>
+        <div className="absolute top-3 right-3 flex gap-2 z-10">
           {/* Eye button for grayscale preview */}
           <button
             onClick={() => setShowGrayscale(!showGrayscale)}

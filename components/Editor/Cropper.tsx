@@ -317,7 +317,7 @@ export default function Cropper({
             
             {/* Floating rotate button */}
             {!hideControls && (
-              <div className={overlayButtonStyles.container}>
+              <div className="absolute top-3 right-3 flex gap-2 z-10">
                 <button
                   onClick={() => handleRotate(90)}
                   className={overlayButtonStyles.button}
