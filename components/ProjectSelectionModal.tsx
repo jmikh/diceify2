@@ -183,7 +183,7 @@ export default function ProjectSelectionModal({
                         {project.percentComplete !== undefined && (
                           <>
                             <span>•</span>
-                            <span>{project.percentComplete}% complete</span>
+                            <span>{project.percentComplete.toFixed(1)}% complete</span>
                           </>
                         )}
                       </div>

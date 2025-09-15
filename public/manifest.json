@@ -1,7 +1,7 @@
 {
-  "name": "Diceify - Dice Mosaic Art Creator",
+  "name": "Diceify | Create Dice Mosaic",
   "short_name": "Diceify",
-  "description": "Transform photos into dice mosaic art. Create stunning physical dice mosaics from your digital photos.",
+  "description": "Helps build real dice mosaic art from your digitial photos.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

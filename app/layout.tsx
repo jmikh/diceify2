@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   metadataBase: new URL('https://diceify.art'),
   title: {
-    default: 'Diceify - Transform Photos into Dice Mosaic Art',
+    default: 'Diceify - Dice Mosaic Art Creator',
     template: '%s | Diceify'
   },
   description: 'Create stunning physical dice mosaics from your digital photos. Transform any image into buildable dice art with our free online tool.',
