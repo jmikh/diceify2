@@ -111,10 +111,10 @@ export default function ControlPanel({
               }}
             >
               {/* Diagonally split square */}
-              <svg width="22" height="22" viewBox="0 0 22 22">
-                <path d="M1 1 L21 21 L21 1 Z" fill="white" />
-                <path d="M1 1 L1 21 L21 21 Z" fill="black" />
-                <rect x="0.5" y="0.5" width="21" height="21" fill="none" stroke="white" strokeWidth="1" />
+              <svg width="18" height="18" viewBox="0 0 18 18">
+                <path d="M1 1 L17 17 L17 1 Z" fill="white" />
+                <path d="M1 1 L1 17 L17 17 Z" fill="black" />
+                <rect x="0.5" y="0.5" width="17" height="17" fill="none" stroke="white" strokeWidth="1" />
               </svg>
             </button>
             
@@ -128,7 +128,7 @@ export default function ControlPanel({
               }}
             >
               {/* Black square */}
-              <div className="w-5 h-5 rounded-sm border" style={{ backgroundColor: 'black', borderColor: 'white' }} />
+              <div className="w-4 h-4 rounded-sm border" style={{ backgroundColor: 'black', borderColor: 'white' }} />
             </button>
             
             {/* White Only */}
@@ -140,7 +140,7 @@ export default function ControlPanel({
               }}
             >
               {/* White square */}
-              <div className="w-5 h-5 rounded-sm border" style={{ backgroundColor: 'white', borderColor: 'white' }} />
+              <div className="w-4 h-4 rounded-sm border" style={{ backgroundColor: 'white', borderColor: 'white' }} />
             </button>
           </div>
         </div>
@@ -160,17 +160,19 @@ export default function ControlPanel({
             <button
               onClick={() => handleDiceRotation(2)}
               className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
-              style={{ 
+              style={{
                 borderRight: `1px solid ${theme.colors.glass.border}`
               }}
             >
               <span
-                className="text-xl inline-block transition-transform"
-                style={{ 
+                className="inline-block transition-transform"
+                style={{
                   transform: `rotate(${rotations.dice2}deg)`,
                   transformOrigin: 'center',
                   transition: 'transform 0.3s ease',
-                  color: theme.colors.text.secondary
+                  color: theme.colors.text.secondary,
+                  fontSize: '28px',
+                  lineHeight: 1
                 }}
               >
                 ⚁
@@ -188,17 +190,19 @@ export default function ControlPanel({
             <button
               onClick={() => handleDiceRotation(3)}
               className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
-              style={{ 
+              style={{
                 borderRight: `1px solid ${theme.colors.glass.border}`
               }}
             >
               <span
-                className="text-xl inline-block transition-transform"
-                style={{ 
+                className="inline-block transition-transform"
+                style={{
                   transform: `rotate(${rotations.dice3}deg)`,
                   transformOrigin: 'center',
                   transition: 'transform 0.3s ease',
-                  color: theme.colors.text.secondary
+                  color: theme.colors.text.secondary,
+                  fontSize: '28px',
+                  lineHeight: 1
                 }}
               >
                 ⚂
@@ -218,12 +222,14 @@ export default function ControlPanel({
               className="flex-1 h-10 flex items-center justify-center transition-all hover:bg-white/10 relative group"
             >
               <span
-                className="text-xl inline-block transition-transform"
-                style={{ 
+                className="inline-block transition-transform"
+                style={{
                   transform: `rotate(${rotations.dice6}deg)`,
                   transformOrigin: 'center',
                   transition: 'transform 0.3s ease',
-                  color: theme.colors.text.secondary
+                  color: theme.colors.text.secondary,
+                  fontSize: '28px',
+                  lineHeight: 1
                 }}
               >
                 ⚅

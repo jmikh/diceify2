@@ -63,19 +63,9 @@ export const metadata: Metadata = {
         type: 'image/x-icon',
       },
       {
-        url: '/favicon-192x192.png',
+        url: '/favicon-16x16.png',
         type: 'image/png',
-        sizes: '192x192',
-      },
-      {
-        url: '/favicon-96x96.png',
-        type: 'image/png',
-        sizes: '96x96',
-      },
-      {
-        url: '/favicon-48x48.png',
-        type: 'image/png',
-        sizes: '48x48',
+        sizes: '16x16',
       },
       {
         url: '/favicon-32x32.png',
@@ -83,10 +73,32 @@ export const metadata: Metadata = {
         sizes: '32x32',
       },
       {
+        url: '/favicon-48x48.png',
+        type: 'image/png',
+        sizes: '48x48',
+      },
+      {
+        url: '/favicon-64x64.png',
+        type: 'image/png',
+        sizes: '64x64',
+      },
+      {
+        url: '/favicon-96x96.png',
+        type: 'image/png',
+        sizes: '96x96',
+      },
+      {
+        url: '/favicon-192x192.png',
+        type: 'image/png',
+        sizes: '192x192',
+      },
+      {
         url: '/favicon.svg',
         type: 'image/svg+xml',
       },
     ],
+    apple: '/apple-touch-icon.png',
+    shortcut: '/favicon.ico',
     shortcut: '/favicon.ico',
     apple: '/favicon-192x192.png',
   },
