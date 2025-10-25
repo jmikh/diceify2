@@ -1,7 +1,7 @@
 {
   "name": "Diceify | Create Dice Mosaic",
   "short_name": "Diceify",
-  "description": "Helps build real dice mosaic art from your digitial photos.",
+  "description": "Helps build real dice mosaic art from your digital photos.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

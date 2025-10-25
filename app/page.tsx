@@ -53,7 +53,7 @@ export default function Home() {
               Transform Photos into <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Dice Mosaic</span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed">
-              Helps build real dice mosaic art from your digitial photos.
+              Helps build real dice mosaic art from your digital photos.
             </p>
 
             <Link
