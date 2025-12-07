@@ -55,95 +55,88 @@ import { theme } from '@/lib/theme'
 import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
 import { devLog, devError } from '@/lib/utils/debug'
 
+import { useEditorStore } from '@/lib/store/useEditorStore'
+
 function EditorContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [step, setStep] = useState<WorkflowStep>('upload')
-  const [lastReachedStep, setLastReachedStep] = useState<WorkflowStep>('upload')
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [showProjectModal, setShowProjectModal] = useState(false)
-  
-  const [originalImage, setOriginalImage] = useState<string | null>(null)
-  const [croppedImage, setCroppedImage] = useState<string | null>(null) // Generated from crop params
-  const [cropParams, setCropParams] = useState<{
-    x: number
-    y: number
-    width: number
-    height: number
-    rotation: number
-  } | null>(null) // Store crop parameters instead of image
-  const [diceParams, setDiceParams] = useState<DiceParams>({
-    numRows: 30,
-    colorMode: 'both',
-    contrast: 0,
-    gamma: 1.0,
-    edgeSharpening: 0,
-    rotate6: false,
-    rotate3: false,
-    rotate2: false,
-  })
-  const [diceStats, setDiceStats] = useState<DiceStats>({
-    blackCount: 0,
-    whiteCount: 0,
-    totalCount: 0,
-  })
-  const [diceGrid, setDiceGrid] = useState<DiceGrid | null>(null)
-  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null) // Processed dice grid image
-  const [dieSize, setDieSize] = useState(16) // mm
-  const [costPer1000, setCostPer1000] = useState(60) // dollars
-  const [projectName, setProjectName] = useState(`Untitled Project ${Math.random().toString(36).substring(2, 5).toUpperCase()}`)
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+
+  // Store state
+  const step = useEditorStore(state => state.step)
+  const lastReachedStep = useEditorStore(state => state.lastReachedStep)
+  const showAuthModal = useEditorStore(state => state.showAuthModal)
+  const showProjectModal = useEditorStore(state => state.showProjectModal)
+  const showDonationModal = useEditorStore(state => state.showDonationModal)
+
+  const originalImage = useEditorStore(state => state.originalImage)
+  const croppedImage = useEditorStore(state => state.croppedImage)
+  const cropParams = useEditorStore(state => state.cropParams)
+  const diceParams = useEditorStore(state => state.diceParams)
+  const diceStats = useEditorStore(state => state.diceStats)
+  const diceGrid = useEditorStore(state => state.diceGrid)
+  const processedImageUrl = useEditorStore(state => state.processedImageUrl)
+  const dieSize = useEditorStore(state => state.dieSize)
+  const costPer1000 = useEditorStore(state => state.costPer1000)
+  const projectName = useEditorStore(state => state.projectName)
+  const currentProjectId = useEditorStore(state => state.currentProjectId)
+  const lastSaved = useEditorStore(state => state.lastSaved)
+  const isSaving = useEditorStore(state => state.isSaving)
+  const isInitializing = useEditorStore(state => state.isInitializing)
+  const buildProgress = useEditorStore(state => state.buildProgress)
+
+  // Store actions
+  const setStep = useEditorStore(state => state.setStep)
+  const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
+  const setShowAuthModal = useEditorStore(state => state.setShowAuthModal)
+  const setShowProjectModal = useEditorStore(state => state.setShowProjectModal)
+  const setShowDonationModal = useEditorStore(state => state.setShowDonationModal)
+  const setOriginalImage = useEditorStore(state => state.setOriginalImage)
+  const setCroppedImage = useEditorStore(state => state.setCroppedImage)
+  const setCropParams = useEditorStore(state => state.setCropParams)
+  const setDiceParams = useEditorStore(state => state.setDiceParams)
+  const setDiceStats = useEditorStore(state => state.setDiceStats)
+  const setDiceGrid = useEditorStore(state => state.setDiceGrid)
+  const setProcessedImageUrl = useEditorStore(state => state.setProcessedImageUrl)
+  const setDieSize = useEditorStore(state => state.setDieSize)
+  const setCostPer1000 = useEditorStore(state => state.setCostPer1000)
+  const setProjectName = useEditorStore(state => state.setProjectName)
+  const setCurrentProjectId = useEditorStore(state => state.setCurrentProjectId)
+  const setLastSaved = useEditorStore(state => state.setLastSaved)
+  const setIsSaving = useEditorStore(state => state.setIsSaving)
+  const setIsInitializing = useEditorStore(state => state.setIsInitializing)
+  const setBuildProgress = useEditorStore(state => state.setBuildProgress)
+  const resetWorkflow = useEditorStore(state => state.resetWorkflow)
+  const uploadImage = useEditorStore(state => state.uploadImage)
+  const completeCrop = useEditorStore(state => state.completeCrop)
+
+  // Local UI state
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
   const [showProjectsSubmenu, setShowProjectsSubmenu] = useState(false)
   const [isRestoringOAuthState, setIsRestoringOAuthState] = useState(false)
   const [userProjects, setUserProjects] = useState<any[]>([])
   const [hasCropChanged, setHasCropChanged] = useState(false)
   const [hasTuneChanged, setHasTuneChanged] = useState(false)
-  const [isInitializing, setIsInitializing] = useState(true)
-  const [showDonationModal, setShowDonationModal] = useState(false)
   const lastDiceIndexRef = useRef(0)
-  
+
   // Memoize frame dimensions to prevent re-renders
   const frameWidth = useMemo(() => {
     return diceGrid ? (diceGrid.width * dieSize) / 10 : undefined
   }, [diceGrid?.width, dieSize])
-  
+
   const frameHeight = useMemo(() => {
     return diceGrid ? (diceGrid.height * dieSize) / 10 : undefined
   }, [diceGrid?.height, dieSize])
-  
-  // Build progress tracking
-  const [buildProgress, setBuildProgressRaw] = useState<{ x: number; y: number; percentage: number }>({
-    x: 0,
-    y: 0,
-    percentage: 0
-  })
 
-  // Wrap setBuildProgress to add logging
-  const setBuildProgress = (value: React.SetStateAction<{ x: number; y: number; percentage: number }>) => {
-    if (typeof value === 'function') {
-      setBuildProgressRaw((prev) => {
-        const newValue = value(prev)
-        devLog('[DEBUG] setBuildProgress (function) - prev:', prev, 'new:', newValue)
-        return newValue
-      })
-    } else {
-      devLog('[DEBUG] setBuildProgress - setting to:', value)
-      setBuildProgressRaw(value)
-    }
-  }
   const [lastGridHash, setLastGridHash] = useState<string>('')
-  
+
   // Compute if we should warn when exiting build step (only true if not at starting position)
   const shouldWarnOnExit = step === 'build' && (buildProgress.x !== 0 || buildProgress.y !== 0)
-  
+
   // Navigation confirmation dialog
   const [showBuildProgressDialog, setShowBuildProgressDialog] = useState(false)
   const [attemptedStep, setAttemptedStep] = useState<WorkflowStep | null>(null)
-  
+
   // Build navigation handlers
   const [buildNavigation, setBuildNavigation] = useState<{
     navigatePrev: () => void
@@ -157,7 +150,7 @@ function EditorContent() {
       nextDiff: boolean
     }
   } | null>(null)
-  
+
   // Auto-save timeout ref for build step
   const buildAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   // Keep latest buildProgress in a ref to avoid stale closures
@@ -201,7 +194,7 @@ function EditorContent() {
     // When uploading image, we move to crop and that becomes our lastReachedStep
     setStep('crop')
     setLastReachedStep('crop')
-    
+
     // Save the uploaded image if we have a project
     // Upload is saved immediately when image is uploaded
     if (currentProjectId && session?.user?.id) {
@@ -215,55 +208,53 @@ function EditorContent() {
   // Helper function to compare crop parameters
   const areCropParamsEqual = (params1: typeof cropParams, params2: typeof cropParams): boolean => {
     if (!params1 || !params2) return params1 === params2
-    
+
     // Compare with small tolerance for floating point differences
     const tolerance = 0.01
     return Math.abs(params1.x - params2.x) < tolerance &&
-           Math.abs(params1.y - params2.y) < tolerance &&
-           Math.abs(params1.width - params2.width) < tolerance &&
-           Math.abs(params1.height - params2.height) < tolerance &&
-           Math.abs(params1.rotation - params2.rotation) < tolerance
+      Math.abs(params1.y - params2.y) < tolerance &&
+      Math.abs(params1.width - params2.width) < tolerance &&
+      Math.abs(params1.height - params2.height) < tolerance &&
+      Math.abs(params1.rotation - params2.rotation) < tolerance
   }
 
+  const handleResetWorkflow = useCallback(() => {
+    resetWorkflow()
+    // Clear localStorage when resetting
+    localStorage.removeItem('editorState')
+    devLog('[LOCAL STORAGE] Cleared - workflow reset')
+  }, [resetWorkflow])
+
   const handleCropComplete = useCallback((croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => {
-    // Use functional updates to avoid dependency on current state
-    setCropParams(prevParams => {
-      // Check if crop parameters actually changed
-      const hasChanged = !areCropParamsEqual(prevParams, params)
-      
-      // Only mark as changed if parameters are different
-      if (hasChanged) {
-        // Changes tracked internally
-        setHasCropChanged(true) // Mark that crop has changed
-        devLog('[CROP] Crop parameters changed')
-        
-        // When crop changes, reset lastReachedStep to 'tune' if needed
-        setLastReachedStep(prev => {
-          if (prev === 'build') {
-            devLog('[CROP] Resetting lastReachedStep to tune - user must re-tune after crop change')
-            return 'tune'
-          }
-          return prev
-        })
-        
-        // Reset build progress if there was any
-        setBuildProgress(prevProgress => {
-          if (prevProgress.x !== 0 || prevProgress.y !== 0) {
-            devLog('[CROP] Reset build progress due to crop change')
-            return { x: 0, y: 0, percentage: 0 }
-          }
-          return prevProgress
-        })
-      } else {
-        devLog('[CROP] Crop parameters unchanged')
+    // Check if crop parameters actually changed
+    const hasChanged = !areCropParamsEqual(cropParams, params)
+
+    // Only mark as changed if parameters are different
+    if (hasChanged) {
+      // Changes tracked internally
+      setHasCropChanged(true) // Mark that crop has changed
+      devLog('[CROP] Crop parameters changed')
+
+      // When crop changes, reset lastReachedStep to 'tune' if needed
+      if (lastReachedStep === 'build') {
+        devLog('[CROP] Resetting lastReachedStep to tune - user must re-tune after crop change')
+        setLastReachedStep('tune')
       }
-      
-      return params
-    })
-    
+
+      // Reset build progress if there was any
+      if (buildProgress.x !== 0 || buildProgress.y !== 0) {
+        devLog('[CROP] Reset build progress due to crop change')
+        setBuildProgress({ x: 0, y: 0, percentage: 0 })
+      }
+    } else {
+      devLog('[CROP] Crop parameters unchanged')
+    }
+
+    setCropParams(params)
+
     // Store the generated cropped image
     setCroppedImage(croppedImageUrl)
-  }, [])  // No dependencies - using functional updates instead
+  }, [cropParams, lastReachedStep, buildProgress, setCropParams, setCroppedImage, setHasCropChanged, setLastReachedStep, setBuildProgress])
 
   // Generate hash from grid parameters to detect changes
   const generateGridHash = (params: DiceParams): string => {
@@ -280,11 +271,11 @@ function EditorContent() {
   }
 
   const handleParamChange = (params: Partial<DiceParams>) => {
-    setDiceParams(prev => ({ ...prev, ...params }))
+    setDiceParams(params) // Store handles merging
     if (step === 'tune') {
       // Changes tracked internally
       setHasTuneChanged(true) // Mark that tune has changed
-      
+
       // Reset build progress if there was any
       if (buildProgress.x !== 0 || buildProgress.y !== 0) {
         setBuildProgress({ x: 0, y: 0, percentage: 0 })
@@ -331,13 +322,13 @@ function EditorContent() {
       }
     }
   }
-  
+
   // Throttle position updates to reduce parent re-renders
   const lastUpdateTimeRef = useRef(0)
   const pendingUpdateRef = useRef<{ x: number; y: number } | null>(null)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  
-  
+
+
   // Continue to the attempted step (progress will be reset when params change)
   const handleContinueToStep = () => {
     setShowBuildProgressDialog(false)
@@ -346,45 +337,15 @@ function EditorContent() {
       setAttemptedStep(null)
     }
   }
-  
+
   // Cancel navigation and stay in build
   const handleStayInBuild = () => {
     setShowBuildProgressDialog(false)
     setAttemptedStep(null)
   }
 
-  const resetWorkflow = () => {
-    setStep('upload')
-    setOriginalImage(null)
-    setCroppedImage(null)
-    setCropParams(null)
-    setProcessedImageUrl(null)
-    setDiceParams({
-      numRows: 30,
-      colorMode: 'both',
-      contrast: 0,
-      gamma: 1.0,
-      edgeSharpening: 0,
-      rotate6: false,
-      rotate3: false,
-      rotate2: false,
-    })
-    setDiceStats({
-      blackCount: 0,
-      whiteCount: 0,
-      totalCount: 0,
-    })
-    setBuildProgress({ x: 0, y: 0, percentage: 0 })
-    setDiceGrid(null)
-    setDieSize(16)
-    setCostPer1000(60)
-    // Clear localStorage when resetting
-    localStorage.removeItem('editorState')
-    devLog('[LOCAL STORAGE] Cleared - workflow reset')
-  }
-  
   // Handle stepper click navigation - simplified: allow clicking any step if image is uploaded
-  
+
   // Update URL with project ID
   const updateURLWithProject = useCallback((projectId: string | null) => {
     const params = new URLSearchParams(window.location.search)
@@ -400,7 +361,7 @@ function EditorContent() {
   // Fetch user projects
   const fetchUserProjects = useCallback(async () => {
     if (!session?.user?.id) return
-    
+
     devLog('[CLIENT] fetchUserProjects called - stack trace:', new Error().stack?.split('\n').slice(1, 4).join('\n'))
     devLog(`[DB] Fetching all projects for user`)
     try {
@@ -424,18 +385,18 @@ function EditorContent() {
     }
     return []
   }, [session])
-  
+
   // Create a new project
   const createProject = useCallback(async () => {
     if (!session?.user?.id) return
 
     // Reset all states for new project
-    resetWorkflow()
-    
+    handleResetWorkflow()
+
     // Generate random 3 characters for default name
     const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
     const defaultName = `Untitled Project ${randomChars}`
-    
+
     // Saving automatically
     devLog(`[DB] Creating new empty project`)
     try {
@@ -488,16 +449,16 @@ function EditorContent() {
     } finally {
       // Save operation finished
     }
-  }, [session, resetWorkflow, fetchUserProjects])
+  }, [session, handleResetWorkflow, fetchUserProjects, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal, setStep])
 
   // Create project from current state
   const createProjectFromCurrent = useCallback(async () => {
     if (!session?.user?.id) return
-    
+
     // Generate random 3 characters for default name
     const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
     const defaultName = `Untitled Project ${randomChars}`
-    
+
     // Saving automatically
     devLog(`[DB] Creating new project with current state`)
     devLog('[DB] Current state when creating project:')
@@ -507,7 +468,7 @@ function EditorContent() {
     devLog('  - lastReachedStep:', lastReachedStep)
     devLog('  - diceParams:', diceParams)
     devLog('  - diceStats:', diceStats)
-    
+
     try {
       const payload = {
         name: defaultName,
@@ -537,11 +498,11 @@ function EditorContent() {
         cropHeight: cropParams?.height || null,
         cropRotation: cropParams?.rotation || 0
       }
-      
+
       devLog('[DB] Payload being sent to API:')
       devLog('  - originalImage in payload:', payload.originalImage ? `${payload.originalImage.substring(0, 50)}...` : 'null')
       devLog('  - croppedImage in payload:', payload.croppedImage ? `${payload.croppedImage.substring(0, 50)}...` : 'null')
-      
+
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -566,33 +527,33 @@ function EditorContent() {
     } finally {
       // Save operation finished
     }
-  }, [session, step, lastReachedStep, originalImage, croppedImage, diceParams, dieSize, costPer1000, diceGrid, diceStats, buildProgress, fetchUserProjects])
+  }, [session, step, lastReachedStep, originalImage, croppedImage, diceParams, dieSize, costPer1000, diceGrid, diceStats, buildProgress, fetchUserProjects, cropParams, processedImageUrl, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal])
 
   // Delete project
   const deleteProject = useCallback(async (projectId: string) => {
     if (!session?.user?.id) return
-    
+
     devLog(`[DB] Deleting project ${projectId}`)
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'DELETE'
       })
-      
+
       if (response.ok) {
         await fetchUserProjects()
         if (projectId === currentProjectId) {
           // Reset if we deleted the current project
-          resetWorkflow()
+          handleResetWorkflow()
           setCurrentProjectId(null)
           setProjectName(`Untitled Project ${Math.random().toString(36).substring(2, 5).toUpperCase()}`)
           updateURLWithProject(null)
         }
-        
+
         // Check if we're in capacity modal and have work to save
         if (showProjectModal) {
           devLog('[DEBUG] Project deleted from capacity modal - checking if we need to save restored state')
           setShowProjectModal(false)
-          
+
           // Check if user has work in progress that needs to be saved
           const hasWorkInProgress = originalImage || processedImageUrl
           if (hasWorkInProgress) {
@@ -615,7 +576,7 @@ function EditorContent() {
     } catch (error) {
       devError('Failed to delete project:', error)
     }
-  }, [session, currentProjectId, fetchUserProjects, resetWorkflow, showProjectModal, originalImage, processedImageUrl, createProjectFromCurrent, createProject])
+  }, [session, currentProjectId, fetchUserProjects, handleResetWorkflow, showProjectModal, originalImage, processedImageUrl, createProjectFromCurrent, createProject, setCurrentProjectId, setProjectName, updateURLWithProject, setShowProjectModal])
 
   // Save only progress fields (for build step)
   const saveProgressOnly = useCallback(async () => {
@@ -643,7 +604,9 @@ function EditorContent() {
         devLog('Progress saved successfully')
         setLastSaved(new Date())
         // Update local lastReachedStep to build if it wasn't already
-        setLastReachedStep(prev => prev === 'build' ? prev : 'build')
+        if (lastReachedStep !== 'build') {
+          setLastReachedStep('build')
+        }
         // Clear localStorage since data is saved to database
         localStorage.removeItem('editorState')
         devLog('[LOCAL STORAGE] Cleared - progress saved to database')
@@ -653,7 +616,7 @@ function EditorContent() {
     } finally {
       setIsSaving(false)
     }
-  }, [session, currentProjectId, buildProgress, diceStats.totalCount])
+  }, [session, currentProjectId, buildProgress, diceStats.totalCount, lastReachedStep, setIsSaving, setLastSaved, setLastReachedStep])
 
   // Save upload step data
   const saveUploadStep = useCallback(async (imageToSave?: string) => {
@@ -682,7 +645,7 @@ function EditorContent() {
     } catch (error) {
       devError('Failed to save upload data:', error)
     }
-  }, [session, currentProjectId, originalImage, step, lastReachedStep])
+  }, [session, currentProjectId, originalImage, step, lastReachedStep, setLastSaved])
 
   // Save crop step data
   const saveCropStep = useCallback(async () => {
@@ -713,7 +676,7 @@ function EditorContent() {
     } catch (error) {
       devError('Failed to save crop data:', error)
     }
-  }, [session, currentProjectId, croppedImage, lastReachedStep])
+  }, [session, currentProjectId, croppedImage, lastReachedStep, cropParams, setLastSaved])
 
   // Save tune step parameters
   const saveTuneStep = useCallback(async () => {
@@ -756,7 +719,7 @@ function EditorContent() {
     } finally {
       // Save operation finished
     }
-  }, [session, currentProjectId, diceParams, dieSize, costPer1000, diceGrid, diceStats, step, lastReachedStep])
+  }, [session, currentProjectId, diceParams, dieSize, costPer1000, diceGrid, diceStats, step, lastReachedStep, setLastSaved])
 
   // Helper function to navigate to a step
   const navigateToStep = useCallback(async (newStep: WorkflowStep) => {
@@ -801,20 +764,20 @@ function EditorContent() {
 
       setStep(newStep)
       // Navigation complete
-      
+
       // Reset change flags when entering new steps
       if (newStep === 'crop') {
         setHasCropChanged(false)
       } else if (newStep === 'tune') {
         setHasTuneChanged(false)
       }
-      
+
       // Update lastReachedStep if we're moving forward
       if (newIndex > lastReachedIndex) {
         setLastReachedStep(newStep)
       }
     }
-  }, [step, lastReachedStep, cropParams, currentProjectId, session, saveCropStep, saveTuneStep, saveProgressOnly, hasCropChanged, hasTuneChanged])
+  }, [step, lastReachedStep, cropParams, currentProjectId, session, saveCropStep, saveTuneStep, saveProgressOnly, hasCropChanged, hasTuneChanged, setStep, setHasCropChanged, setHasTuneChanged, setLastReachedStep])
 
 
   // Handle navigation with build progress check
@@ -830,7 +793,7 @@ function EditorContent() {
       // Auth modal will show when they try to go beyond x=3
       return
     }
-    
+
     // Check if leaving build step with progress
     if (shouldWarnOnExit && newStep !== 'build') {
       setAttemptedStep(newStep)
@@ -839,7 +802,7 @@ function EditorContent() {
       // Use navigateToStep for consistent navigation logic
       navigateToStep(newStep)
     }
-  }, [shouldWarnOnExit, status, navigateToStep])
+  }, [shouldWarnOnExit, status, navigateToStep, setStep, setLastReachedStep])
 
   // Save project metadata (name)
 
@@ -880,7 +843,7 @@ function EditorContent() {
         devError('Failed to fetch full project:', error)
       }
     }
-    
+
     // Clear all existing state first
     setOriginalImage(null)
     setCroppedImage(null)
@@ -893,7 +856,7 @@ function EditorContent() {
       totalCount: 0,
     })
     // Don't reset build progress here - we'll set it to the correct values below
-    
+
     // Set project info
     devLog('[DEBUG] About to set currentProjectId from', currentProjectId, 'to', project.id)
     setCurrentProjectId(project.id)
@@ -904,13 +867,13 @@ function EditorContent() {
     if (project.updatedAt) {
       setLastSaved(new Date(project.updatedAt))
     }
-    
+
     // Load images
     if (project.originalImage) {
       devLog('Setting original image')
       setOriginalImage(project.originalImage)
     }
-    
+
     // Load crop parameters and regenerate cropped image if needed
     if (project.cropX !== null && project.cropY !== null && project.cropWidth && project.cropHeight) {
       const params = {
@@ -922,7 +885,7 @@ function EditorContent() {
       }
       setCropParams(params)
       devLog('Loaded crop parameters:', params)
-      
+
       // If we have the original image and crop params, regenerate the cropped image
       if (project.originalImage) {
         // Create a canvas to generate the cropped image
@@ -954,7 +917,7 @@ function EditorContent() {
         setProcessedImageUrl(project.croppedImage)
       }
     }
-    
+
     // Load parameters
     devLog('[CLIENT] Setting dice params from project')
     const newDiceParams = {
@@ -967,20 +930,17 @@ function EditorContent() {
       rotate3: project.rotate3 || false,
       rotate6: project.rotate6 || false
     }
-    setDiceParams(prev => ({
-      ...prev,
-      ...newDiceParams
-    }))
+    setDiceParams(newDiceParams)
 
     // Set the grid hash to prevent reset when grid is generated
     const newHash = generateGridHash(newDiceParams)
     setLastGridHash(newHash)
     devLog('[DEBUG] Set initial grid hash during project load:', newHash)
-    
+
     // Load die size and cost
     setDieSize(project.dieSize || 16)
     setCostPer1000(project.costPer1000 || 60)
-    
+
     // Grid will be generated from parameters when needed
     // Load saved stats if available
     if (project.totalDice) {
@@ -990,7 +950,7 @@ function EditorContent() {
         totalCount: project.totalDice || 0
       })
     }
-    
+
     // Load build progress - do this AFTER setting project ID to avoid saving to wrong project
     devLog('[CLIENT] Loading build progress from project:', {
       currentX: project.currentX,
@@ -1039,7 +999,7 @@ function EditorContent() {
     // Use handleStepNavigation for all navigation to ensure auth checks
     handleStepNavigation(clickedStep)
   }, [handleStepNavigation])
-  
+
   // Schedule auto-save for build progress
   const scheduleBuildAutoSave = useCallback(() => {
     // Clear any existing timeout
@@ -1049,14 +1009,14 @@ function EditorContent() {
     } else {
       devLog('[AUTO-SAVE] Starting 15-second auto-save timer')
     }
-    
+
     // Schedule new save after 15 seconds
     buildAutoSaveTimeoutRef.current = setTimeout(() => {
       devLog('[AUTO-SAVE] Saving build progress after 15 seconds of inactivity')
       saveProgressOnly()
     }, 15000) // 15 seconds delay
   }, [saveProgressOnly])
-  
+
   // Clean up timeouts on unmount and save build progress
   useEffect(() => {
     // Handle browser tab close/refresh
@@ -1093,7 +1053,7 @@ function EditorContent() {
       handleBeforeUnload()
     }
   }, [step, currentProjectId, session?.user?.id, diceStats.totalCount])
-  
+
   // Memoize the navigation ready handler
   const handleNavigationReady = useCallback((nav: any) => {
     setBuildNavigation(nav)
@@ -1181,7 +1141,7 @@ function EditorContent() {
   useEffect(() => {
     // Skip if still determining session status
     if (status === 'loading') return
-    
+
     // Only restore if not logged in, don't have a project, and aren't in OAuth flow
     if (!session?.user?.id && !currentProjectId && !searchParams.get('restored')) {
       const savedState = localStorage.getItem('editorState')
@@ -1189,7 +1149,7 @@ function EditorContent() {
         try {
           const state = JSON.parse(savedState)
           devLog('[LOCAL STORAGE] Found saved editor state, restoring...')
-          
+
           // Only restore if the saved state has actual content
           if (state.originalImage || state.cropParams) {
             // Restore all state
@@ -1272,7 +1232,7 @@ function EditorContent() {
           devLog('  - lastReachedStep:', state.lastReachedStep)
           devLog('  - cropParams:', state.cropParams)
           devLog('  - diceParams:', state.diceParams)
-          
+
           // Restore the state
           if (state.originalImage) {
             devLog('[DEBUG] Restoring originalImage')
@@ -1302,11 +1262,11 @@ function EditorContent() {
             devLog('[DEBUG] Restoring lastReachedStep')
             setLastReachedStep(state.lastReachedStep)
           }
-          
+
           // Clear the saved state and URL param
           sessionStorage.removeItem('editorStateBeforeAuth')
           window.history.replaceState({}, '', '/editor')
-          
+
           // Set flag for auto-save ONLY if there's actual work (an image) to save
           if (state.originalImage || state.processedImageUrl) {
             devLog('[DEBUG] Setting flag for auto-save after restoration completes (has image)')
@@ -1314,7 +1274,7 @@ function EditorContent() {
           } else {
             devLog('[DEBUG] No image in restored state, skipping auto-save flag')
           }
-          
+
           // Check if user intended to go to build step after login
           const intendedStep = sessionStorage.getItem('intendedStepAfterLogin')
           if (intendedStep === 'build') {
@@ -1324,7 +1284,7 @@ function EditorContent() {
             setStep('build')
             setLastReachedStep('build')
           }
-          
+
           // Mark restoration as complete - this will trigger auto-save logic
           devLog('[DEBUG] OAuth state restoration complete')
           // Note: The state variables here will show old values due to closure, but setState calls have been made
@@ -1343,7 +1303,7 @@ function EditorContent() {
   useEffect(() => {
     // Skip if still determining session status
     if (status === 'loading') return
-    
+
     devLog('[LOGIN EFFECT] Triggered with:', {
       sessionStatus: status,
       hasSession: !!session?.user?.id,
@@ -1353,7 +1313,7 @@ function EditorContent() {
       processedImageUrl: !!processedImageUrl,
       croppedImage: !!croppedImage
     })
-    
+
     // Only run this logic when user just logged in and has no project loaded yet
     if (session?.user?.id && !currentProjectId && !isRestoringOAuthState) {
       devLog('[LOGIN EFFECT] User logged in without current project, fetching user projects...')
@@ -1363,11 +1323,11 @@ function EditorContent() {
           projectCount,
           projects: projects?.map((p: any) => ({ id: p.id, name: p.name, updatedAt: p.updatedAt }))
         })
-        
+
         // Check if user has work in progress (including restored OAuth state)
         const shouldAutoSaveRestoredState = sessionStorage.getItem('shouldAutoSaveRestoredState') === 'true'
         const hasWorkInProgress = originalImage || processedImageUrl || shouldAutoSaveRestoredState
-        
+
         devLog('[LOGIN EFFECT] Work state check:', {
           shouldAutoSaveRestoredState,
           hasOriginalImage: !!originalImage,
@@ -1375,12 +1335,12 @@ function EditorContent() {
           hasCroppedImage: !!croppedImage,
           hasWorkInProgress
         })
-        
+
         if (shouldAutoSaveRestoredState) {
           devLog('[LOGIN EFFECT] Found shouldAutoSaveRestoredState flag - state should now be restored')
           sessionStorage.removeItem('shouldAutoSaveRestoredState')
         }
-        
+
         if (hasWorkInProgress) {
           // User has work - try to save it
           devLog('[LOGIN EFFECT] User has work in progress')
@@ -1413,7 +1373,7 @@ function EditorContent() {
             createProject()
           } else if (!urlProjectId && projectCount >= 3) {
             // At capacity with no projects (shouldn't happen)
-            devLog('[LOGIN EFFECT] At capacity with no projects - showing deletion modal') 
+            devLog('[LOGIN EFFECT] At capacity with no projects - showing deletion modal')
             setShowProjectModal(true)
           }
         }
@@ -1438,7 +1398,7 @@ function EditorContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, currentProjectId, isRestoringOAuthState, originalImage, processedImageUrl, croppedImage])
 
-  
+
   // Clear localStorage when a project is loaded or workflow is reset
   useEffect(() => {
     if (currentProjectId) {
@@ -1461,16 +1421,16 @@ function EditorContent() {
 
     const now = Date.now()
     const timeSinceLastUpdate = now - lastUpdateTimeRef.current
-    
+
     // Clear any pending timeout
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current)
       updateTimeoutRef.current = null
     }
-    
+
     // Store the pending update
     pendingUpdateRef.current = { x, y }
-    
+
     // Calculate current index for threshold check
     const currentIndex = y * diceGrid.width + x
 
@@ -1514,7 +1474,7 @@ function EditorContent() {
             if (prev.x === pending.x && prev.y === pending.y) {
               return prev // No change, return same reference
             }
-            
+
             const totalDice = diceGrid.width * diceGrid.height
             const currentIndex = pending.y * diceGrid.width + pending.x
             const percentage = Math.round((currentIndex / totalDice) * 100)
@@ -1534,7 +1494,7 @@ function EditorContent() {
       }, delay)
     }
   }, [diceGrid, session, currentProjectId, scheduleBuildAutoSave, setShowAuthModal])
-  
+
   // No cleanup needed - removed auto-save timers
 
   // Show loading screen while initializing or session is loading
@@ -1551,10 +1511,10 @@ function EditorContent() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#000000' }}>
-      
-      <header 
-        className="relative" 
-        style={{ 
+
+      <header
+        className="relative"
+        style={{
           zIndex: 50
         }}
       >
@@ -1565,205 +1525,205 @@ function EditorContent() {
             <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
               <Logo />
             </Link>
-            
+
             {/* Spacer for desktop */}
             <div className="flex-1 hidden sm:block"></div>
-            
+
             {/* Auth Button - always on right */}
             <div className="ml-auto">
               {status === 'authenticated' && session ? (
-              <div className="flex items-center gap-3">
-                <div className="relative user-menu-container">
-                  <div 
-                    className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-600 hover:border-gray-400 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setShowUserMenu(!showUserMenu)
-                      if (!showUserMenu) {
-                        fetchUserProjects()
-                      }
-                    }}
-                  >
-                    {session.user?.image ? (
-                      <img 
-                        src={session.user.image} 
-                        alt={session.user.name || 'User'} 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          devError('Image failed to load:', session.user?.image)
-                          // Hide the broken image and show fallback
-                          e.currentTarget.style.display = 'none'
-                          const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                          if (fallback) fallback.style.display = 'flex'
-                        }}
-                      />
-                    ) : null}
-                    <div 
-                      className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-semibold"
-                      style={{ display: session.user?.image ? 'none' : 'flex' }}
+                <div className="flex items-center gap-3">
+                  <div className="relative user-menu-container">
+                    <div
+                      className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-600 hover:border-gray-400 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setShowUserMenu(!showUserMenu)
+                        if (!showUserMenu) {
+                          fetchUserProjects()
+                        }
+                      }}
                     >
-                      {session.user?.name?.[0]?.toUpperCase() || session.user?.email?.[0]?.toUpperCase() || 'U'}
-                    </div>
-                  </div>
-                  
-                  {/* Dropdown menu */}
-                  {showUserMenu && (
-                    <div className="absolute top-full right-0 mt-2 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden z-50" style={{ minWidth: '250px' }}>
-                      <div className="px-4 py-3 border-b border-gray-700">
-                        <div className="text-sm font-medium text-white">
-                          {session.user?.name || 'User'}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-0.5">
-                          {session.user?.email}
-                        </div>
+                      {session.user?.image ? (
+                        <img
+                          src={session.user.image}
+                          alt={session.user.name || 'User'}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            devError('Image failed to load:', session.user?.image)
+                            // Hide the broken image and show fallback
+                            e.currentTarget.style.display = 'none'
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                            if (fallback) fallback.style.display = 'flex'
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-semibold"
+                        style={{ display: session.user?.image ? 'none' : 'flex' }}
+                      >
+                        {session.user?.name?.[0]?.toUpperCase() || session.user?.email?.[0]?.toUpperCase() || 'U'}
                       </div>
-                      
-                      {/* Projects Menu Item */}
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowProjectsSubmenu(!showProjectsSubmenu)}
-                          className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-between"
-                        >
-                          <span>Projects</span>
-                          <svg 
-                            className={`w-4 h-4 transition-transform ${showProjectsSubmenu ? 'rotate-180' : ''}`} 
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
+                    </div>
+
+                    {/* Dropdown menu */}
+                    {showUserMenu && (
+                      <div className="absolute top-full right-0 mt-2 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden z-50" style={{ minWidth: '250px' }}>
+                        <div className="px-4 py-3 border-b border-gray-700">
+                          <div className="text-sm font-medium text-white">
+                            {session.user?.name || 'User'}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {session.user?.email}
+                          </div>
+                        </div>
+
+                        {/* Projects Menu Item */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowProjectsSubmenu(!showProjectsSubmenu)}
+                            className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-between"
                           >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        
-                        {/* Projects Submenu */}
-                        {showProjectsSubmenu && (
-                          <div className="border-t border-gray-700">
-                            {userProjects.length > 0 ? (
-                              <>
-                                {userProjects.map((project) => (
-                                  <div
-                                    key={project.id}
-                                    className="w-full px-6 py-2 text-sm hover:bg-white/10 transition-colors flex items-center justify-between group"
-                                  >
+                            <span>Projects</span>
+                            <svg
+                              className={`w-4 h-4 transition-transform ${showProjectsSubmenu ? 'rotate-180' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+
+                          {/* Projects Submenu */}
+                          {showProjectsSubmenu && (
+                            <div className="border-t border-gray-700">
+                              {userProjects.length > 0 ? (
+                                <>
+                                  {userProjects.map((project) => (
+                                    <div
+                                      key={project.id}
+                                      className="w-full px-6 py-2 text-sm hover:bg-white/10 transition-colors flex items-center justify-between group"
+                                    >
+                                      <button
+                                        onClick={() => {
+                                          devLog('[DEBUG] Loading project from menu:', {
+                                            id: project.id,
+                                            name: project.name,
+                                            currentX: project.currentX,
+                                            currentY: project.currentY,
+                                            percentComplete: project.percentComplete
+                                          })
+                                          loadProject(project)
+                                          setShowUserMenu(false)
+                                          setShowProjectsSubmenu(false)
+                                        }}
+                                        className="flex-1 min-w-0 text-left flex items-center"
+                                      >
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-white/80 truncate">
+                                            {project.name || 'Untitled Project'}
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            {new Date(project.updatedAt).toLocaleDateString()}
+                                            {project.percentComplete !== undefined && (
+                                              <span className="ml-1">• {Math.round(project.percentComplete)}%</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </button>
+                                      <div className="flex items-center gap-2 ml-2">
+                                        {project.id === currentProjectId ? (
+                                          <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                          </svg>
+                                        ) : (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              deleteProject(project.id)
+                                            }}
+                                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
+                                            title="Delete project"
+                                          >
+                                            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {userProjects.length < 3 && (
                                     <button
                                       onClick={() => {
-                                        devLog('[DEBUG] Loading project from menu:', {
-                                          id: project.id,
-                                          name: project.name,
-                                          currentX: project.currentX,
-                                          currentY: project.currentY,
-                                          percentComplete: project.percentComplete
-                                        })
-                                        loadProject(project)
+                                        createProject()
                                         setShowUserMenu(false)
                                         setShowProjectsSubmenu(false)
                                       }}
-                                      className="flex-1 min-w-0 text-left flex items-center"
+                                      className="w-full px-6 py-2 text-sm text-left text-blue-400 hover:text-blue-300 hover:bg-white/10 transition-colors flex items-center border-t border-gray-700"
                                     >
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-white/80 truncate">
-                                          {project.name || 'Untitled Project'}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          {new Date(project.updatedAt).toLocaleDateString()}
-                                          {project.percentComplete !== undefined && (
-                                            <span className="ml-1">• {Math.round(project.percentComplete)}%</span>
-                                          )}
-                                        </div>
-                                      </div>
+                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                      </svg>
+                                      Create New Project
                                     </button>
-                                    <div className="flex items-center gap-2 ml-2">
-                                      {project.id === currentProjectId ? (
-                                        <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                      ) : (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            deleteProject(project.id)
-                                          }}
-                                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
-                                          title="Delete project"
-                                        >
-                                          <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                                {userProjects.length < 3 && (
+                                  )}
+                                </>
+                              ) : (
+                                <div className="px-6 py-3">
+                                  <div className="text-xs text-gray-500 mb-2">No projects yet</div>
                                   <button
                                     onClick={() => {
                                       createProject()
                                       setShowUserMenu(false)
                                       setShowProjectsSubmenu(false)
                                     }}
-                                    className="w-full px-6 py-2 text-sm text-left text-blue-400 hover:text-blue-300 hover:bg-white/10 transition-colors flex items-center border-t border-gray-700"
+                                    className="text-sm text-blue-400 hover:text-blue-300"
                                   >
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    Create New Project
+                                    Create your first project
                                   </button>
-                                )}
-                              </>
-                            ) : (
-                              <div className="px-6 py-3">
-                                <div className="text-xs text-gray-500 mb-2">No projects yet</div>
-                                <button
-                                  onClick={() => {
-                                    createProject()
-                                    setShowUserMenu(false)
-                                    setShowProjectsSubmenu(false)
-                                  }}
-                                  className="text-sm text-blue-400 hover:text-blue-300"
-                                >
-                                  Create your first project
-                                </button>
-                              </div>
-                            )}
-                            {userProjects.length >= 3 && (
-                              <div className="px-6 py-2 text-xs text-gray-500 border-t border-gray-700">
-                                At capacity (3 max)
-                              </div>
-                            )}
-                          </div>
-                        )}
+                                </div>
+                              )}
+                              {userProjects.length >= 3 && (
+                                <div className="px-6 py-2 text-xs text-gray-500 border-t border-gray-700">
+                                  At capacity (3 max)
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Sign Out */}
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false)
+                            setShowProjectsSubmenu(false)
+                            signOut()
+                          }}
+                          className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors border-t border-gray-700"
+                        >
+                          Sign out
+                        </button>
                       </div>
-                      
-                      {/* Sign Out */}
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false)
-                          setShowProjectsSubmenu(false)
-                          signOut()
-                        }}
-                        className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors border-t border-gray-700"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Sign in
-              </button>
-            )}
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  Sign in
+                </button>
+              )}
             </div>
           </div>
-          
+
           {/* Project name - absolutely positioned center on desktop, below logo on mobile */}
           <div className="sm:absolute sm:left-1/2 sm:top-4 sm:transform sm:-translate-x-1/2 mt-3 sm:mt-0 flex justify-center py-2">
             {session?.user && (
-              <ProjectSelector 
+              <ProjectSelector
                 currentProject={projectName}
                 currentProjectId={currentProjectId}
                 lastSaved={lastSaved}
@@ -1772,7 +1732,7 @@ function EditorContent() {
                   // Just update the local state - ProjectSelector handles the API call
                   setProjectName(name)
                   // Update the local projects list to reflect the change
-                  setUserProjects(prev => prev.map(p => 
+                  setUserProjects(prev => prev.map(p =>
                     p.id === currentProjectId ? { ...p, name: name } : p
                   ))
                 }}
@@ -1787,28 +1747,16 @@ function EditorContent() {
         {/* Center: Stepper */}
         <div className="flex justify-center items-center mb-4">
           {/* Stepper */}
-          <DiceStepper
-            currentStep={step} 
-            onStepClick={handleStepperClick}
-            hasImage={!!originalImage}
-            lastReachedStep={lastReachedStep}
-          />
+          <DiceStepper />
         </div>
 
         {/* Step Content */}
         {step === 'upload' && (
-          <ImageUploader 
-            onImageUpload={handleImageUpload} 
-            currentImage={originalImage}
-          />
+          <ImageUploader />
         )}
 
         {step === 'crop' && originalImage && (
-          <Cropper
-            imageUrl={originalImage}
-            onCropComplete={handleCropComplete}
-            initialCrop={cropParams || undefined}
-          />
+          <Cropper />
         )}
 
         {step === 'tune' && croppedImage && (
@@ -1827,10 +1775,7 @@ function EditorContent() {
                              0 5px 20px rgba(0, 0, 0, 0.3)`
                 }}
               >
-                <ControlPanel
-                  params={diceParams}
-                  onParamChange={handleParamChange}
-                />
+                <ControlPanel />
               </div>
 
               {/* Stats display - desktop: second, mobile: first */}
@@ -1847,33 +1792,15 @@ function EditorContent() {
               >
                 <DiceStatsComponent
                   key={`tune-stats-${currentProjectId}-${diceStats.totalCount}-${croppedImage?.substring(0, 20)}`}
-                  blackCount={diceStats.blackCount}
-                  whiteCount={diceStats.whiteCount}
-                  totalCount={diceStats.totalCount}
-                  gridWidth={diceGrid?.width}
-                  gridHeight={diceGrid?.height}
-                  frameWidth={frameWidth}
-                  frameHeight={frameHeight}
-                  dieSize={dieSize}
-                  costPer1000={costPer1000}
-                  onDieSizeChange={handleDieSizeChange}
-                  onCostPer1000Change={handleCostChange}
-                  imageUrl={processedImageUrl || croppedImage || undefined}
                 />
               </div>
             </div>
-            
+
             {/* Main content */}
             <div className="flex-1 min-w-0" style={{ maxWidth: '720px' }}>
               <DiceCanvas
-                imageUrl={croppedImage ?? ''}
-                params={diceParams}
-                onStatsUpdate={handleStatsUpdate}
-                onGridUpdate={handleGridUpdate}
-                onProcessedImageReady={setProcessedImageUrl}
                 maxWidth={720}
                 maxHeight={600}
-                currentStep={step}
               />
             </div>
           </div>
@@ -1881,123 +1808,105 @@ function EditorContent() {
 
         {step === 'build' && (
           diceGrid ? (
-          <div className="flex flex-col md:flex-row gap-6 justify-center items-center md:items-start">
-            {/* Left floating panels */}
-            <div className="flex flex-col space-y-4 w-80 flex-shrink-0">
-              {/* Build progress - desktop: first, mobile: second (right above builder) */}
-              {buildNavigation && (
+            <div className="flex flex-col md:flex-row gap-6 justify-center items-center md:items-start">
+              {/* Left floating panels */}
+              <div className="flex flex-col space-y-4 w-80 flex-shrink-0">
+                {/* Build progress - desktop: first, mobile: second (right above builder) */}
+                {buildNavigation && (
+                  <div
+                    className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-2 md:order-1"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      backdropFilter: 'blur(10px)',
+                      borderColor: `${theme.colors.accent.purple}33`,
+                      boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
+                               0 0 60px rgba(59, 130, 246, 0.08),
+                               0 5px 20px rgba(0, 0, 0, 0.3)`
+                    }}
+                  >
+                    <BuildProgress
+                      currentX={buildProgress.x}
+                      currentY={buildProgress.y}
+                      totalRows={diceGrid.height}
+                      totalCols={diceGrid.width}
+                      currentDice={null}
+                      currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
+                      totalDice={diceGrid.width * diceGrid.height}
+                      onNavigate={(direction) => {
+                        // Check if trying to go forward beyond x=3 without authentication
+                        if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
+                          devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
+                          setShowAuthModal(true)
+                          return
+                        }
+
+                        if (direction === 'prev') buildNavigation.navigatePrev()
+                        else if (direction === 'next') buildNavigation.navigateNext()
+                        else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
+                        else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
+                      }}
+                      canNavigate={buildNavigation.canNavigate}
+                    />
+                  </div>
+                )}
+
+                {/* Stats display - desktop: second, mobile: first */}
                 <div
-                  className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-2 md:order-1"
+                  className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-1 md:order-2"
                   style={{
                     background: 'rgba(255, 255, 255, 0.05)',
                     backdropFilter: 'blur(10px)',
                     borderColor: `${theme.colors.accent.purple}33`,
                     boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                               0 0 60px rgba(59, 130, 246, 0.08),
-                               0 5px 20px rgba(0, 0, 0, 0.3)`
-                  }}
-                >
-                  <BuildProgress
-                    currentX={buildProgress.x}
-                    currentY={buildProgress.y}
-                    totalRows={diceGrid.height}
-                    totalCols={diceGrid.width}
-                    currentDice={null}
-                    currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
-                    totalDice={diceGrid.width * diceGrid.height}
-                    onNavigate={(direction) => {
-                      // Check if trying to go forward beyond x=3 without authentication
-                      if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
-                        devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
-                        setShowAuthModal(true)
-                        return
-                      }
-
-                      if (direction === 'prev') buildNavigation.navigatePrev()
-                      else if (direction === 'next') buildNavigation.navigateNext()
-                      else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
-                      else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
-                    }}
-                    canNavigate={buildNavigation.canNavigate}
-                  />
-                </div>
-              )}
-
-              {/* Stats display - desktop: second, mobile: first */}
-              <div
-                className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-1 md:order-2"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)',
-                  borderColor: `${theme.colors.accent.purple}33`,
-                  boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
                              0 0 60px rgba(59, 130, 246, 0.08),
                              0 5px 20px rgba(0, 0, 0, 0.3)`
-                }}
-              >
-                <DiceStatsComponent
-                  key={`build-stats-${currentProjectId}-${diceStats.totalCount}-${croppedImage?.substring(0, 20)}`}
-                  blackCount={diceStats.blackCount}
-                  whiteCount={diceStats.whiteCount}
-                  totalCount={diceStats.totalCount}
-                  gridWidth={diceGrid?.width}
-                  gridHeight={diceGrid?.height}
-                  frameWidth={frameWidth}
-                  frameHeight={frameHeight}
-                  dieSize={dieSize}
-                  costPer1000={costPer1000}
-                  onDieSizeChange={handleDieSizeChange}
-                  onCostPer1000Change={handleCostChange}
-                  imageUrl={processedImageUrl || croppedImage || undefined}
+                  }}
+                >
+                  <DiceStatsComponent
+                    key={`build-stats-${currentProjectId}-${diceStats.totalCount}-${croppedImage?.substring(0, 20)}`}
+                  />
+                </div>
+              </div>
+
+              {/* Main build viewer */}
+              <div className="flex-1 min-w-0" style={{ maxWidth: '700px' }}>
+                {(() => {
+                  devLog('[DEBUG] Passing to BuildViewer:', {
+                    currentProjectId,
+                    buildProgress,
+                    'buildProgress.x': buildProgress.x,
+                    'buildProgress.y': buildProgress.y
+                  })
+                  return null
+                })()}
+                <BuildViewer
+                  key={`${currentProjectId}-viewer`}
+                  grid={diceGrid}
+                  initialX={buildProgress.x}
+                  initialY={buildProgress.y}
+                  onPositionChange={handleBuildProgressUpdate}
+                  onNavigationReady={handleNavigationReady}
                 />
               </div>
             </div>
-            
-            {/* Main build viewer */}
-            <div className="flex-1 min-w-0">
-              {(() => {
-                devLog('[DEBUG] Passing to BuildViewer:', {
-                  currentProjectId,
-                  buildProgress,
-                  'buildProgress.x': buildProgress.x,
-                  'buildProgress.y': buildProgress.y
-                })
-                return null
-              })()}
-              <BuildViewer
-                key={`${currentProjectId}-viewer`}
-                grid={diceGrid}
-                initialX={buildProgress.x}
-                initialY={buildProgress.y}
-                onPositionChange={handleBuildProgressUpdate}
-                onNavigationReady={handleNavigationReady}
+          ) : croppedImage ? (
+            // Show DiceCanvas to generate the grid
+            <div className="flex justify-center">
+              <DiceCanvas
+                maxWidth={900}
+                maxHeight={600}
               />
             </div>
-          </div>
-        ) : croppedImage ? (
-          // Show DiceCanvas to generate the grid
-          <div className="flex justify-center">
-            <DiceCanvas
-              imageUrl={croppedImage ?? ''}
-              params={diceParams}
-              onStatsUpdate={handleStatsUpdate}
-              onGridUpdate={handleGridUpdate}
-              onProcessedImageReady={setProcessedImageUrl}
-              maxWidth={900}
-              maxHeight={600}
-              currentStep={step}
-            />
-          </div>
-        ) : (
-          <div className="text-center text-white/60 mt-20">
-            <p>No image data available.</p>
-            <p className="text-sm mt-2">Please go back to the Upload or Crop step.</p>
-          </div>
-        )
+          ) : (
+            <div className="text-center text-white/60 mt-20">
+              <p>No image data available.</p>
+              <p className="text-sm mt-2">Please go back to the Upload or Crop step.</p>
+            </div>
+          )
         )}
 
       </main>
-      
+
       {/* Build Progress Dialog */}
       <ConfirmDialog
         isOpen={showBuildProgressDialog}
@@ -2011,7 +1920,7 @@ function EditorContent() {
         onConfirm={handleContinueToStep}
         onCancel={handleStayInBuild}
       />
-      
+
       {/* Auth Modal */}
       <AuthModal
         isOpen={showAuthModal}
@@ -2035,7 +1944,7 @@ function EditorContent() {
           lastReachedStep
         }}
       />
-      
+
       {/* Project Capacity Modal - only shown when at capacity */}
       <ProjectSelectionModal
         isOpen={showProjectModal}

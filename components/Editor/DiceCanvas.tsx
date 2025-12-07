@@ -32,7 +32,6 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { DiceParams, DiceStats, WorkflowStep } from '@/lib/types'
 import { DiceGenerator } from '@/lib/dice/generator'
 import { DiceRenderer } from '@/lib/dice/renderer'
 import { DiceSVGRenderer } from '@/lib/dice/svg-renderer'
@@ -41,21 +40,23 @@ import { theme } from '@/lib/theme'
 import { Eye, Download } from 'lucide-react'
 import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
 import { devError } from '@/lib/utils/debug'
+import { useEditorStore } from '@/lib/store/useEditorStore'
 
 interface DiceCanvasProps {
-  imageUrl: string
-  params: DiceParams
-  onStatsUpdate: (stats: DiceStats) => void
-  onGridUpdate?: (grid: DiceGrid) => void
-  onProcessedImageReady?: (dataUrl: string) => void
   maxWidth?: number
   maxHeight?: number
-  currentStep?: WorkflowStep
-  cropArea?: { x: number, y: number, width: number, height: number } | null
 }
 
-export default function DiceCanvas({
-  imageUrl, params, onStatsUpdate, onGridUpdate, onProcessedImageReady, maxWidth = 700, maxHeight = 500, currentStep, cropArea }: DiceCanvasProps) {
+export default function DiceCanvas({ maxWidth = 700, maxHeight = 500 }: DiceCanvasProps) {
+  const imageUrl = useEditorStore(state => state.croppedImage)
+  const params = useEditorStore(state => state.diceParams)
+  const currentStep = useEditorStore(state => state.step)
+  const cropArea = useEditorStore(state => state.cropParams)
+
+  const setDiceStats = useEditorStore(state => state.setDiceStats)
+  const setDiceGrid = useEditorStore(state => state.setDiceGrid)
+  const setProcessedImageUrl = useEditorStore(state => state.setProcessedImageUrl)
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const svgContainerRef = useRef<HTMLDivElement>(null)
@@ -84,7 +85,7 @@ export default function DiceCanvas({
     rendererRef.current = new DiceRenderer(canvasRef.current)
     svgRendererRef.current = new DiceSVGRenderer()
     isInitializedRef.current = true
-    
+
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
@@ -93,7 +94,7 @@ export default function DiceCanvas({
   }, [])
 
   const generateDiceArt = useCallback(async (forceCanvas = false) => {
-    if (!generatorRef.current || !rendererRef.current || !canvasRef.current) return
+    if (!generatorRef.current || !rendererRef.current || !canvasRef.current || !imageUrl) return
 
     // Clear any pending timeout
     if (timeoutRef.current) {
@@ -111,10 +112,10 @@ export default function DiceCanvas({
         params.contrast,
         params.gamma,
         params.edgeSharpening,
-        cropArea
+        null // Image is already cropped, so don't apply crop again
       )
       setGrayscaleImage(grayscale)
-      
+
       // Generate dice grid
       const grid = await generatorRef.current.generateDiceGrid(
         imageUrl,
@@ -126,7 +127,7 @@ export default function DiceCanvas({
         params.rotate6,
         params.rotate3,
         params.rotate2,
-        cropArea
+        null // Image is already cropped, so don't apply crop again
       )
 
       // Store current grid
@@ -134,40 +135,36 @@ export default function DiceCanvas({
 
       // Calculate and update stats
       const stats = generatorRef.current.calculateStats(grid)
-      onStatsUpdate(stats)
-      
+      setDiceStats(stats)
+
       // Pass grid to parent if callback provided
-      if (onGridUpdate) {
-        onGridUpdate(grid)
-      }
+      setDiceGrid(grid)
 
       // Always render canvas (it's faster and needed for initial display)
       await rendererRef.current.initialize()
       rendererRef.current.render(grid, 1, maxWidth, maxHeight)
-      
+
       // Store canvas dimensions for consistent sizing
       if (canvasRef.current) {
         setCanvasDimensions({
           width: canvasRef.current.width,
           height: canvasRef.current.height
         })
-        
+
         // Extract canvas data URL and pass to parent
-        if (onProcessedImageReady) {
-          const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.8)
-          onProcessedImageReady(dataUrl)
-        }
+        const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.8)
+        setProcessedImageUrl(dataUrl)
       }
-      
+
       // Never auto-generate SVG - only on explicit mode switch
-      
+
       setProgress(100)
     } catch (error) {
       devError('Error generating dice art:', error)
     } finally {
       setIsGenerating(false)
     }
-  }, [imageUrl, params.numRows, params.colorMode, params.contrast, params.gamma, params.edgeSharpening, params.rotate6, params.rotate3, params.rotate2, onStatsUpdate, onGridUpdate, onProcessedImageReady, maxWidth, maxHeight])
+  }, [imageUrl, params.numRows, params.colorMode, params.contrast, params.gamma, params.edgeSharpening, params.rotate6, params.rotate3, params.rotate2, setDiceStats, setDiceGrid, setProcessedImageUrl, maxWidth, maxHeight, cropArea])
 
   // Initial generation when component mounts with image
   useEffect(() => {
@@ -180,10 +177,10 @@ export default function DiceCanvas({
   // Debounced parameter updates
   useEffect(() => {
     if (!isInitializedRef.current) return
-    
+
     // Clear SVG content when parameters change (force regeneration)
     setSvgContent('')
-    
+
     // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -235,7 +232,7 @@ export default function DiceCanvas({
           // Configure watermark style
           const fontSize = Math.max(12, canvasRef.current.width * 0.025) // 2.5% of width, min 12px
           watermarkCtx.font = `${fontSize}px Arial`
-          
+
           // Position watermark in bottom-right corner
           const text = 'Generated by diceify.art'
           const metrics = watermarkCtx.measureText(text)
@@ -243,14 +240,14 @@ export default function DiceCanvas({
           const textPadding = fontSize * 0.3
           const x = watermarkCanvas.width - metrics.width - padding
           const y = watermarkCanvas.height - padding
-          
+
           // Draw solid purple background with rounded corners
           const rectX = x - textPadding
           const rectY = y - fontSize - textPadding * 0.5
           const rectWidth = metrics.width + textPadding * 2
           const rectHeight = fontSize + textPadding
           const borderRadius = fontSize * 0.3
-          
+
           // Draw rounded rectangle
           watermarkCtx.fillStyle = 'rgba(139, 92, 246, 0.85)' // Purple with 85% opacity
           watermarkCtx.beginPath()
@@ -265,7 +262,7 @@ export default function DiceCanvas({
           watermarkCtx.quadraticCurveTo(rectX, rectY, rectX + borderRadius, rectY)
           watermarkCtx.closePath()
           watermarkCtx.fill()
-          
+
           // Draw white text (no outline needed on solid background)
           watermarkCtx.fillStyle = 'rgb(255, 255, 255)'
           watermarkCtx.fillText(text, x, y)
@@ -313,10 +310,12 @@ export default function DiceCanvas({
     setZoomLevel(100)
   }
 
+  if (!imageUrl) return null
+
   return (
     <div className="flex-1 w-full lg:w-auto flex items-start justify-center" ref={containerRef}>
       {/* Image content wrapper with Eye button */}
-      <div className="relative inline-block rounded-2xl border" style={{ 
+      <div className="relative inline-block rounded-2xl border" style={{
         background: 'rgba(255, 255, 255, 0.05)',
         backdropFilter: 'blur(10px)',
         borderColor: 'rgba(139, 92, 246, 0.2)',
@@ -328,7 +327,7 @@ export default function DiceCanvas({
         <canvas
           ref={canvasRef}
           className="rounded-2xl"
-          style={{ 
+          style={{
             imageRendering: 'pixelated',
             display: showGrayscale || renderMode === 'svg' ? 'none' : 'block',
             backgroundColor: 'transparent',
@@ -338,14 +337,14 @@ export default function DiceCanvas({
             height: 'auto'
           }}
         />
-        
+
         {/* Grayscale preview */}
         {grayscaleImage && (
           <img
             src={grayscaleImage}
             alt="Grayscale preview"
             className="rounded-2xl"
-            style={{ 
+            style={{
               display: showGrayscale ? 'block' : 'none',
               maxWidth: '100%',
               maxHeight: '100%',
@@ -356,53 +355,53 @@ export default function DiceCanvas({
             }}
           />
         )}
-        
+
         {/* Control buttons - only in tune step */}
         {currentStep === 'tune' && (
-        <div className="absolute top-3 right-3 flex gap-2 z-10">
-          {/* Eye button for grayscale preview */}
-          <button
-            onClick={() => setShowGrayscale(!showGrayscale)}
-            onMouseEnter={() => {
-              tooltipTimeoutRef.current = setTimeout(() => setShowTooltip(true), 500)
-            }}
-            onMouseLeave={() => {
-              if (tooltipTimeoutRef.current) {
-                clearTimeout(tooltipTimeoutRef.current)
-              }
-              setShowTooltip(false)
-            }}
-            className={overlayButtonStyles.button}
-            style={getOverlayButtonStyle('eye', showGrayscale, theme)}
-          >
-            <Eye className={overlayButtonStyles.iconSmall} style={{ color: 'white' }} />
-            
-            {/* Tooltip */}
-            {showTooltip && (
-              <span className="absolute top-full mt-2 right-0 px-2 py-1 text-xs rounded-lg transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md border"
-                style={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                  borderColor: theme.colors.glass.border,
-                  color: theme.colors.text.primary
-                }}
-              >
-                {showGrayscale ? 'View dice' : 'View grayscale'}
-              </span>
-            )}
-          </button>
-          
-          {/* Download button */}
-          <button
-            onClick={handleDownload}
-            className={overlayButtonStyles.button}
-            style={getOverlayButtonStyle('download', false, theme)}
-          >
-            <Download className={overlayButtonStyles.iconSmall} style={{ color: 'white' }} />
-          </button>
-        </div>
+          <div className="absolute top-3 right-3 flex gap-2 z-10">
+            {/* Eye button for grayscale preview */}
+            <button
+              onClick={() => setShowGrayscale(!showGrayscale)}
+              onMouseEnter={() => {
+                tooltipTimeoutRef.current = setTimeout(() => setShowTooltip(true), 500)
+              }}
+              onMouseLeave={() => {
+                if (tooltipTimeoutRef.current) {
+                  clearTimeout(tooltipTimeoutRef.current)
+                }
+                setShowTooltip(false)
+              }}
+              className={overlayButtonStyles.button}
+              style={getOverlayButtonStyle('eye', showGrayscale, theme)}
+            >
+              <Eye className={overlayButtonStyles.iconSmall} style={{ color: 'white' }} />
+
+              {/* Tooltip */}
+              {showTooltip && (
+                <span className="absolute top-full mt-2 right-0 px-2 py-1 text-xs rounded-lg transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md border"
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    borderColor: theme.colors.glass.border,
+                    color: theme.colors.text.primary
+                  }}
+                >
+                  {showGrayscale ? 'View dice' : 'View grayscale'}
+                </span>
+              )}
+            </button>
+
+            {/* Download button */}
+            <button
+              onClick={handleDownload}
+              className={overlayButtonStyles.button}
+              style={getOverlayButtonStyle('download', false, theme)}
+            >
+              <Download className={overlayButtonStyles.iconSmall} style={{ color: 'white' }} />
+            </button>
+          </div>
         )}
       </div>
-      
+
       {/* Bottom controls - only show mode toggle and download in build step */}
       {currentStep === 'build' && (
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2">
@@ -445,7 +444,7 @@ export default function DiceCanvas({
           </button>
         </div>
       )}
-      
+
       {/* Zoom controls for SVG - only in build step */}
       {currentStep === 'build' && renderMode === 'svg' && !showGrayscale && (
         <div className="absolute bottom-6 right-6 flex items-center gap-2 backdrop-blur-md rounded-lg px-3 py-2" style={{ backgroundColor: theme.colors.glass.medium, border: `1px solid ${theme.colors.glass.border}` }}>
@@ -475,7 +474,7 @@ export default function DiceCanvas({
           </button>
         </div>
       )}
-      
+
       {/* Removed generating popup - dice generation is fast enough */}
     </div>
   )

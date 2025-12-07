@@ -9,11 +9,9 @@ import { theme } from '@/lib/theme'
 import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
 import { RotateCw } from 'lucide-react'
 import { devLog, devError } from '@/lib/utils/debug'
+import { useEditorStore } from '@/lib/store/useEditorStore'
 
 interface CropperProps {
-  imageUrl: string
-  onCropComplete: (croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => void
-  initialCrop?: { x: number, y: number, width: number, height: number, rotation: number }
   containerWidth?: number
   containerHeight?: number
   onCropperReady?: (cropper: FixedCropperRef) => void
@@ -95,9 +93,12 @@ const aspectRatioOptions: AspectRatioOption[] = [
 ]
 
 export default function Cropper({
-  imageUrl, onCropComplete, initialCrop, containerWidth, containerHeight, onCropperReady, hideControls = false }: CropperProps) {
-  // devLog('Cropper component rendering, imageUrl:', imageUrl)
-  // devLog('Cropper initialCrop:', initialCrop)
+  containerWidth, containerHeight, onCropperReady, hideControls = false }: CropperProps) {
+  const imageUrl = useEditorStore(state => state.originalImage)
+  const initialCrop = useEditorStore(state => state.cropParams)
+  const completeCrop = useEditorStore(state => state.completeCrop)
+  const updateCrop = useEditorStore(state => state.updateCrop)
+
   const fixedCropperRef = useRef<FixedCropperRef>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
@@ -128,7 +129,7 @@ export default function Cropper({
   }
 
   const responsiveCropperSize = getResponsiveCropperSize()
-  
+
   // Reset the flag when imageUrl or initialCrop changes
   useEffect(() => {
     setHasAppliedInitialCrop(false)
@@ -140,7 +141,7 @@ export default function Cropper({
       // Force the cropper to refresh its calculations
       const cropper = fixedCropperRef.current
       cropper.refresh()
-      
+
       // Re-notify parent in case it needs the updated ref
       if (onCropperReady) {
         onCropperReady(cropper)
@@ -149,32 +150,32 @@ export default function Cropper({
   }, [containerWidth, containerHeight, imageLoaded, onCropperReady])
 
   const selectedOption = aspectRatioOptions.find(opt => opt.value === selectedRatio) || aspectRatioOptions[2]
-  
+
   // Update current ratio when fixed ratio is selected
   useEffect(() => {
     if (selectedOption) {
       setCurrentRatio(selectedOption.label)
     }
   }, [selectedRatio, selectedOption])
-  
+
   // Calculate stencil size to maintain 3% padding from top and bottom
   const defaultContainerHeight = responsiveCropperSize * 0.714  // Maintain aspect ratio (~500/700)
   const defaultContainerWidth = responsiveCropperSize
   const actualContainerHeight = containerHeight || defaultContainerHeight
   const actualContainerWidth = containerWidth || defaultContainerWidth
   const paddingPercent = 0.94  // 94% of container (3% padding on each side)
-  
-  
+
+
   // Calculate based on height with 3% padding
   let stencilHeight = actualContainerHeight * paddingPercent
   let stencilWidth = selectedOption.ratio ? stencilHeight * selectedOption.ratio : stencilHeight
-  
+
   // If width would exceed container, scale down proportionally
   if (stencilWidth > actualContainerWidth * paddingPercent) {
     stencilWidth = actualContainerWidth * paddingPercent
     stencilHeight = selectedOption.ratio ? stencilWidth / selectedOption.ratio : stencilWidth
   }
-  
+
   devLog('Stencil size calculation:', {
     actualContainerHeight,
     actualContainerWidth,
@@ -187,9 +188,9 @@ export default function Cropper({
 
 
 
-  const performAutoCrop = useCallback(async () => {
+  const performAutoCrop = useCallback(async (isComplete = false) => {
     if (isProcessing) return
-    
+
     try {
       const cropper = fixedCropperRef.current
       if (!cropper) return
@@ -199,33 +200,40 @@ export default function Cropper({
         width: 2048,
         height: selectedOption.ratio ? 2048 / selectedOption.ratio : 2048,
       })
-      
+
       if (canvas) {
         // Get crop coordinates
         const coordinates = cropper.getCoordinates()
         const state = cropper.getState()
-        
+
         // Convert to data URL
         const croppedImage = canvas.toDataURL('image/jpeg', 0.95)
-        onCropComplete(croppedImage, {
+
+        const cropData = {
           x: coordinates?.left || 0,
           y: coordinates?.top || 0,
           width: coordinates?.width || 0,
           height: coordinates?.height || 0,
           rotation: state?.transforms?.rotate || 0
-        })
+        }
+
+        if (isComplete) {
+          completeCrop(croppedImage, cropData)
+        } else {
+          updateCrop(croppedImage, cropData)
+        }
       }
     } catch (error) {
       devError('Error auto-cropping image:', error)
     }
-  }, [isProcessing, selectedOption.ratio, onCropComplete])
+  }, [isProcessing, selectedOption.ratio, completeCrop, updateCrop])
 
   // Auto-crop when image is ready or when aspect ratio changes
   useEffect(() => {
     if (imageLoaded) {
       // Small delay to ensure cropper is fully initialized
       const timeout = setTimeout(() => {
-        performAutoCrop()
+        performAutoCrop(false)
       }, 100)
       return () => clearTimeout(timeout)
     }
@@ -234,7 +242,7 @@ export default function Cropper({
   const handleCrop = async () => {
     setIsProcessing(true)
     try {
-      await performAutoCrop()
+      await performAutoCrop(true)
     } finally {
       setIsProcessing(false)
     }
@@ -246,19 +254,19 @@ export default function Cropper({
 
   // Debounced handler for when user drags/zooms the crop
   const cropChangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  
+
   const handleCropperChange = useCallback(() => {
     // Clear any existing timeout
     if (cropChangeTimeoutRef.current) {
       clearTimeout(cropChangeTimeoutRef.current)
     }
-    
+
     // Set new timeout to perform auto-crop after user stops interacting
     cropChangeTimeoutRef.current = setTimeout(() => {
-      performAutoCrop()
+      performAutoCrop(false)
     }, 500) // Wait 500ms after user stops dragging/zooming
   }, [performAutoCrop])
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -268,129 +276,145 @@ export default function Cropper({
     }
   }, [])
 
+  if (!imageUrl) return null
 
   return (
     <div className={containerWidth ? "" : "w-full max-w-4xl mx-auto px-4"}>
-          <div className="relative rounded-xl overflow-hidden mx-auto border" style={{
-            width: containerWidth ? `${containerWidth}px` : `${responsiveCropperSize}px`,
-            height: containerHeight ? `${containerHeight}px` : `${responsiveCropperSize * 0.714}px`, // Maintain aspect ratio
-            background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-            borderColor: 'rgba(139, 92, 246, 0.2)',
-            boxShadow: `0 20px 60px rgba(139, 92, 246, 0.3),
-                       0 0 100px rgba(59, 130, 246, 0.1),
-                       0 10px 30px rgba(0, 0, 0, 0.3)`
-          }}>
-            <FixedCropper
-              ref={fixedCropperRef}
-              src={imageUrl}
-              className={`h-full ${styles.cropper}`}
-              stencilProps={{
-                aspectRatio: selectedOption.ratio,
-                handlers: false,
-                lines: true,
-                movable: false,
-                resizable: false,
-                grid: true,
-                overlayClassName: styles.overlay,
-              }}
-              stencilSize={{
-                width: stencilWidth,
-                height: stencilHeight,
-              }}
-              imageRestriction={ImageRestriction.stencil}
-              onReady={() => {
-                devLog('Cropper onReady fired')
-                setImageLoaded(true)
-                
-                if (fixedCropperRef.current) {
-                  const state = fixedCropperRef.current.getState()
-                  devLog('Cropper state on ready:', {
-                    state: state,
-                    coordinates: fixedCropperRef.current.getCoordinates()
-                  })
-                  
-                  // Refresh to ensure proper sizing
-                  fixedCropperRef.current.refresh()
-                  
-                  // Notify parent component that cropper is ready
-                  if (onCropperReady) {
-                    devLog('Cropper ready, passing ref to parent')
-                    onCropperReady(fixedCropperRef.current)
-                  }
-                }
-                
-                // Apply initial crop if provided, but only once
-                if (initialCrop && fixedCropperRef.current && !hasAppliedInitialCrop) {
-                  const cropper = fixedCropperRef.current
-                  devLog('Applying initial crop:', initialCrop)
-                  // Don't apply rotation - it's cumulative and causes issues
-                  // The rotation is already applied when we generate the cropped image
-                  // Just set the crop coordinates
-                  cropper.setCoordinates({
-                    left: initialCrop.x,
-                    top: initialCrop.y,
-                    width: initialCrop.width,
-                    height: initialCrop.height
-                  })
-                  setHasAppliedInitialCrop(true)
-                }
-              }}
-              onChange={handleCropperChange}
-            />
-            
-            {/* Floating rotate button */}
-            {!hideControls && (
-              <div className="absolute top-3 right-3 flex gap-2 z-10">
-                <button
-                  onClick={() => handleRotate(90)}
-                  className={overlayButtonStyles.button}
-                  style={getOverlayButtonStyle('rotate', false, theme)}
-                  title="Rotate 90°"
-                >
-                  <RotateCw className={overlayButtonStyles.iconSmall} style={{ color: 'white' }} />
-                </button>
-              </div>
-            )}
-            
-            {/* Floating aspect ratio selector */}
-            {!hideControls && (
-              <div className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-gray-900/80 rounded-l border border-white/20 overflow-hidden shadow-2xl z-10">
-                {aspectRatioOptions.map((option, index) => (
-                <div key={option.value} className="relative">
-                  <button
-                    onClick={() => setSelectedRatio(option.value)}
-                    onMouseEnter={() => setHoveredRatio(option.value)}
-                    onMouseLeave={() => setHoveredRatio(null)}
-                    className={`relative flex items-center justify-center p-3 transition-all w-full ${
-                      selectedRatio === option.value
-                        ? 'text-white'
-                        : 'text-white/60 hover:bg-white/10 hover:text-white'
-                    } ${index !== 0 ? 'border-t border-white/10' : ''}`}
-                    style={{
-                      backgroundColor: selectedRatio === option.value ? theme.colors.glass.heavy : 'transparent'
-                    }}
-                  >
-                    {selectedRatio === option.value && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: theme.colors.accent.purple }}></div>
-                    )}
-                    <div className="flex items-center justify-center" style={{ height: '24px', width: '32px' }}>
-                      {option.icon}
-                    </div>
-                  </button>
-                  
-                  {/* Tooltip */}
-                  {hoveredRatio === option.value && (
-                    <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 pointer-events-none z-20 whitespace-nowrap">
-                      <div className="text-xs text-white/60 mb-1">Aspect Ratio</div>
-                      <div className="text-sm font-medium text-white">{option.label}</div>
-                    </div>
-                  )}
-                </div>
-                ))}
-              </div>
-            )}
+      <div className="relative rounded-xl overflow-hidden mx-auto border" style={{
+        width: containerWidth ? `${containerWidth}px` : `${responsiveCropperSize}px`,
+        height: containerHeight ? `${containerHeight}px` : `${responsiveCropperSize * 0.714}px`, // Maintain aspect ratio
+        background: 'rgba(255, 255, 255, 0.05)',
+        backdropFilter: 'blur(10px)',
+        borderColor: 'rgba(139, 92, 246, 0.2)',
+        boxShadow: `0 20px 60px rgba(139, 92, 246, 0.3),
+                        0 0 100px rgba(59, 130, 246, 0.1),
+                        0 10px 30px rgba(0, 0, 0, 0.3)`
+      }}>
+        <FixedCropper
+          ref={fixedCropperRef}
+          src={imageUrl}
+          className={`h-full ${styles.cropper}`}
+          stencilProps={{
+            aspectRatio: selectedOption.ratio,
+            handlers: false,
+            lines: true,
+            movable: false,
+            resizable: false,
+            grid: true,
+            overlayClassName: styles.overlay,
+          }}
+          stencilSize={{
+            width: stencilWidth,
+            height: stencilHeight,
+          }}
+          imageRestriction={ImageRestriction.stencil}
+          onReady={() => {
+            devLog('Cropper onReady fired')
+            setImageLoaded(true)
+
+            if (fixedCropperRef.current) {
+              const state = fixedCropperRef.current.getState()
+              devLog('Cropper state on ready:', {
+                state: state,
+                coordinates: fixedCropperRef.current.getCoordinates()
+              })
+
+              // Refresh to ensure proper sizing
+              fixedCropperRef.current.refresh()
+
+              // Notify parent component that cropper is ready
+              if (onCropperReady) {
+                devLog('Cropper ready, passing ref to parent')
+                onCropperReady(fixedCropperRef.current)
+              }
+            }
+
+            // Apply initial crop if provided, but only once
+            if (initialCrop && fixedCropperRef.current && !hasAppliedInitialCrop) {
+              const cropper = fixedCropperRef.current
+              devLog('Applying initial crop:', initialCrop)
+              // Don't apply rotation - it's cumulative and causes issues
+              // The rotation is already applied when we generate the cropped image
+              // Just set the crop coordinates
+              cropper.setCoordinates({
+                left: initialCrop.x,
+                top: initialCrop.y,
+                width: initialCrop.width,
+                height: initialCrop.height
+              })
+              setHasAppliedInitialCrop(true)
+            }
+          }}
+          onChange={handleCropperChange}
+        />
+
+        {/* Floating rotate button */}
+        {!hideControls && (
+          <div className="absolute top-3 right-3 flex gap-2 z-10">
+            <button
+              onClick={() => handleRotate(90)}
+              className={overlayButtonStyles.button}
+              style={getOverlayButtonStyle('rotate', false, theme)}
+              title="Rotate 90°"
+            >
+              <RotateCw className={overlayButtonStyles.iconSmall} style={{ color: 'white' }} />
+            </button>
           </div>
+        )}
+
+        {/* Floating aspect ratio selector */}
+        {!hideControls && (
+          <div className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-gray-900/80 rounded-l border border-white/20 overflow-hidden shadow-2xl z-10">
+            {aspectRatioOptions.map((option, index) => (
+              <div key={option.value} className="relative">
+                <button
+                  onClick={() => setSelectedRatio(option.value)}
+                  onMouseEnter={() => setHoveredRatio(option.value)}
+                  onMouseLeave={() => setHoveredRatio(null)}
+                  className={`relative flex items-center justify-center p-3 transition-all w-full ${selectedRatio === option.value
+                    ? 'text-white'
+                    : 'text-white/60 hover:bg-white/10 hover:text-white'
+                    } ${index !== 0 ? 'border-t border-white/10' : ''}`}
+                  style={{
+                    backgroundColor: selectedRatio === option.value ? theme.colors.glass.heavy : 'transparent'
+                  }}
+                >
+                  {selectedRatio === option.value && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: theme.colors.accent.purple }}></div>
+                  )}
+                  <div className="flex items-center justify-center" style={{ height: '24px', width: '32px' }}>
+                    {option.icon}
+                  </div>
+                </button>
+
+                {/* Tooltip */}
+                {hoveredRatio === option.value && (
+                  <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 pointer-events-none z-20 whitespace-nowrap">
+                    <div className="text-xs text-white/60 mb-1">Aspect Ratio</div>
+                    <div className="text-sm font-medium text-white">{option.label}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Done Button */}
+        {!hideControls && (
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+            <button
+              onClick={handleCrop}
+              disabled={isProcessing}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-medium shadow-lg transition-colors flex items-center gap-2"
+            >
+              {isProcessing ? 'Processing...' : 'Done'}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

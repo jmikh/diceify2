@@ -29,24 +29,22 @@ import { DiceParams, ColorMode } from '@/lib/types'
 import { theme } from '@/lib/theme'
 import { useState } from 'react'
 import { Grid3x3, Contrast, Sun, Sparkles, RotateCw, Palette } from 'lucide-react'
+import { useEditorStore } from '@/lib/store/useEditorStore'
 
-interface ControlPanelProps {
-  params: DiceParams
-  onParamChange: (params: Partial<DiceParams>) => void
-}
+export default function ControlPanel() {
+  const params = useEditorStore(state => state.diceParams)
+  const setDiceParams = useEditorStore(state => state.setDiceParams)
 
-export default function ControlPanel({
-  params, onParamChange }: ControlPanelProps) {
   // Initialize rotations based on current params - default to 90 degrees
   const getInitialRotation = (isRotated: boolean) => isRotated ? 0 : 90
-  
+
   // Track rotation angles for animation (cumulative rotation)
-  const [rotations, setRotations] = useState({ 
-    dice2: getInitialRotation(params.rotate2), 
-    dice3: getInitialRotation(params.rotate3), 
-    dice6: getInitialRotation(params.rotate6) 
+  const [rotations, setRotations] = useState({
+    dice2: getInitialRotation(params.rotate2),
+    dice3: getInitialRotation(params.rotate3),
+    dice6: getInitialRotation(params.rotate6)
   })
-  
+
   // Track which sliders are being dragged
   const [isDragging, setIsDragging] = useState({
     numRows: false,
@@ -56,19 +54,19 @@ export default function ControlPanel({
   })
 
   const handleNumRowsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onParamChange({ numRows: parseInt(e.target.value) })
+    setDiceParams({ numRows: parseInt(e.target.value) })
   }
 
   const handleContrastChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onParamChange({ contrast: parseInt(e.target.value) })
+    setDiceParams({ contrast: parseInt(e.target.value) })
   }
 
   const handleGammaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onParamChange({ gamma: parseFloat(e.target.value) })
+    setDiceParams({ gamma: parseFloat(e.target.value) })
   }
 
   const handleEdgeSharpeningChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onParamChange({ edgeSharpening: parseInt(e.target.value) })
+    setDiceParams({ edgeSharpening: parseInt(e.target.value) })
   }
 
   const handleDiceRotation = (dice: 2 | 3 | 6) => {
@@ -77,16 +75,18 @@ export default function ControlPanel({
       ...prev,
       [`dice${dice}`]: prev[`dice${dice}`] + 90
     }))
-    
+
     // Toggle the rotation state
     if (dice === 2) {
-      onParamChange({ rotate2: !params.rotate2 })
+      setDiceParams({ rotate2: !params.rotate2 })
     } else if (dice === 3) {
-      onParamChange({ rotate3: !params.rotate3 })
+      setDiceParams({ rotate3: !params.rotate3 })
     } else if (dice === 6) {
-      onParamChange({ rotate6: !params.rotate6 })
+      setDiceParams({ rotate6: !params.rotate6 })
     }
   }
+
+  const onParamChange = setDiceParams // Alias for compatibility with existing code structure if needed, or just use setDiceParams directly
 
   return (
     <div className="p-4">
@@ -94,19 +94,19 @@ export default function ControlPanel({
         {/* Color Mode - FIRST */}
         <div className="flex items-center gap-2">
           <Palette size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
-          
-          <div 
+
+          <div
             className="flex flex-1 rounded-lg overflow-hidden border"
-            style={{ 
+            style={{
               backgroundColor: theme.colors.glass.light,
               borderColor: theme.colors.glass.border
             }}
           >
             {/* Black & White */}
             <button
-              onClick={() => onParamChange({ colorMode: 'both' })}
+              onClick={() => setDiceParams({ colorMode: 'both' })}
               className="flex-1 h-10 flex items-center justify-center transition-all relative"
-              style={{ 
+              style={{
                 backgroundColor: params.colorMode === 'both' ? theme.colors.accent.blue : 'transparent',
               }}
             >
@@ -117,12 +117,12 @@ export default function ControlPanel({
                 <rect x="0.5" y="0.5" width="17" height="17" fill="none" stroke="white" strokeWidth="1" />
               </svg>
             </button>
-            
+
             {/* Black Only */}
             <button
-              onClick={() => onParamChange({ colorMode: 'black' })}
+              onClick={() => setDiceParams({ colorMode: 'black' })}
               className="flex-1 h-10 flex items-center justify-center transition-all relative"
-              style={{ 
+              style={{
                 backgroundColor: params.colorMode === 'black' ? theme.colors.accent.blue : 'transparent',
                 borderRight: `1px solid ${theme.colors.glass.border}`
               }}
@@ -130,12 +130,12 @@ export default function ControlPanel({
               {/* Black square */}
               <div className="w-4 h-4 rounded-sm border" style={{ backgroundColor: 'black', borderColor: 'white' }} />
             </button>
-            
+
             {/* White Only */}
             <button
-              onClick={() => onParamChange({ colorMode: 'white' })}
+              onClick={() => setDiceParams({ colorMode: 'white' })}
               className="flex-1 h-10 flex items-center justify-center transition-all relative"
-              style={{ 
+              style={{
                 backgroundColor: params.colorMode === 'white' ? theme.colors.accent.blue : 'transparent'
               }}
             >
@@ -148,10 +148,10 @@ export default function ControlPanel({
         {/* Dice Rotation - SECOND (Orientation) */}
         <div className="flex items-center gap-2">
           <RotateCw size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
-          
-          <div 
+
+          <div
             className="flex flex-1 rounded-lg overflow-hidden border"
-            style={{ 
+            style={{
               backgroundColor: theme.colors.glass.light,
               borderColor: theme.colors.glass.border
             }}
@@ -178,14 +178,14 @@ export default function ControlPanel({
                 ⚁
               </span>
               {/* Hover indicator */}
-              <div 
+              <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                style={{ 
+                style={{
                   background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
                 }}
               />
             </button>
-            
+
             {/* Dice 3 */}
             <button
               onClick={() => handleDiceRotation(3)}
@@ -208,14 +208,14 @@ export default function ControlPanel({
                 ⚂
               </span>
               {/* Hover indicator */}
-              <div 
+              <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                style={{ 
+                style={{
                   background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
                 }}
               />
             </button>
-            
+
             {/* Dice 6 */}
             <button
               onClick={() => handleDiceRotation(6)}
@@ -235,9 +235,9 @@ export default function ControlPanel({
                 ⚅
               </span>
               {/* Hover indicator */}
-              <div 
+              <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                style={{ 
+                style={{
                   background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
                 }}
               />
@@ -267,7 +267,7 @@ export default function ControlPanel({
             />
           </div>
           {/* Tooltip positioned above slider thumb */}
-          <div 
+          <div
             className="absolute -top-8 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap"
             style={{
               left: `calc(24px + ${((params.numRows - 20) / 100) * 85}%)`,
@@ -302,7 +302,7 @@ export default function ControlPanel({
             />
           </div>
           {/* Tooltip positioned above slider thumb */}
-          <div 
+          <div
             className="absolute -top-8 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap"
             style={{
               left: `calc(24px + ${(params.contrast / 100) * 85}%)`,
@@ -338,7 +338,7 @@ export default function ControlPanel({
             />
           </div>
           {/* Tooltip positioned above slider thumb */}
-          <div 
+          <div
             className="absolute -top-8 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap"
             style={{
               left: `calc(24px + ${((params.gamma - 0.5) / 1.0) * 85}%)`,
@@ -373,7 +373,7 @@ export default function ControlPanel({
             />
           </div>
           {/* Tooltip positioned above slider thumb */}
-          <div 
+          <div
             className="absolute -top-8 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap"
             style={{
               left: `calc(24px + ${(params.edgeSharpening / 100) * 85}%)`,

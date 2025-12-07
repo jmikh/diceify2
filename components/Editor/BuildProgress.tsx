@@ -62,7 +62,7 @@ export default function BuildProgress({
           onClick={() => onNavigate('prevDiff')}
           disabled={!canNavigate.prevDiff}
           className="p-2 rounded-lg transition-all disabled:opacity-30"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.glass.light,
             color: canNavigate.prevDiff ? theme.colors.text.primary : theme.colors.text.muted
           }}
@@ -70,7 +70,7 @@ export default function BuildProgress({
         >
           <ChevronsLeft size={20} />
         </button>
-        
+
         <button
           onClick={() => onNavigate('prev')}
           disabled={!canNavigate.prev}
@@ -113,7 +113,7 @@ export default function BuildProgress({
             }}>
               x
             </legend>
-            <span className="text-white text-sm font-medium" style={{ position: 'absolute' }}>
+            <span className="text-white text-sm font-medium" style={{ position: 'absolute' }} data-testid="build-pos-x">
               {currentX + 1}
             </span>
           </fieldset>
@@ -145,7 +145,7 @@ export default function BuildProgress({
             }}>
               y
             </legend>
-            <span className="text-white text-sm font-medium" style={{ position: 'absolute' }}>
+            <span className="text-white text-sm font-medium" style={{ position: 'absolute' }} data-testid="build-pos-y">
               {currentY + 1}
             </span>
           </fieldset>
@@ -163,12 +163,12 @@ export default function BuildProgress({
         >
           <ChevronRight size={20} />
         </button>
-        
+
         <button
           onClick={() => onNavigate('nextDiff')}
           disabled={!canNavigate.nextDiff}
           className="p-2 rounded-lg transition-all disabled:opacity-30"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.glass.light,
             color: canNavigate.nextDiff ? theme.colors.text.primary : theme.colors.text.muted
           }}

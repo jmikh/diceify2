@@ -22,37 +22,34 @@
 
 import { theme } from '@/lib/theme'
 import CountUp from 'react-countup'
-import { useEffect, useRef, memo } from 'react'
+import { useEffect, useRef, memo, useMemo } from 'react'
+import { useEditorStore } from '@/lib/store/useEditorStore'
 
-interface DiceStatsProps {
-  blackCount: number
-  whiteCount: number
-  totalCount: number
-  gridWidth?: number
-  gridHeight?: number
-  frameWidth?: number  // in cm
-  frameHeight?: number  // in cm
-  dieSize?: number
-  costPer1000?: number
-  onDieSizeChange?: (size: number) => void
-  onCostPer1000Change?: (cost: number) => void
-  imageUrl?: string  // Preview image URL
-}
+const DiceStats = memo(function DiceStats() {
+  const diceStats = useEditorStore(state => state.diceStats)
+  const diceGrid = useEditorStore(state => state.diceGrid)
+  const dieSize = useEditorStore(state => state.dieSize)
+  const costPer1000 = useEditorStore(state => state.costPer1000)
+  const processedImageUrl = useEditorStore(state => state.processedImageUrl)
+  const croppedImage = useEditorStore(state => state.croppedImage)
 
-const DiceStats = memo(function DiceStats({
-  blackCount, 
-  whiteCount, 
-  totalCount,
-  gridWidth,
-  gridHeight,
-  frameWidth,
-  frameHeight,
-  dieSize = 16,
-  costPer1000 = 60,
-  onDieSizeChange,
-  onCostPer1000Change,
-  imageUrl
-}: DiceStatsProps) {
+  const setDieSize = useEditorStore(state => state.setDieSize)
+  const setCostPer1000 = useEditorStore(state => state.setCostPer1000)
+
+  const { blackCount, whiteCount, totalCount } = diceStats
+  const gridWidth = diceGrid?.width
+  const gridHeight = diceGrid?.height
+  const imageUrl = processedImageUrl || croppedImage || undefined
+
+  // Calculate frame dimensions
+  const frameWidth = useMemo(() => {
+    return gridWidth ? (gridWidth * dieSize) / 10 : undefined
+  }, [gridWidth, dieSize])
+
+  const frameHeight = useMemo(() => {
+    return gridHeight ? (gridHeight * dieSize) / 10 : undefined
+  }, [gridHeight, dieSize])
+
   // Track previous values for smooth transitions
   const prevCountRef = useRef(totalCount)
   const prevBlackRef = useRef(blackCount)
@@ -60,10 +57,10 @@ const DiceStats = memo(function DiceStats({
   const prevGridWidthRef = useRef(gridWidth || 0)
   const prevGridHeightRef = useRef(gridHeight || 0)
   const prevCostRef = useRef((totalCount / 1000) * costPer1000)
-  
+
   // Calculate current cost
   const currentCost = (totalCount / 1000) * costPer1000
-  
+
   useEffect(() => {
     prevCountRef.current = totalCount
     prevBlackRef.current = blackCount
@@ -72,37 +69,37 @@ const DiceStats = memo(function DiceStats({
     if (gridHeight) prevGridHeightRef.current = gridHeight
     prevCostRef.current = currentCost
   }, [totalCount, blackCount, whiteCount, gridWidth, gridHeight, currentCost])
-  
+
   // Ease-out cubic function for smooth deceleration
   const easeOutCubic = (t: number, b: number, c: number, d: number) => {
     return c * ((t = t / d - 1) * t * t + 1) + b
   }
-  
+
   // Calculate aspect ratio and scale the rectangle appropriately
   const aspectRatio = gridWidth && gridHeight ? gridWidth / gridHeight : 1
   const padding = 16 // Internal padding
   const maxContentWidth = 140  // Max content area width
   const maxContentHeight = 80   // Max content area height
-  
+
   let contentWidth = maxContentWidth
   let contentHeight = maxContentWidth / aspectRatio
-  
+
   // If height exceeds max, scale by height instead
   if (contentHeight > maxContentHeight) {
     contentHeight = maxContentHeight
     contentWidth = maxContentHeight * aspectRatio
   }
-  
+
   // Ensure minimum size for content
   contentWidth = Math.max(contentWidth, 60)
   contentHeight = Math.max(contentHeight, 40)
-  
+
   // Total rectangle dimensions including padding
   const rectWidth = contentWidth + (padding * 2)
   const rectHeight = contentHeight + (padding * 2)
-  
+
   return (
-    <div>
+    <div data-testid="dice-stats">
       {/* Total dice count - at the very top */}
       <div className="text-center mb-3">
         <div className="text-2xl font-bold" style={{ color: theme.colors.text.primary }}>
@@ -174,40 +171,38 @@ const DiceStats = memo(function DiceStats({
       </div>
 
       {/* Die Size Input */}
-      {onDieSizeChange && (
-        <div className="pt-3 mb-3 border-t" style={{ borderColor: theme.colors.glass.border }}>
-          <div className="flex items-center justify-between">
-            <label className="text-xs" style={{ color: theme.colors.text.secondary }}>
-              Die Size
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                value={dieSize}
-                onChange={(e) => onDieSizeChange(Math.max(1, Math.min(50, parseInt(e.target.value) || 16)))}
-                className="w-20 pl-2 pr-7 py-0.5 text-xs rounded border"
-                style={{
-                  backgroundColor: theme.colors.glass.light,
-                  borderColor: theme.colors.glass.border,
-                  color: theme.colors.text.primary
-                }}
-                min="1"
-                max="50"
-              />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: theme.colors.text.muted }}>mm</span>
-            </div>
+      <div className="pt-3 mb-3 border-t" style={{ borderColor: theme.colors.glass.border }}>
+        <div className="flex items-center justify-between">
+          <label className="text-xs" style={{ color: theme.colors.text.secondary }}>
+            Die Size
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              value={dieSize}
+              onChange={(e) => setDieSize(Math.max(1, Math.min(50, parseInt(e.target.value) || 16)))}
+              className="w-20 pl-2 pr-7 py-0.5 text-xs rounded border"
+              style={{
+                backgroundColor: theme.colors.glass.light,
+                borderColor: theme.colors.glass.border,
+                color: theme.colors.text.primary
+              }}
+              min="1"
+              max="50"
+            />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: theme.colors.text.muted }}>mm</span>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Grid dimensions visualization */}
       {gridWidth && gridHeight && (
         <div className="mb-1 flex justify-center">
           <div className="relative" style={{ paddingLeft: '45px', paddingBottom: '40px', paddingTop: '35px', paddingRight: '55px' }}>
             {/* Rectangle with dimensions */}
-            <div 
+            <div
               className="relative border-2 flex items-center justify-center overflow-hidden"
-              style={{ 
+              style={{
                 borderColor: theme.colors.glass.border,
                 width: `${rectWidth}px`,
                 height: `${rectHeight}px`,
@@ -227,12 +222,12 @@ const DiceStats = memo(function DiceStats({
                 />
               )}
             </div>
-            
+
             {/* Labels positioned outside the rectangle */}
             {/* Grid Width label at bottom */}
-            <div 
+            <div
               className="absolute left-1/2 transform -translate-x-1/2 text-xs"
-              style={{ 
+              style={{
                 color: theme.colors.text.secondary,
                 bottom: '16px'
               }}
@@ -246,11 +241,11 @@ const DiceStats = memo(function DiceStats({
                 preserveValue={true}
               />
             </div>
-            
+
             {/* Grid Height label on left */}
-            <div 
+            <div
               className="absolute top-1/2 transform -translate-y-1/2 text-xs"
-              style={{ 
+              style={{
                 color: theme.colors.text.secondary,
                 left: '17px'
               }}
@@ -264,12 +259,12 @@ const DiceStats = memo(function DiceStats({
                 preserveValue={true}
               />
             </div>
-            
+
             {/* Frame Width label at top */}
             {frameWidth && (
-              <div 
+              <div
                 className="absolute left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap"
-                style={{ 
+                style={{
                   color: theme.colors.text.muted,
                   top: '11px'
                 }}
@@ -277,12 +272,12 @@ const DiceStats = memo(function DiceStats({
                 {frameWidth.toFixed(1)} cm
               </div>
             )}
-            
+
             {/* Frame Height label on right */}
             {frameHeight && (
-              <div 
+              <div
                 className="absolute top-1/2 transform -translate-y-1/2 text-xs whitespace-nowrap"
-                style={{ 
+                style={{
                   color: theme.colors.text.muted,
                   right: '0px'
                 }}
@@ -295,73 +290,71 @@ const DiceStats = memo(function DiceStats({
       )}
 
       {/* Cost Calculator */}
-      {onCostPer1000Change && (
-        <div className="pt-3 mt-3 border-t" style={{ borderColor: theme.colors.glass.border }}>
-          <div className="space-y-2">
-            {/* Cost Input */}
-            <div className="flex items-center justify-between">
-              <label className="text-xs" style={{ color: theme.colors.text.secondary }}>
-                cost / 1000
-              </label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: theme.colors.text.muted }}>$</span>
-                <input
-                  type="number"
-                  value={costPer1000}
-                  onChange={(e) => onCostPer1000Change(Math.max(1, Math.min(999, parseInt(e.target.value) || 60)))}
-                  className="w-20 pl-6 pr-2 py-0.5 text-xs rounded border"
-                  style={{ 
-                    backgroundColor: theme.colors.glass.light,
-                    borderColor: theme.colors.glass.border,
-                    color: theme.colors.text.primary
-                  }}
-                  min="1"
-                  max="999"
-                />
-              </div>
-            </div>
-            
-            {/* Estimated Cost */}
-            <div className="flex justify-between text-xs">
-              <span style={{ color: theme.colors.text.muted }}>Estimated Cost:</span>
-              <span className="font-semibold" style={{ color: theme.colors.accent.green }}>
-                $<CountUp
-                  start={prevCostRef.current}
-                  end={currentCost}
-                  duration={1}
-                  decimals={0}
-                  useEasing={true}
-                  easingFn={easeOutCubic}
-                  preserveValue={true}
-                />
-              </span>
-            </div>
-
-            {/* Amazon Buy Button */}
-            <div className="flex justify-center mt-6">
-              <a
-                href="https://amzn.to/3VRTOMM"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:opacity-80 border"
+      <div className="pt-3 mt-3 border-t" style={{ borderColor: theme.colors.glass.border }}>
+        <div className="space-y-2">
+          {/* Cost Input */}
+          <div className="flex items-center justify-between">
+            <label className="text-xs" style={{ color: theme.colors.text.secondary }}>
+              cost / 1000
+            </label>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: theme.colors.text.muted }}>$</span>
+              <input
+                type="number"
+                value={costPer1000}
+                onChange={(e) => setCostPer1000(Math.max(1, Math.min(999, parseInt(e.target.value) || 60)))}
+                className="w-20 pl-6 pr-2 py-0.5 text-xs rounded border"
                 style={{
                   backgroundColor: theme.colors.glass.light,
-                  borderColor: 'rgba(255, 153, 0, 0.2)',
-                  color: theme.colors.text.secondary
+                  borderColor: theme.colors.glass.border,
+                  color: theme.colors.text.primary
                 }}
-              >
-                <img
-                  src="/images/amazon-smile.png"
-                  alt="Amazon"
-                  className="h-4 w-4"
-                  style={{ filter: 'brightness(0) saturate(100%) invert(69%) sepia(89%) saturate(1517%) hue-rotate(360deg) brightness(107%) contrast(106%)' }}
-                />
-                <span className="text-xs">Buy Dice on Amazon</span>
-              </a>
+                min="1"
+                max="999"
+              />
             </div>
           </div>
+
+          {/* Estimated Cost */}
+          <div className="flex justify-between text-xs">
+            <span style={{ color: theme.colors.text.muted }}>Estimated Cost:</span>
+            <span className="font-semibold" style={{ color: theme.colors.accent.green }}>
+              $<CountUp
+                start={prevCostRef.current}
+                end={currentCost}
+                duration={1}
+                decimals={0}
+                useEasing={true}
+                easingFn={easeOutCubic}
+                preserveValue={true}
+              />
+            </span>
+          </div>
+
+          {/* Amazon Buy Button */}
+          <div className="flex justify-center mt-6">
+            <a
+              href="https://amzn.to/3VRTOMM"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:opacity-80 border"
+              style={{
+                backgroundColor: theme.colors.glass.light,
+                borderColor: 'rgba(255, 153, 0, 0.2)',
+                color: theme.colors.text.secondary
+              }}
+            >
+              <img
+                src="/images/amazon-smile.png"
+                alt="Amazon"
+                className="h-4 w-4"
+                style={{ filter: 'brightness(0) saturate(100%) invert(69%) sepia(89%) saturate(1517%) hue-rotate(360deg) brightness(107%) contrast(106%)' }}
+              />
+              <span className="text-xs">Buy Dice on Amazon</span>
+            </a>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 })
