@@ -4,12 +4,33 @@ import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'rea
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { SlidersHorizontal } from 'lucide-react'
+
+import {
+  Upload,
+  Crop as CropIcon,
+  SlidersHorizontal,
+  Box,
+  Share2,
+  Download,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  Undo,
+  Redo,
+  Image as ImageIcon,
+  Palette,
+  Layers,
+  LayoutGrid,
+  Settings
+} from 'lucide-react'
 import ImageUploader from '@/components/Editor/ImageUploader'
 import Cropper from '@/components/Editor/Cropper'
-import DiceCanvas from '@/components/Editor/DiceCanvas'
+import DiceCanvas, { DiceCanvasRef } from '@/components/Editor/DiceCanvas'
 import ControlPanel from '@/components/Editor/ControlPanel'
-import DiceStatsComponent from '@/components/Editor/DiceStats'
+
 import BuildViewer from '@/components/Editor/BuildViewer'
 import BuildProgress from '@/components/Editor/BuildProgress'
 import ConfirmDialog from '@/components/Editor/ConfirmDialog'
@@ -22,6 +43,7 @@ import DonationModal from '@/components/DonationModal'
 import Footer from '@/components/Footer'
 import { theme } from '@/lib/theme'
 import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
+import { EDITOR_LAYOUT_CLASSES } from '@/lib/styles/editor-layout'
 import { devLog, devError } from '@/lib/utils/debug'
 
 import { useEditorStore } from '@/lib/store/useEditorStore'
@@ -33,6 +55,8 @@ function EditorContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  const diceCanvasRef = useRef<DiceCanvasRef>(null)
 
   // Custom Hooks
   const {
@@ -1060,21 +1084,65 @@ function EditorContent() {
         </div>
 
         {/* Step Content */}
+        {/* Step Content */}
         {step === 'upload' && (
-          <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {!originalImage ? (
+          <div className={EDITOR_LAYOUT_CLASSES.container}>
+            {/* Left floating panels */}
+            <div className={EDITOR_LAYOUT_CLASSES.leftColumn} >
+              <div className={EDITOR_LAYOUT_CLASSES.leftPanelCard}>
+
+                {/* Info / Instructions */}
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">Upload Image</h3>
+                  <p className="text-white/60 text-sm leading-relaxed">
+                    Choose a photo to turn into dice art. High contrast images with clear subjects work best.
+                  </p>
+                </div>
+
+                {/* Spacer */}
+                <div className="flex-grow" />
+
+                {/* Navigation Buttons */}
+                <div className="flex gap-3 mt-6 pt-6 border-t border-white/10 flex-shrink-0">
+                  <button
+                    onClick={() => useEditorStore.getState().setStep('crop')}
+                    disabled={!originalImage}
+                    className={`
+                      flex-1 py-3.5 rounded-full font-semibold transition-all flex items-center justify-center gap-2 text-sm
+                      ${originalImage
+                        ? 'bg-pink-500 hover:bg-pink-600 text-white shadow-[0_0_20px_rgba(236,72,153,0.3)] hover:shadow-[0_0_30px_rgba(236,72,153,0.5)]'
+                        : 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5'
+                      }
+                    `}
+                  >
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content Area - Center */}
+            {/* Main Content Area - Center */}
+            <div className={EDITOR_LAYOUT_CLASSES.rightColumn}>
               <ImageUploader />
-            ) : (
-              <Cropper />
-            )}
+            </div>
+          </div>
+        )}
+
+        {step === 'crop' && (
+          <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col items-center gap-6">
+            <Cropper
+              onBack={() => setStep('upload')}
+              onContinue={() => setStep('tune')}
+            />
           </div>
         )}
 
         {step === 'tune' && croppedImage && (
-          <div className="w-full mx-auto px-4 flex gap-6 items-stretch justify-center h-[calc(100vh-180px)] min-h-[600px]" style={{ maxWidth: '1400px' }}>
+          <div className={EDITOR_LAYOUT_CLASSES.container} style={{ maxWidth: '1400px' }}>
             {/* Left floating panels */}
-            <div className="flex-shrink-0 flex flex-col" style={{ width: '320px' }}>
-              <div className="bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col h-full overflow-y-auto custom-scrollbar">
+            <div className={EDITOR_LAYOUT_CLASSES.leftColumn} >
+              <div className={EDITOR_LAYOUT_CLASSES.leftPanelCard}>
 
                 {/* Control Panel */}
                 <div className="mb-6">
@@ -1087,7 +1155,7 @@ function EditorContent() {
                 {/* Navigation Buttons */}
                 <div className="flex gap-3 mt-6 pt-6 border-t border-white/10 flex-shrink-0">
                   <button
-                    onClick={() => setStep('upload')}
+                    onClick={() => setStep('crop')}
                     className="flex-1 py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
                   >
                     ← Back
@@ -1112,10 +1180,30 @@ function EditorContent() {
             </div>
 
             {/* Main content */}
-            <div className="flex-grow flex flex-col items-center justify-center h-full" style={{ maxWidth: '900px' }}>
-              <div className="w-full h-full rounded-3xl bg-[#0a0a0f] transition-all duration-500 ease-out flex items-center justify-center overflow-hidden border border-white/10 p-4">
+            <div className="flex-grow flex flex-col items-center justify-center h-full" style={{ maxWidth: '850px' }}>
+              <div
+                className="rounded-3xl bg-[#0a0a0f] transition-all duration-500 ease-out flex items-center justify-center overflow-hidden border border-white/10 p-4 relative group"
+                style={{
+                  aspectRatio: cropParams ? `${cropParams.width}/${cropParams.height}` : 'auto',
+                  width: 'auto',
+                  height: 'auto',
+                  maxWidth: '100%',
+                  maxHeight: '100%'
+                }}
+              >
+
+                {/* Download Button - Top Right */}
+                <button
+                  onClick={() => diceCanvasRef.current?.download()}
+                  className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 text-pink-500 hover:text-pink-400 transition-all backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.15)]"
+                  title="Download Image"
+                >
+                  <Download className="w-5 h-5" />
+                </button>
+
                 <DiceCanvas
-                  maxWidth={900}
+                  ref={diceCanvasRef}
+                  maxWidth={850}
                   maxHeight={850}
                 />
               </div>
@@ -1125,68 +1213,62 @@ function EditorContent() {
 
         {step === 'build' && (
           diceGrid ? (
-            <div className="flex flex-col md:flex-row gap-6 justify-center items-center md:items-start">
+            <div className={EDITOR_LAYOUT_CLASSES.container}>
               {/* Left floating panels */}
-              <div className="flex flex-col space-y-4 w-80 flex-shrink-0">
+              <div className={EDITOR_LAYOUT_CLASSES.leftColumn}>
                 {/* Build progress - desktop: first, mobile: second (right above builder) */}
-                {buildNavigation && (
-                  <div
-                    className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-2 md:order-1"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      backdropFilter: 'blur(10px)',
-                      borderColor: `${theme.colors.accent.purple}33`,
-                      boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                               0 0 60px rgba(236, 72, 153, 0.08),
-                               0 5px 20px rgba(0, 0, 0, 0.3)`
-                    }}
-                  >
-                    <BuildProgress
-                      currentX={buildProgress.x}
-                      currentY={buildProgress.y}
-                      totalRows={diceGrid.height}
-                      totalCols={diceGrid.width}
-                      currentDice={null}
-                      currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
-                      totalDice={diceGrid.width * diceGrid.height}
-                      onNavigate={(direction) => {
-                        // Check if trying to go forward beyond x=3 without authentication
-                        if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
-                          devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
-                          setShowAuthModal(true)
-                          return
-                        }
+                {/* Build progress sidebar */}
+                <div className={EDITOR_LAYOUT_CLASSES.leftPanelCard}>
+                  {/* Build Progress Controls */}
+                  <div className="mb-6">
+                    {buildNavigation && (
+                      <BuildProgress
+                        currentX={buildProgress.x}
+                        currentY={buildProgress.y}
+                        totalRows={diceGrid.height}
+                        totalCols={diceGrid.width}
+                        currentDice={null}
+                        currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
+                        totalDice={diceGrid.width * diceGrid.height}
+                        blackCount={diceStats.blackCount}
+                        whiteCount={diceStats.whiteCount}
+                        onNavigate={(direction) => {
+                          // Check if trying to go forward beyond x=3 without authentication
+                          if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
+                            devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
+                            setShowAuthModal(true)
+                            return
+                          }
 
-                        if (direction === 'prev') buildNavigation.navigatePrev()
-                        else if (direction === 'next') buildNavigation.navigateNext()
-                        else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
-                        else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
-                      }}
-                      canNavigate={buildNavigation.canNavigate}
-                    />
+                          if (direction === 'prev') buildNavigation.navigatePrev()
+                          else if (direction === 'next') buildNavigation.navigateNext()
+                          else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
+                          else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
+                        }}
+                        canNavigate={buildNavigation.canNavigate}
+                      />
+                    )}
                   </div>
-                )}
 
-                {/* Stats display - desktop: second, mobile: first */}
-                <div
-                  className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-1 md:order-2"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    backdropFilter: 'blur(10px)',
-                    borderColor: `${theme.colors.accent.purple}33`,
-                    boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                             0 0 60px rgba(236, 72, 153, 0.08),
-                             0 5px 20px rgba(0, 0, 0, 0.3)`
-                  }}
-                >
-                  <DiceStatsComponent
-                    key={`build-stats-${currentProjectId}-${diceStats.totalCount}-${croppedImage?.substring(0, 20)}`}
-                  />
+                  {/* Spacer */}
+                  <div className="flex-grow" />
+
+                  {/* Navigation Buttons */}
+                  <div className="flex gap-3 mt-6 pt-6 border-t border-white/10 flex-shrink-0">
+                    <button
+                      onClick={() => setStep('tune')}
+                      className="w-full py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
+                    >
+                      ← Back
+                    </button>
+                  </div>
                 </div>
+
+
               </div>
 
               {/* Main build viewer */}
-              <div className="flex-1 min-w-0" style={{ maxWidth: '700px' }}>
+              <div className={EDITOR_LAYOUT_CLASSES.rightColumn}>
                 {(() => {
                   devLog('[DEBUG] Passing to BuildViewer:', {
                     currentProjectId,
@@ -1293,20 +1375,14 @@ function EditorContent() {
 }
 
 // Export the page wrapped in Suspense to handle useSearchParams
-export default function Editor() {
+export default function EditorPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        {/* Background Elements */}
-        <div className="bg-gradient">
-          <div className="orb one"></div>
-          <div className="orb two"></div>
-          <div className="orb three"></div>
-        </div>
-        <div className="grid-overlay"></div>
-        <div className="text-center relative z-10">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mb-4"></div>
-          <p className="text-white text-lg">Loading workspace...</p>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0014] to-black z-0" />
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full border-t-2 border-r-2 border-pink-500 animate-spin mb-4" />
+          <p className="text-white/60 font-medium">Loading editor...</p>
         </div>
       </div>
     }>

@@ -8,7 +8,7 @@ export default function Footer() {
 
   return (
     <>
-      <footer id="about" className="relative z-10 py-10 px-6 md:px-24 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-[var(--border-glass)]">
+      <footer id="about" className="relative z-10 py-6 px-6 md:px-24 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-[var(--border-glass)]">
         <p className="text-[var(--text-dim)] text-sm">&copy; 2025 Diceify. Made for makers.</p>
 
         <div className="flex items-center gap-6">
@@ -30,16 +30,7 @@ export default function Footer() {
           </button>
 
           <ul className="flex gap-4 list-none">
-            <li>
-              <a
-                href="https://www.youtube.com/watch?v=z4UUXeYqJZw&t=3s&ab_channel=JohnMikhail"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[var(--text-dim)] text-sm no-underline hover:text-[var(--pink)] transition-colors"
-              >
-                Youtube
-              </a>
-            </li>
+
             <li>
               <a
                 href="https://www.linkedin.com/in/john-mikhail/"

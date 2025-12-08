@@ -27,6 +27,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
 import { animate } from 'motion'
 import { DiceGrid, Dice } from '@/lib/dice/types'
+import { Plus, Minus } from 'lucide-react'
 import { DiceSVGRenderer } from '@/lib/dice/svg-renderer'
 import { theme } from '@/lib/theme'
 import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
@@ -88,6 +89,7 @@ const BuildViewer = memo(function BuildViewer({
   const svgRef = useRef<SVGSVGElement>(null)
   const animationRef = useRef<any>(null)
   const [containerDimensions, setContainerDimensions] = useState({ width: 600, height: 600 })
+
 
   // Update position when props change
   useEffect(() => {
@@ -310,6 +312,10 @@ const BuildViewer = memo(function BuildViewer({
   }, [])
 
 
+
+  // Rebuild viewBox when container dimensions or zoom changes
+
+
   // Rebuild viewBox when container dimensions or zoom changes
   useEffect(() => {
     buildZoom()
@@ -520,17 +526,20 @@ const BuildViewer = memo(function BuildViewer({
           scrollbar-width: none;
         }
       `}</style>
-      <div className="w-full" style={{ minWidth: '320px', maxWidth: '720px' }}>
+      <div className="w-full h-full flex items-center justify-center p-4">
         <div
           ref={containerRef}
-          className="relative backdrop-blur-xl rounded-2xl border overflow-hidden w-full"
+          className="relative backdrop-blur-xl rounded-2xl border overflow-hidden"
           style={{
             backgroundColor: theme.colors.glass.medium,
             borderColor: theme.colors.glass.border,
             width: '100%',
+            height: '100%',
+            aspectRatio: '1/1',
+            maxHeight: '100%',
+            maxWidth: '100%',
+            minHeight: '320px',
             minWidth: '320px',
-            maxWidth: '700px',
-            height: '750px'
           }}
         >
           {/* SVG Container - viewBox animates smoothly over 1 second */}
@@ -749,20 +758,20 @@ const BuildViewer = memo(function BuildViewer({
 
 
           {/* Zoom Controls */}
-          <div className="absolute top-3 right-3 flex gap-2 z-10">
+          <div className="absolute top-4 right-4 flex gap-3 z-10">
             <button
               onClick={() => setZoomLevel(Math.min(20, zoomLevel + 2))}
-              className={`${overlayButtonStyles.button} text-white text-xl font-bold`}
-              style={getOverlayButtonStyle('zoom', false, theme)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 text-pink-500 hover:text-pink-400 transition-all backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.15)]"
+              title="Zoom Out"
             >
-              −
+              <Minus className="w-5 h-5" />
             </button>
             <button
               onClick={() => setZoomLevel(Math.max(4, zoomLevel - 2))}
-              className={`${overlayButtonStyles.button} text-white text-xl font-bold`}
-              style={getOverlayButtonStyle('zoom', false, theme)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 text-pink-500 hover:text-pink-400 transition-all backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.15)]"
+              title="Zoom In"
             >
-              +
+              <Plus className="w-5 h-5" />
             </button>
           </div>
 

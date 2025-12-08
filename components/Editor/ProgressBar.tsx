@@ -11,13 +11,13 @@ interface ProgressBarProps {
 export default function ProgressBar({ percentage, showComplete = true, className = '' }: ProgressBarProps) {
   return (
     <div className={className}>
-      <div className="h-2 rounded-full overflow-hidden" 
-           style={{ backgroundColor: theme.colors.glass.border }}>
-        <div 
+      <div className="h-2 rounded-full overflow-hidden"
+        style={{ backgroundColor: theme.colors.glass.border }}>
+        <div
           className="h-full rounded-full transition-all duration-300"
-          style={{ 
+          style={{
             width: `${percentage}%`,
-            backgroundColor: theme.colors.accent.green
+            backgroundColor: theme.colors.accent.pink
           }}
         />
       </div>

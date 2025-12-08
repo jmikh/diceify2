@@ -11,14 +11,16 @@
   --big-handler-size: 16px;
   --small-handler-size: 4px;
   --big-handler-width: 2px;
-  
+
   /* Set the current color to white for the accent */
   color: white;
 }
 
 /* Stencil border and overlay */
-.cropper :global(.react-advanced-cropper__stencil-wrapper) {
-  border: 2px solid var(--base-color);
+.cropper :global(.react-advanced-cropper__stencil-box) {
+  border: 2px solid white !important;
+  outline: 1px solid rgba(0, 0, 0, 0.5);
+  /* subtle contrast */
 }
 
 /* Corner and edge lines */

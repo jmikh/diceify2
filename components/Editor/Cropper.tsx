@@ -1,12 +1,13 @@
 'use client'
 
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { Cropper, CropperRef, ImageRestriction } from 'react-advanced-cropper'
+import { FixedCropper, FixedCropperRef, ImageRestriction } from 'react-advanced-cropper'
 import 'react-advanced-cropper/dist/style.css'
 import 'react-advanced-cropper/dist/themes/corners.css'
 import styles from './Cropper.module.css'
 import { theme } from '@/lib/theme'
 import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
+import { EDITOR_LAYOUT_CLASSES } from '@/lib/styles/editor-layout'
 import { RotateCw, Upload, Image as ImageIcon, Proportions } from 'lucide-react'
 import { devLog, devError } from '@/lib/utils/debug'
 import { useEditorStore } from '@/lib/store/useEditorStore'
@@ -14,7 +15,7 @@ import { useEditorStore } from '@/lib/store/useEditorStore'
 interface CropperProps {
   containerWidth?: number
   containerHeight?: number
-  onCropperReady?: (cropper: CropperRef) => void
+  onCropperReady?: (cropper: FixedCropperRef) => void
   hideControls?: boolean
   onBack?: () => void
   onContinue?: () => void
@@ -101,20 +102,20 @@ export default function ImageCropper({
   const completeCrop = useEditorStore(state => state.completeCrop)
   const updateCrop = useEditorStore(state => state.updateCrop)
 
-  const fixedCropperRef = useRef<CropperRef>(null)
+  const fixedCropperRef = useRef<FixedCropperRef>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
   const [imageLoaded, setImageLoaded] = useState(false)
   const [currentRatio, setCurrentRatio] = useState<string>('1:1')
-  const [hasAppliedInitialCrop, setHasAppliedInitialCrop] = useState(false)
-  const [hoveredRatio, setHoveredRatio] = useState<AspectRatio | null>(null)
-
   // Track window size for responsive cropper
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 800)
+  const [windowSize, setWindowSize] = useState({ width: 800, height: 600 })
 
   useEffect(() => {
     const handleResize = () => {
-      setWindowWidth(window.innerWidth)
+      setWindowSize({
+        width: typeof window !== 'undefined' ? window.innerWidth : 800,
+        height: typeof window !== 'undefined' ? window.innerHeight : 600
+      })
     }
 
     handleResize() // Set initial size
@@ -122,23 +123,41 @@ export default function ImageCropper({
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Calculate responsive cropper size taking sidebar into account
-  const getResponsiveCropperSize = () => {
-    // Available width = Window width - Sidebar (320) - Gap (24) - Padding (32) - Scrollbar/Margin (~24)
-    const sidebarWidth = 320 + 24 + 32 + 24
-    const availableWidth = windowWidth - sidebarWidth
+  const selectedOption = aspectRatioOptions.find(opt => opt.value === selectedRatio) || aspectRatioOptions[2]
 
-    // Max width increased to 1400px to fill screen, min 320
-    const cropperSize = Math.min(1400, Math.max(320, availableWidth))
-    return cropperSize
+  // Calculate stencil size to fit within 90% of the available container
+  const getStencilSize = () => {
+    // Right panel constraints
+    // Width: available width minus sidebar (320), gap (24), padding (32). Max 900.
+    // Height: 100vh - 180px. Min 600.
+
+    if (typeof window === 'undefined') return { width: 0, height: 0 }
+
+    const sidebarTotalWidth = 350 + 24 + 32 // 350px sidebar + 24px gap + 32px padding
+    const availableWidth = Math.min(900, windowSize.width - sidebarTotalWidth)
+
+    // Height calculation based on container constraints (500-800px)
+    // Container height = clamp(500, 100vh - 180, 800)
+    const containerHeight = Math.max(500, Math.min(800, windowSize.height - 180))
+    const availableHeight = containerHeight - 32 // Subtract padding 
+
+    const maxWidth = availableWidth * 0.9
+    const maxHeight = availableHeight * 0.9
+
+    const ratio = selectedOption.ratio || 1
+
+    let width = maxWidth
+    let height = width / ratio
+
+    if (height > maxHeight) {
+      height = maxHeight
+      width = height * ratio
+    }
+
+    return { width, height }
   }
 
-  const responsiveCropperSize = getResponsiveCropperSize()
-
-  // Reset the flag when imageUrl or initialCrop changes
-  useEffect(() => {
-    setHasAppliedInitialCrop(false)
-  }, [imageUrl, initialCrop])
+  const stencilSize = getStencilSize()
 
   // Recalculate coordinates when container size changes
   useEffect(() => {
@@ -154,22 +173,12 @@ export default function ImageCropper({
     }
   }, [containerWidth, containerHeight, imageLoaded, onCropperReady])
 
-  const selectedOption = aspectRatioOptions.find(opt => opt.value === selectedRatio) || aspectRatioOptions[2]
-
   // Update current ratio when fixed ratio is selected
   useEffect(() => {
     if (selectedOption) {
       setCurrentRatio(selectedOption.label)
     }
   }, [selectedRatio, selectedOption])
-
-  // Calculate stencil size
-  const defaultContainerHeight = Math.min(window.innerHeight - 200, responsiveCropperSize * 0.8)
-  const defaultContainerWidth = responsiveCropperSize
-  const actualContainerHeight = containerHeight || defaultContainerHeight
-  const actualContainerWidth = containerWidth || defaultContainerWidth
-  const paddingPercent = 0.9  // 90% of container (10% remaining space as requested)
-
 
   const performAutoCrop = useCallback(async (isComplete = false) => {
     if (isProcessing) return
@@ -263,11 +272,10 @@ export default function ImageCropper({
   if (!imageUrl) return null
 
   return (
-    <div className="w-full mx-auto px-4 flex gap-6 items-stretch justify-center h-[calc(100vh-180px)] min-h-[600px]" style={{ maxWidth: '1400px' }}>
-
+    <div className={EDITOR_LAYOUT_CLASSES.container} style={{ maxWidth: '1400px' }}>
       {/* Left Panel: Aspect Ratio & Controls */}
-      <div className="flex-shrink-0 flex flex-col" style={{ width: '320px' }}>
-        <div className="bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col h-full">
+      <div className={EDITOR_LAYOUT_CLASSES.leftColumn}>
+        <div className={EDITOR_LAYOUT_CLASSES.leftPanelCard}>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center">
               <Proportions className="w-4 h-4 text-pink-500" />
@@ -319,6 +327,9 @@ export default function ImageCropper({
               <RotateCw className="w-4 h-4" />
               Rotate 90°
             </button>
+            <p className="text-white/60 text-sm leading-relaxed text-center px-1">
+              Pan and zoom into the desired area. Zoomed in portraits work better than fullbody shots.
+            </p>
           </div>
 
           {/* Spacer to push buttons to bottom */}
@@ -358,7 +369,8 @@ export default function ImageCropper({
 
           {/* Glass Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-20 pointer-events-none z-10" />
-          <Cropper
+
+          <FixedCropper
             ref={fixedCropperRef}
             src={imageUrl}
             className={`h-full ${styles.cropper}`}
@@ -366,14 +378,12 @@ export default function ImageCropper({
               aspectRatio: selectedOption.ratio,
               grid: true,
               overlayClassName: styles.overlay,
+              handlers: false,
+              lines: true,
+              movable: false,
+              resizable: false,
             }}
-            defaultSize={({ visibleArea }) => {
-              if (!visibleArea) return { width: 0, height: 0 }
-              return {
-                width: visibleArea.width * 0.9,
-                height: visibleArea.height * 0.9,
-              }
-            }}
+            stencilSize={stencilSize}
             imageRestriction={ImageRestriction.stencil}
             onReady={() => {
               devLog('Cropper onReady fired')

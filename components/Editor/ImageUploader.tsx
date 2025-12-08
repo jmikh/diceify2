@@ -12,6 +12,7 @@ interface ImageUploaderProps {
 
 export default function ImageUploader({ onUpload }: ImageUploaderProps) {
     const uploadImage = useEditorStore(state => state.uploadImage)
+    const originalImage = useEditorStore(state => state.originalImage)
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0]
@@ -28,6 +29,7 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
                             onUpload(result)
                         } else {
                             uploadImage(result)
+                            // Removed auto-advance to allow manual continue
                         }
                     }
                 }
@@ -43,6 +45,33 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
         },
         maxFiles: 1
     })
+
+    if (originalImage && !onUpload) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center">
+                <div className="relative w-full h-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black/40 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={originalImage}
+                        alt="Uploaded preview"
+                        className="w-full h-full object-contain"
+                    />
+
+                    {/* Overlay Button */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <button
+                            {...getRootProps()}
+                            className="pointer-events-auto px-8 py-4 rounded-full bg-black/40 backdrop-blur-md border border-white/20 hover:bg-black/60 text-white font-bold shadow-2xl transition-all flex items-center gap-3"
+                        >
+                            <input {...getInputProps()} />
+                            <Upload size={20} />
+                            Change Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="w-full max-w-xl mx-auto">
