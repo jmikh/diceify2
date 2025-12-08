@@ -31,10 +31,12 @@ import UploadMain from '@/components/Editor/Uploader/UploadMain'
 import CropperPanel, { AspectRatio, aspectRatioOptions } from '@/components/Editor/Cropper/CropperPanel'
 import CropperMain from '@/components/Editor/Cropper/CropperMain'
 import DiceCanvas, { DiceCanvasRef } from '@/components/Editor/DiceCanvas'
-import ControlPanel from '@/components/Editor/ControlPanel'
+import TunerPanel from '@/components/Editor/Tuner/TunerPanel'
+import TunerMain from '@/components/Editor/Tuner/TunerMain'
 
-import BuildViewer from '@/components/Editor/BuildViewer'
-import BuildProgress from '@/components/Editor/BuildProgress'
+import BuilderPanel from '@/components/Editor/Builder/BuilderPanel'
+import BuilderMain from '@/components/Editor/Builder/BuilderMain'
+
 import ConfirmDialog from '@/components/Editor/ConfirmDialog'
 import ProjectSelector from '@/components/Editor/ProjectSelector'
 import ProjectSelectionModal from '@/components/ProjectSelectionModal'
@@ -1271,155 +1273,64 @@ function EditorContent() {
           </div>
         )}
 
-        {step === 'tune' && croppedImage && (
+        {step === 'tune' && (
           <div className={EDITOR_LAYOUT_CLASSES.container} style={{ maxWidth: '1400px' }}>
-            {/* Left floating panels */}
             <div className={EDITOR_LAYOUT_CLASSES.leftColumn} >
-              <div className={EDITOR_LAYOUT_CLASSES.leftPanelCard}>
-
-                {/* Control Panel */}
-                <div className="mb-6">
-                  <ControlPanel />
-                </div>
-
-                {/* Spacer to push buttons to bottom */}
-                <div className="flex-grow" />
-
-                {/* Navigation Buttons */}
-                <div className="flex gap-3 mt-6 pt-6 border-t border-white/10 flex-shrink-0">
-                  <button
-                    onClick={() => setStep('crop')}
-                    className="flex-1 py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
-                  >
-                    ← Back
-                  </button>
-
-                  <button
-                    onClick={() => setStep('build')}
-                    className="
-                      flex-1 py-3.5 rounded-full
-                      bg-pink-500 hover:bg-pink-600
-                      text-white font-semibold
-                      shadow-[0_0_20px_rgba(236,72,153,0.3)]
-                      hover:shadow-[0_0_30px_rgba(236,72,153,0.5)]
-                      transition-all
-                      flex items-center justify-center gap-2 text-sm
-                    "
-                  >
-                    Continue →
-                  </button>
-                </div>
-              </div>
+              <TunerPanel
+                onBack={() => setStep('crop')}
+                onContinue={() => setStep('build')}
+              />
             </div>
 
-            {/* Main content */}
-            <div className="flex-grow flex flex-col items-center justify-center h-full" style={{ maxWidth: '850px' }}>
-              <div
-                className="rounded-3xl bg-[#0a0a0f] transition-all duration-500 ease-out flex items-center justify-center overflow-hidden border border-white/10 p-4 relative group"
-                style={{
-                  aspectRatio: cropParams ? `${cropParams.width}/${cropParams.height}` : 'auto',
-                  width: 'auto',
-                  height: 'auto',
-                  maxWidth: '100%',
-                  maxHeight: '100%'
-                }}
-              >
-
-                {/* Download Button - Top Right */}
-                <button
-                  onClick={() => diceCanvasRef.current?.download()}
-                  className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 text-pink-500 hover:text-pink-400 transition-all backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.15)]"
-                  title="Download Image"
-                >
-                  <Download className="w-5 h-5" />
-                </button>
-
-                <DiceCanvas
-                  ref={diceCanvasRef}
-                  maxWidth={850}
-                  maxHeight={850}
-                />
-              </div>
-            </div>
+            <TunerMain
+              diceCanvasRef={diceCanvasRef}
+              cropParams={cropParams}
+            />
           </div>
         )}
 
         {step === 'build' && (
           diceGrid ? (
             <div className={EDITOR_LAYOUT_CLASSES.container}>
-              {/* Left floating panels */}
               <div className={EDITOR_LAYOUT_CLASSES.leftColumn}>
-                {/* Build progress - desktop: first, mobile: second (right above builder) */}
-                {/* Build progress sidebar */}
-                <div className={EDITOR_LAYOUT_CLASSES.leftPanelCard}>
-                  {/* Build Progress Controls */}
-                  <div className="mb-6">
-                    {buildNavigation && (
-                      <BuildProgress
-                        currentX={buildProgress.x}
-                        currentY={buildProgress.y}
-                        totalRows={diceGrid.height}
-                        totalCols={diceGrid.width}
-                        currentDice={null}
-                        currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
-                        totalDice={diceGrid.width * diceGrid.height}
-                        blackCount={diceStats.blackCount}
-                        whiteCount={diceStats.whiteCount}
-                        onNavigate={(direction) => {
-                          // Check if trying to go forward beyond x=3 without authentication
-                          if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
-                            devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
-                            setShowAuthModal(true)
-                            return
-                          }
+                <BuilderPanel
+                  currentX={buildProgress.x}
+                  currentY={buildProgress.y}
+                  totalRows={diceGrid.height}
+                  totalCols={diceGrid.width}
+                  currentDice={null}
+                  currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
+                  totalDice={diceGrid.width * diceGrid.height}
+                  blackCount={diceStats.blackCount}
+                  whiteCount={diceStats.whiteCount}
+                  onNavigate={(direction) => {
+                    // Check if trying to go forward beyond x=3 without authentication
+                    if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
+                      devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
+                      setShowAuthModal(true)
+                      return
+                    }
 
-                          if (direction === 'prev') buildNavigation.navigatePrev()
-                          else if (direction === 'next') buildNavigation.navigateNext()
-                          else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
-                          else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
-                        }}
-                        canNavigate={buildNavigation.canNavigate}
-                      />
-                    )}
-                  </div>
+                    if (!buildNavigation) return
 
-                  {/* Spacer */}
-                  <div className="flex-grow" />
-
-                  {/* Navigation Buttons */}
-                  <div className="flex gap-3 mt-6 pt-6 border-t border-white/10 flex-shrink-0">
-                    <button
-                      onClick={() => setStep('tune')}
-                      className="w-full py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
-                    >
-                      ← Back
-                    </button>
-                  </div>
-                </div>
-
-
-              </div>
-
-              {/* Main build viewer */}
-              <div className={EDITOR_LAYOUT_CLASSES.rightColumn}>
-                {(() => {
-                  devLog('[DEBUG] Passing to BuildViewer:', {
-                    currentProjectId,
-                    buildProgress,
-                    'buildProgress.x': buildProgress.x,
-                    'buildProgress.y': buildProgress.y
-                  })
-                  return null
-                })()}
-                <BuildViewer
-                  key={`${currentProjectId}-viewer`}
-                  grid={diceGrid}
-                  initialX={buildProgress.x}
-                  initialY={buildProgress.y}
-                  onPositionChange={handleBuildProgressUpdate}
-                  onNavigationReady={handleNavigationReady}
+                    if (direction === 'prev') buildNavigation.navigatePrev()
+                    else if (direction === 'next') buildNavigation.navigateNext()
+                    else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
+                    else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
+                  }}
+                  canNavigate={buildNavigation?.canNavigate || { prev: false, next: false, prevDiff: false, nextDiff: false }}
+                  onBack={() => setStep('tune')}
+                  buildNavigation={buildNavigation}
                 />
               </div>
+
+              <BuilderMain
+                currentProjectId={currentProjectId || ''}
+                diceGrid={diceGrid}
+                buildProgress={buildProgress}
+                handleBuildProgressUpdate={handleBuildProgressUpdate}
+                handleNavigationReady={handleNavigationReady}
+              />
             </div>
           ) : croppedImage ? (
             // Show DiceCanvas to generate the grid

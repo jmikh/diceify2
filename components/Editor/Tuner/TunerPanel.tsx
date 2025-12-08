@@ -31,9 +31,14 @@ import { useState, useRef, useEffect } from 'react'
 import CountUp from 'react-countup'
 import { Grid3x3, Contrast, Sun, Sparkles, RotateCw, Palette } from 'lucide-react'
 import { useEditorStore } from '@/lib/store/useEditorStore'
-import styles from './ControlPanel.module.css'
+import styles from './TunerPanel.module.css'
 
-export default function ControlPanel() {
+interface TunerPanelProps {
+  onBack: () => void
+  onContinue: () => void
+}
+
+export default function TunerPanel({ onBack, onContinue }: TunerPanelProps) {
   const params = useEditorStore(state => state.diceParams)
   const setDiceParams = useEditorStore(state => state.setDiceParams)
   const diceStats = useEditorStore(state => state.diceStats)
@@ -109,8 +114,8 @@ export default function ControlPanel() {
   const onParamChange = setDiceParams // Alias for compatibility with existing code structure if needed, or just use setDiceParams directly
 
   return (
-    <div className="p-4">
-      <div className="space-y-6">
+    <div className="h-full flex flex-col">
+      <div className="space-y-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
         {/* Stats Section - MOVED HERE */}
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
           {/* Total dice count - at the very top */}
@@ -542,6 +547,32 @@ export default function ControlPanel() {
           </div>
         </div>
       </div>
-    </div>
+
+
+      {/* Navigation Buttons */}
+      <div className="flex gap-3 mt-6 pt-6 border-t border-white/10 flex-shrink-0">
+        <button
+          onClick={onBack}
+          className="flex-1 py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
+        >
+          ← Back
+        </button>
+
+        <button
+          onClick={onContinue}
+          className="
+            flex-1 py-3.5 rounded-full
+            bg-pink-500 hover:bg-pink-600
+            text-white font-semibold
+            shadow-[0_0_20px_rgba(236,72,153,0.3)]
+            hover:shadow-[0_0_30px_rgba(236,72,153,0.5)]
+            transition-all
+            flex items-center justify-center gap-2 text-sm
+          "
+        >
+          Continue →
+        </button>
+      </div>
+    </div >
   )
 }

@@ -2,7 +2,7 @@
 
 import { theme } from '@/lib/theme'
 import { X } from 'lucide-react'
-import ProgressBar from './ProgressBar'
+import { ProgressBar } from '@/components/Editor/Builder/BuilderPanel'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -32,21 +32,21 @@ export default function ConfirmDialog({
   if (!isOpen) return null
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onCancel}
     >
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0"
-        style={{ 
+        style={{
           backgroundColor: theme.colors.background.overlay,
           backdropFilter: 'blur(8px)'
         }}
       />
-      
+
       {/* Modal */}
-      <div 
+      <div
         className="relative w-full max-w-md rounded-3xl border p-8"
         style={{
           background: 'rgba(0, 0, 0, 0.9)',
@@ -64,26 +64,26 @@ export default function ConfirmDialog({
         >
           <X size={20} className="text-white/60" />
         </button>
-        
+
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
             {title}
           </h2>
         </div>
-        
+
         {progress !== undefined && (
           <div className="mb-6">
             <ProgressBar percentage={progress} />
           </div>
         )}
-        
+
         {message && (
           <p className="text-white/60 text-sm text-center mb-8 whitespace-pre-line">
             {message}
           </p>
         )}
-        
+
         {/* Action buttons */}
         <div className="flex gap-3">
           <button
@@ -97,7 +97,7 @@ export default function ConfirmDialog({
           >
             {cancelText}
           </button>
-          
+
           <button
             onClick={onConfirm}
             className="flex-1 px-6 py-3 rounded-xl border transition-all hover:scale-105"
