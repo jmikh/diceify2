@@ -1,12 +1,9 @@
-'use client'
-
-import styles from './Logo.module.css'
-
-export default function Logo() {
+const Logo = () => {
   return (
-    <div className={styles.logo} data-testid="app-logo">
-      <div className={styles.logoIcon}></div>
-      <span className={styles.logoText}>Diceify</span>
+    <div className="font-syne font-bold text-xl tracking-tight pl-3 text-white select-none">
+      Dice<span className="text-[var(--pink)]">ify</span>
     </div>
   )
 }
+
+export default Logo

@@ -146,7 +146,7 @@ export default function ProjectSelector({
             ? 'rgba(255, 255, 255, 0.1)'
             : 'rgba(255, 255, 255, 0.05)',
         borderColor: isEditing
-          ? theme.colors.accent.blue + '66'
+          ? theme.colors.accent.pink + '66'
           : isHovering
             ? 'rgba(255, 255, 255, 0.3)'
             : 'rgba(255, 255, 255, 0.1)',

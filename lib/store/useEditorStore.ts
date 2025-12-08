@@ -161,8 +161,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   uploadImage: (url: string) => {
     set({
       originalImage: url,
-      step: 'crop',
-      lastReachedStep: 'crop',
+      step: 'upload',
+      lastReachedStep: 'upload',
       croppedImage: null,
       processedImageUrl: null,
       diceGrid: null,

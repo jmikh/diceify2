@@ -1,81 +1,51 @@
-#!/usr/bin/env node
-/**
- * Generate PNG favicons from SVG for Google Search compatibility
- * This creates a simple dice favicon with proper sizes
- */
-
+const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-// Create a simple function to generate PNG data for a dice favicon
-function createDiceFaviconPNG(size) {
-  // We'll create a simple Canvas-based approach using a data URL
-  // Since we can't use external libraries, we'll create the PNG manually
+const source = path.join(__dirname, '../public/icon.svg');
+const publicDir = path.join(__dirname, '../public');
 
-  // For now, let's check if we have sharp installed
-  try {
-    const sharp = require('sharp');
-    return generateWithSharp(size);
-  } catch (e) {
-    console.log('Sharp not installed, trying alternative method...');
-    return null;
+const sizes = [
+  { name: 'favicon-16x16.png', size: 16 },
+  { name: 'favicon-32x32.png', size: 32 },
+  { name: 'favicon-48x48.png', size: 48 },
+  { name: 'favicon-64x64.png', size: 64 },
+  { name: 'favicon-96x96.png', size: 96 },
+  { name: 'apple-touch-icon.png', size: 180 },
+  { name: 'android-chrome-192x192.png', size: 192 },
+  { name: 'android-chrome-512x512.png', size: 512 }
+];
+
+async function generate() {
+  if (!fs.existsSync(source)) {
+    console.error('Source file not found:', source);
+    process.exit(1);
   }
-}
 
-async function generateWithSharp(size) {
-  const sharp = require('sharp');
+  console.log('Generating favicons from:', source);
 
-  // Read the SVG file
-  const svgBuffer = fs.readFileSync(path.join(__dirname, '../public/favicon.svg'));
-
-  // Convert SVG to PNG at the specified size
-  const pngBuffer = await sharp(svgBuffer)
-    .resize(size, size)
-    .png()
-    .toBuffer();
-
-  return pngBuffer;
-}
-
-async function generateFavicons() {
-  const sizes = [48, 96, 192, 32];
-
-  console.log('Generating PNG favicons...\n');
-
-  for (const size of sizes) {
-    try {
-      const pngData = await createDiceFaviconPNG(size);
-
-      if (pngData) {
-        const outputPath = path.join(__dirname, `../public/favicon-${size}x${size}.png`);
-        fs.writeFileSync(outputPath, pngData);
-        console.log(`✓ Generated favicon-${size}x${size}.png`);
-      }
-    } catch (error) {
-      console.error(`✗ Failed to generate ${size}x${size}: ${error.message}`);
-    }
+  for (const item of sizes) {
+    const dest = path.join(publicDir, item.name);
+    await sharp(source)
+      .resize(item.size, item.size)
+      .toFile(dest);
+    console.log(`Generated ${item.name}`);
   }
+
+  // Handle favicon.ico (copy 32x32 as .ico - not perfect but functional for simple replacement)
+  // Note: A true .ico container is complex, but modern browsers often handle png-in-ico 
+  // or we just rely on the png links in layout.tsx.
+  // However, to ensure the file exists and has the right visual:
+  // We'll generate a 32x32 png buffer and write it to favicon.ico
+  const icoDest = path.join(publicDir, 'favicon.ico');
+  await sharp(source)
+    .resize(32, 32)
+    .png() // Ensure it is png format
+    .toFile(icoDest);
+  console.log('Generated favicon.ico (as 32x32 png)');
 }
 
-// Check if sharp is available
-try {
-  require('sharp');
-  generateFavicons().then(() => {
-    console.log('\n✅ Favicons generated successfully!');
-    console.log('\nNext steps:');
-    console.log('1. Update layout.tsx to reference the new PNG files');
-    console.log('2. Deploy your changes');
-    console.log('3. Request re-indexing in Google Search Console');
-    console.log('4. Wait 1-3 weeks for Google to update');
-  }).catch(console.error);
-} catch (e) {
-  console.log('Sharp library not found. Installing...');
-  const { execSync } = require('child_process');
-  try {
-    execSync('npm install sharp', { stdio: 'inherit' });
-    console.log('Sharp installed. Please run this script again.');
-  } catch (installError) {
-    console.error('Failed to install sharp:', installError.message);
-    console.log('\nPlease install sharp manually: npm install sharp');
-  }
-}
+generate().catch(err => {
+  console.error('Error generating favicons:', err);
+  process.exit(1);
+});

@@ -57,7 +57,7 @@ export const theme = {
       pink: 'rgba(236, 72, 153, 0.2)', // Use with theme.colors.tertiary
       green: 'rgba(34, 197, 94, 0.2)',
     },
-    
+
     // Dice stepper specific
     dice: {
       inactive: 'rgba(20, 20, 35, 0.8)',
@@ -66,10 +66,10 @@ export const theme = {
       previous: 'rgba(40, 50, 80, 0.6)',
       previousBorder: 'rgba(100, 150, 255, 0.5)',
       previousGlow: 'rgba(100, 150, 255, 0.2)',
-      highlightColor: '#6495ff', // Primary blue for selected dice highlight in build viewer
+      highlightColor: '#ec4899', // Primary pink for selected dice highlight in build viewer
     }
   },
-  
+
   // Border radius values
   radius: {
     sm: '0.5rem',
@@ -79,7 +79,7 @@ export const theme = {
     '2xl': '2rem',
     full: '9999px',
   },
-  
+
   // Blur values
   blur: {
     sm: '8px',

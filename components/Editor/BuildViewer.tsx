@@ -581,7 +581,7 @@ const BuildViewer = memo(function BuildViewer({
                     y={totalRows - 1 - currentY + 0.02}
                     width={groupWidth - 0.04}
                     height={1 - 0.04}
-                    fill={theme.colors.accent.pink}
+                    fill={theme.colors.accent.blue}
                     fillOpacity="0.1"
                     stroke={theme.colors.accent.purple}
                     strokeWidth="0.06"
@@ -601,14 +601,14 @@ const BuildViewer = memo(function BuildViewer({
                 y={totalRows - 1 - currentY + 0.02}
                 width={0.96}
                 height={0.96}
-                fill={theme.colors.accent.blue}
+                fill={theme.colors.accent.pink}
                 fillOpacity="0.2"
-                stroke={theme.colors.dice.highlightColor}
+                stroke={theme.colors.dice.highlightColor} // This might need check, but it is typically blue/primary. Let's leave it or change it? lib/theme says highlightColor: '#6495ff'. I should probably update that in lib/theme.ts later.
                 strokeWidth="0.06"
                 rx="0.1"
                 style={{
                   transition: 'x 0.5s cubic-bezier(0.4, 0, 0.2, 1), y 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                  filter: 'drop-shadow(0 0 2px rgba(100, 149, 255, 0.8))',
+                  filter: 'drop-shadow(0 0 2px rgba(236, 72, 153, 0.8))',
                   willChange: 'x, y'
                 }}
               />
@@ -719,9 +719,9 @@ const BuildViewer = memo(function BuildViewer({
                           cx="0"
                           cy="0"
                           r="0.22"
-                          fill={theme.colors.accent.blue}
+                          fill={theme.colors.accent.pink}
                           fillOpacity="0.9"
-                          stroke={theme.colors.accent.blue}
+                          stroke={theme.colors.accent.pink}
                           strokeWidth="0.04"
                           strokeOpacity="1"
                         />
@@ -731,7 +731,7 @@ const BuildViewer = memo(function BuildViewer({
                           y1={stickY1Blue}
                           x2="0"
                           y2={stickY2}
-                          stroke={theme.colors.accent.blue}
+                          stroke={theme.colors.accent.pink}
                           strokeWidth="0.1"
                           strokeOpacity="1"
                         />
@@ -775,7 +775,7 @@ const BuildViewer = memo(function BuildViewer({
                 border: '1px solid rgba(255, 255, 255, 0.2)'
               }}>
               <div className="text-green-400">FPS: {fps}</div>
-              <div className="text-blue-400">Position: ({currentX}, {currentY})</div>
+              <div className="text-pink-400">Position: ({currentX}, {currentY})</div>
               <div className="text-yellow-400">Zoom: {zoomLevel}</div>
               <div className="text-purple-400">ViewBox: {viewBoxRef.current.split(' ').map(n => parseFloat(n).toFixed(1)).join(' ')}</div>
               <div className="text-gray-400 mt-2">Press 'D' to toggle</div>

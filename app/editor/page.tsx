@@ -1,35 +1,3 @@
-/**
- * Editor Page Component
- *
- * Main orchestrator for the dice art creation workflow.
- * This is the top-level page component that manages the entire application state
- * and coordinates between different workflow steps.
- *
- * Workflow Steps:
- * 1. Upload: User selects/drops an image file
- * 2. Crop: Image cropping and zooming interface
- * 3. Tune: Convert image to dice with parameter controls
- * 4. Build: Interactive viewer to navigate through dice one-by-one
- * 5. Export: Download the final artwork (future)
- * 6. Share: Share creations with others (future)
- * 
- * State Management:
- * - Maintains all shared state (image, parameters, dice grid)
- * - Passes data and callbacks down to child components
- * - Controls workflow progression and step visibility
- * 
- * Key Types:
- * - WorkflowStep: Current step in the process
- * - DiceParams: Configuration for dice generation
- * - ColorMode: Black & White, Black Only, or White Only
- * - DiceStats: Statistics about the generated dice
- * - DiceGrid: The actual 2D array of dice data
- * 
- * This follows a typical React pattern where the page component
- * acts as the "smart" container and child components are mostly
- * "dumb" presentational components that receive props.
- */
-
 'use client'
 
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
@@ -56,11 +24,46 @@ import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
 import { devLog, devError } from '@/lib/utils/debug'
 
 import { useEditorStore } from '@/lib/store/useEditorStore'
+import { useProjectManager } from './hooks/useProjectManager'
+import { usePersistence } from './hooks/usePersistence'
+import { useWorkflow } from './hooks/useWorkflow'
 
 function EditorContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // Custom Hooks
+  const {
+    userProjects,
+    fetchUserProjects,
+    createProject,
+    createProjectFromCurrent,
+    deleteProject,
+    loadProject,
+    updateURLWithProject,
+    handleResetWorkflow,
+    loadingProjectRef,
+    lastGridHash,
+    setLastGridHash,
+    generateGridHash
+  } = useProjectManager()
+
+  const {
+    saveProgressOnly,
+    saveUploadStep
+  } = usePersistence()
+
+  const {
+    handleStepNavigation,
+    handleContinueToStep,
+    handleStayInBuild,
+    handleStepperClick,
+    showBuildProgressDialog,
+    attemptedStep,
+    setHasCropChanged,
+    setHasTuneChanged
+  } = useWorkflow()
 
   // Store state
   const step = useEditorStore(state => state.step)
@@ -103,20 +106,13 @@ function EditorContent() {
   const setProjectName = useEditorStore(state => state.setProjectName)
   const setCurrentProjectId = useEditorStore(state => state.setCurrentProjectId)
   const setLastSaved = useEditorStore(state => state.setLastSaved)
-  const setIsSaving = useEditorStore(state => state.setIsSaving)
   const setIsInitializing = useEditorStore(state => state.setIsInitializing)
   const setBuildProgress = useEditorStore(state => state.setBuildProgress)
-  const resetWorkflow = useEditorStore(state => state.resetWorkflow)
-  const uploadImage = useEditorStore(state => state.uploadImage)
-  const completeCrop = useEditorStore(state => state.completeCrop)
 
   // Local UI state
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showProjectsSubmenu, setShowProjectsSubmenu] = useState(false)
   const [isRestoringOAuthState, setIsRestoringOAuthState] = useState(false)
-  const [userProjects, setUserProjects] = useState<any[]>([])
-  const [hasCropChanged, setHasCropChanged] = useState(false)
-  const [hasTuneChanged, setHasTuneChanged] = useState(false)
   const lastDiceIndexRef = useRef(0)
 
   // Memoize frame dimensions to prevent re-renders
@@ -127,15 +123,6 @@ function EditorContent() {
   const frameHeight = useMemo(() => {
     return diceGrid ? (diceGrid.height * dieSize) / 10 : undefined
   }, [diceGrid?.height, dieSize])
-
-  const [lastGridHash, setLastGridHash] = useState<string>('')
-
-  // Compute if we should warn when exiting build step (only true if not at starting position)
-  const shouldWarnOnExit = step === 'build' && (buildProgress.x !== 0 || buildProgress.y !== 0)
-
-  // Navigation confirmation dialog
-  const [showBuildProgressDialog, setShowBuildProgressDialog] = useState(false)
-  const [attemptedStep, setAttemptedStep] = useState<WorkflowStep | null>(null)
 
   // Build navigation handlers
   const [buildNavigation, setBuildNavigation] = useState<{
@@ -156,9 +143,6 @@ function EditorContent() {
   // Keep latest buildProgress in a ref to avoid stale closures
   const buildProgressRef = useRef(buildProgress)
   buildProgressRef.current = buildProgress
-
-  // Track when we're loading a project to prevent resetting build progress
-  const loadingProjectRef = useRef(false)
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -191,9 +175,15 @@ function EditorContent() {
       whiteCount: 0,
       totalCount: 0,
     })
-    // When uploading image, we move to crop and that becomes our lastReachedStep
-    setStep('crop')
-    setLastReachedStep('crop')
+    setDiceStats({
+      blackCount: 0,
+      whiteCount: 0,
+      totalCount: 0,
+    })
+    // When uploading image, we stay in upload step (which now includes crop)
+    // We don't change step, but we might want to ensure we're on upload if not already
+    setStep('upload')
+    setLastReachedStep('upload')
 
     // Save the uploaded image if we have a project
     // Upload is saved immediately when image is uploaded
@@ -202,8 +192,6 @@ function EditorContent() {
       saveUploadStep(imageUrl)
     }
   }
-
-  // navigateToStep moved below save functions to fix dependency issue
 
   // Helper function to compare crop parameters
   const areCropParamsEqual = (params1: typeof cropParams, params2: typeof cropParams): boolean => {
@@ -217,13 +205,6 @@ function EditorContent() {
       Math.abs(params1.height - params2.height) < tolerance &&
       Math.abs(params1.rotation - params2.rotation) < tolerance
   }
-
-  const handleResetWorkflow = useCallback(() => {
-    resetWorkflow()
-    // Clear localStorage when resetting
-    localStorage.removeItem('editorState')
-    devLog('[LOCAL STORAGE] Cleared - workflow reset')
-  }, [resetWorkflow])
 
   const handleCropComplete = useCallback((croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => {
     // Check if crop parameters actually changed
@@ -255,20 +236,6 @@ function EditorContent() {
     // Store the generated cropped image
     setCroppedImage(croppedImageUrl)
   }, [cropParams, lastReachedStep, buildProgress, setCropParams, setCroppedImage, setHasCropChanged, setLastReachedStep, setBuildProgress])
-
-  // Generate hash from grid parameters to detect changes
-  const generateGridHash = (params: DiceParams): string => {
-    return JSON.stringify({
-      numRows: params.numRows,
-      colorMode: params.colorMode,
-      contrast: params.contrast,
-      gamma: params.gamma,
-      edgeSharpening: params.edgeSharpening,
-      rotate6: params.rotate6,
-      rotate3: params.rotate3,
-      rotate2: params.rotate2,
-    })
-  }
 
   const handleParamChange = (params: Partial<DiceParams>) => {
     setDiceParams(params) // Store handles merging
@@ -327,678 +294,6 @@ function EditorContent() {
   const lastUpdateTimeRef = useRef(0)
   const pendingUpdateRef = useRef<{ x: number; y: number } | null>(null)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-
-  // Continue to the attempted step (progress will be reset when params change)
-  const handleContinueToStep = () => {
-    setShowBuildProgressDialog(false)
-    if (attemptedStep) {
-      setStep(attemptedStep)
-      setAttemptedStep(null)
-    }
-  }
-
-  // Cancel navigation and stay in build
-  const handleStayInBuild = () => {
-    setShowBuildProgressDialog(false)
-    setAttemptedStep(null)
-  }
-
-  // Handle stepper click navigation - simplified: allow clicking any step if image is uploaded
-
-  // Update URL with project ID
-  const updateURLWithProject = useCallback((projectId: string | null) => {
-    const params = new URLSearchParams(window.location.search)
-    if (projectId) {
-      params.set('project', projectId)
-    } else {
-      params.delete('project')
-    }
-    const newUrl = params.toString() ? `/editor?${params.toString()}` : '/editor'
-    router.push(newUrl, { scroll: false })
-  }, [router])
-
-  // Fetch user projects
-  const fetchUserProjects = useCallback(async () => {
-    if (!session?.user?.id) return
-
-    devLog('[CLIENT] fetchUserProjects called - stack trace:', new Error().stack?.split('\n').slice(1, 4).join('\n'))
-    devLog(`[DB] Fetching all projects for user`)
-    try {
-      const response = await fetch('/api/projects')
-      if (response.ok) {
-        const projects = await response.json()
-        devLog('[DEBUG] Projects fetched from API:', projects.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          currentX: p.currentX,
-          currentY: p.currentY,
-          percentComplete: p.percentComplete
-        })))
-        setUserProjects(projects)
-        return projects
-      }
-    } catch (error) {
-      devError('Failed to fetch projects:', error)
-    } finally {
-      // Loading state removed
-    }
-    return []
-  }, [session])
-
-  // Create a new project
-  const createProject = useCallback(async () => {
-    if (!session?.user?.id) return
-
-    // Reset all states for new project
-    handleResetWorkflow()
-
-    // Generate random 3 characters for default name
-    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
-    const defaultName = `Untitled Project ${randomChars}`
-
-    // Saving automatically
-    devLog(`[DB] Creating new empty project`)
-    try {
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: defaultName,
-          lastReachedStep: 'upload',
-          originalImage: null,
-          croppedImage: null,
-          numRows: 50,
-          colorMode: 'both',
-          contrast: 0,
-          gamma: 1.0,
-          edgeSharpening: 0,
-          rotate2: false,
-          rotate3: false,
-          rotate6: false,
-          dieSize: 16,
-          costPer1000: 60,
-          gridData: null,
-          totalDice: 0,
-          completedDice: 0,
-          currentX: 0,
-          currentY: 0,
-          percentComplete: 0
-        })
-      })
-
-      if (response.ok) {
-        const project = await response.json()
-        setCurrentProjectId(project.id)
-        setProjectName(project.name)
-        updateURLWithProject(project.id)
-        setLastSaved(new Date())  // New project just created
-        // Save completed
-        setShowProjectModal(false)
-        await fetchUserProjects()
-        // Navigate to upload step for new project
-        setStep('upload')
-      } else if (response.status === 403) {
-        const data = await response.json()
-        alert(data.error || 'Project limit reached. Maximum 3 projects allowed.')
-      } else {
-        devError('Failed to create project')
-      }
-    } catch (error) {
-      devError('Failed to create project:', error)
-    } finally {
-      // Save operation finished
-    }
-  }, [session, handleResetWorkflow, fetchUserProjects, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal, setStep])
-
-  // Create project from current state
-  const createProjectFromCurrent = useCallback(async () => {
-    if (!session?.user?.id) return
-
-    // Generate random 3 characters for default name
-    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
-    const defaultName = `Untitled Project ${randomChars}`
-
-    // Saving automatically
-    devLog(`[DB] Creating new project with current state`)
-    devLog('[DB] Current state when creating project:')
-    devLog('  - originalImage:', originalImage ? `${originalImage.substring(0, 50)}...` : 'null')
-    devLog('  - croppedImage:', croppedImage ? `${croppedImage.substring(0, 50)}...` : 'null')
-    devLog('  - processedImageUrl:', processedImageUrl ? `${processedImageUrl.substring(0, 50)}...` : 'null')
-    devLog('  - lastReachedStep:', lastReachedStep)
-    devLog('  - diceParams:', diceParams)
-    devLog('  - diceStats:', diceStats)
-
-    try {
-      const payload = {
-        name: defaultName,
-        lastReachedStep,
-        originalImage,
-        croppedImage,
-        numRows: diceParams.numRows,
-        colorMode: diceParams.colorMode,
-        contrast: diceParams.contrast,
-        gamma: diceParams.gamma,
-        edgeSharpening: diceParams.edgeSharpening,
-        rotate2: diceParams.rotate2,
-        rotate3: diceParams.rotate3,
-        rotate6: diceParams.rotate6,
-        dieSize,
-        costPer1000,
-        gridWidth: diceGrid?.width || null,
-        gridHeight: diceGrid?.height || null,
-        totalDice: diceStats.totalCount,
-        completedDice: 0,
-        currentX: buildProgress.x,
-        currentY: buildProgress.y,
-        percentComplete: buildProgress.percentage,
-        cropX: cropParams?.x || null,
-        cropY: cropParams?.y || null,
-        cropWidth: cropParams?.width || null,
-        cropHeight: cropParams?.height || null,
-        cropRotation: cropParams?.rotation || 0
-      }
-
-      devLog('[DB] Payload being sent to API:')
-      devLog('  - originalImage in payload:', payload.originalImage ? `${payload.originalImage.substring(0, 50)}...` : 'null')
-      devLog('  - croppedImage in payload:', payload.croppedImage ? `${payload.croppedImage.substring(0, 50)}...` : 'null')
-
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-
-      if (response.ok) {
-        const project = await response.json()
-        setCurrentProjectId(project.id)
-        setProjectName(project.name)
-        updateURLWithProject(project.id)
-        setLastSaved(new Date())  // New project just created from current state
-        // Save completed
-        setShowProjectModal(false)
-        await fetchUserProjects()
-      } else if (response.status === 403) {
-        const data = await response.json()
-        alert(data.error || 'Project limit reached. Maximum 3 projects allowed.')
-      }
-    } catch (error) {
-      devError('Failed to create project:', error)
-    } finally {
-      // Save operation finished
-    }
-  }, [session, step, lastReachedStep, originalImage, croppedImage, diceParams, dieSize, costPer1000, diceGrid, diceStats, buildProgress, fetchUserProjects, cropParams, processedImageUrl, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal])
-
-  // Delete project
-  const deleteProject = useCallback(async (projectId: string) => {
-    if (!session?.user?.id) return
-
-    devLog(`[DB] Deleting project ${projectId}`)
-    try {
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        await fetchUserProjects()
-        if (projectId === currentProjectId) {
-          // Reset if we deleted the current project
-          handleResetWorkflow()
-          setCurrentProjectId(null)
-          setProjectName(`Untitled Project ${Math.random().toString(36).substring(2, 5).toUpperCase()}`)
-          updateURLWithProject(null)
-        }
-
-        // Check if we're in capacity modal and have work to save
-        if (showProjectModal) {
-          devLog('[DEBUG] Project deleted from capacity modal - checking if we need to save restored state')
-          setShowProjectModal(false)
-
-          // Check if user has work in progress that needs to be saved
-          const hasWorkInProgress = originalImage || processedImageUrl
-          if (hasWorkInProgress) {
-            devLog('[DEBUG] User has work in progress after deletion - auto-creating project')
-            // Now that we have space, auto-create project from current state
-            await createProjectFromCurrent()
-            // Clear localStorage after creating project from local state
-            localStorage.removeItem('editorState')
-            devLog('[LOCAL STORAGE] Cleared after creating project from deletion modal')
-          } else {
-            devLog('[DEBUG] No work in progress - creating fresh project')
-            // No work in progress, create fresh project
-            createProject()
-            // Clear localStorage after creating fresh project
-            localStorage.removeItem('editorState')
-            devLog('[LOCAL STORAGE] Cleared after creating fresh project from deletion modal')
-          }
-        }
-      }
-    } catch (error) {
-      devError('Failed to delete project:', error)
-    }
-  }, [session, currentProjectId, fetchUserProjects, handleResetWorkflow, showProjectModal, originalImage, processedImageUrl, createProjectFromCurrent, createProject, setCurrentProjectId, setProjectName, updateURLWithProject, setShowProjectModal])
-
-  // Save only progress fields (for build step)
-  const saveProgressOnly = useCallback(async () => {
-    if (!session?.user?.id || !currentProjectId) return
-
-    setIsSaving(true)
-    // Use ref to get the latest values, avoiding stale closure
-    const currentProgress = buildProgressRef.current
-    devLog(`[PROGRESS] About to save progress for project ${currentProjectId}`)
-    devLog(`[PROGRESS] Current buildProgress from ref - x: ${currentProgress.x}, y: ${currentProgress.y}, percentage: ${currentProgress.percentage}`)
-    devLog(`[PROGRESS] Total dice count: ${diceStats.totalCount}`)
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}/progress`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentX: currentProgress.x,
-          currentY: currentProgress.y,
-          completedDice: Math.floor((currentProgress.percentage / 100) * diceStats.totalCount),
-          lastReachedStep: 'build'
-        })
-      })
-
-      if (response.ok) {
-        devLog('Progress saved successfully')
-        setLastSaved(new Date())
-        // Update local lastReachedStep to build if it wasn't already
-        if (lastReachedStep !== 'build') {
-          setLastReachedStep('build')
-        }
-        // Clear localStorage since data is saved to database
-        localStorage.removeItem('editorState')
-        devLog('[LOCAL STORAGE] Cleared - progress saved to database')
-      }
-    } catch (error) {
-      devError('Failed to save progress:', error)
-    } finally {
-      setIsSaving(false)
-    }
-  }, [session, currentProjectId, buildProgress, diceStats.totalCount, lastReachedStep, setIsSaving, setLastSaved, setLastReachedStep])
-
-  // Save upload step data
-  const saveUploadStep = useCallback(async (imageToSave?: string) => {
-    if (!session?.user?.id || !currentProjectId) return
-
-    // Use provided image or fall back to originalImage state
-    const image = imageToSave || originalImage
-    devLog(`[UPLOAD] Saving upload data for project ${currentProjectId}, hasImage=${!!image}`)
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}/upload`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          originalImage: image,
-          lastReachedStep
-        })
-      })
-
-      if (response.ok) {
-        devLog('Upload data saved successfully')
-        setLastSaved(new Date())
-        // Clear localStorage since data is saved to database
-        localStorage.removeItem('editorState')
-        devLog('[LOCAL STORAGE] Cleared - upload saved to database')
-      }
-    } catch (error) {
-      devError('Failed to save upload data:', error)
-    }
-  }, [session, currentProjectId, originalImage, step, lastReachedStep, setLastSaved])
-
-  // Save crop step data
-  const saveCropStep = useCallback(async () => {
-    if (!session?.user?.id || !currentProjectId || !cropParams) return
-
-    devLog(`[CROP] Saving crop parameters for project ${currentProjectId}`)
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}/crop`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cropX: cropParams.x,
-          cropY: cropParams.y,
-          cropWidth: cropParams.width,
-          cropHeight: cropParams.height,
-          cropRotation: cropParams.rotation,
-          lastReachedStep
-        })
-      })
-
-      if (response.ok) {
-        devLog('Crop data saved successfully')
-        setLastSaved(new Date())
-        // Clear localStorage since data is saved to database
-        localStorage.removeItem('editorState')
-        devLog('[LOCAL STORAGE] Cleared - crop saved to database')
-      }
-    } catch (error) {
-      devError('Failed to save crop data:', error)
-    }
-  }, [session, currentProjectId, croppedImage, lastReachedStep, cropParams, setLastSaved])
-
-  // Save tune step parameters
-  const saveTuneStep = useCallback(async () => {
-    if (!session?.user?.id || !currentProjectId) return
-
-    devLog(`[TUNE] Saving tune parameters for project ${currentProjectId} - called from:`, new Error().stack?.split('\n').slice(1, 3).join('\n'))
-    // Saving automatically
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}/tune`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          numRows: diceParams.numRows,
-          colorMode: diceParams.colorMode,
-          contrast: diceParams.contrast,
-          gamma: diceParams.gamma,
-          edgeSharpening: diceParams.edgeSharpening,
-          rotate2: diceParams.rotate2,
-          rotate3: diceParams.rotate3,
-          rotate6: diceParams.rotate6,
-          dieSize,
-          costPer1000,
-          gridWidth: diceGrid?.width || null,
-          gridHeight: diceGrid?.height || null,
-          totalDice: diceStats.totalCount,
-          // Always set to 'build' when saving tune params
-          lastReachedStep: 'build'
-        })
-      })
-
-      if (response.ok) {
-        devLog('Tune parameters saved successfully')
-        setLastSaved(new Date())
-        // Clear localStorage since data is saved to database
-        localStorage.removeItem('editorState')
-        devLog('[LOCAL STORAGE] Cleared - tune saved to database')
-      }
-    } catch (error) {
-      devError('Failed to save tune parameters:', error)
-    } finally {
-      // Save operation finished
-    }
-  }, [session, currentProjectId, diceParams, dieSize, costPer1000, diceGrid, diceStats, step, lastReachedStep, setLastSaved])
-
-  // Helper function to navigate to a step
-  const navigateToStep = useCallback(async (newStep: WorkflowStep) => {
-    devLog(`[CLIENT] navigateToStep called: ${step} -> ${newStep}`)
-    const steps: WorkflowStep[] = ['upload', 'crop', 'tune', 'build']
-    const newIndex = steps.indexOf(newStep)
-    const lastReachedIndex = steps.indexOf(lastReachedStep)
-
-    // Allow navigation to any previous step or the next step after lastReachedStep
-    if (newIndex <= lastReachedIndex + 1) {
-      // Save on specific transitions as requested:
-      // 1. Moving from crop to tune: save crop parameters only if they changed
-      if (step === 'crop' && newStep === 'tune' && cropParams && hasCropChanged) {
-        devLog('[CLIENT] Moving from crop to tune, saving crop parameters')
-        if (currentProjectId && session?.user?.id) {
-          await saveCropStep()
-          setHasCropChanged(false) // Reset flag after saving
-        }
-      } else if (step === 'crop' && newStep === 'tune' && !hasCropChanged) {
-        devLog('[CLIENT] Moving from crop to tune, no changes to save')
-      }
-
-      // 2. Moving from tune to build: save tune parameters only if they changed
-      if (step === 'tune' && newStep === 'build' && hasTuneChanged) {
-        devLog('[CLIENT] Moving from tune to build, saving tune parameters')
-        if (currentProjectId && session?.user?.id) {
-          await saveTuneStep()
-          setHasTuneChanged(false) // Reset flag after saving
-        }
-      } else if (step === 'tune' && newStep === 'build' && !hasTuneChanged) {
-        devLog('[CLIENT] Moving from tune to build, no changes to save')
-      }
-
-      // 3. LEAVING build step: save progress if we have any
-      if (step === 'build' && newStep !== 'build' && currentProjectId && session?.user?.id) {
-        const currentProgress = buildProgressRef.current
-        if (currentProgress.x > 0 || currentProgress.y > 0) {
-          devLog('[CLIENT] Leaving build step, saving progress')
-          await saveProgressOnly()
-        }
-      }
-
-      setStep(newStep)
-      // Navigation complete
-
-      // Reset change flags when entering new steps
-      if (newStep === 'crop') {
-        setHasCropChanged(false)
-      } else if (newStep === 'tune') {
-        setHasTuneChanged(false)
-      }
-
-      // Update lastReachedStep if we're moving forward
-      if (newIndex > lastReachedIndex) {
-        setLastReachedStep(newStep)
-      }
-    }
-  }, [step, lastReachedStep, cropParams, currentProjectId, session, saveCropStep, saveTuneStep, saveProgressOnly, hasCropChanged, hasTuneChanged, setStep, setHasCropChanged, setHasTuneChanged, setLastReachedStep])
-
-
-  // Handle navigation with build progress check
-  const handleStepNavigation = useCallback((newStep: WorkflowStep) => {
-    devLog(`[CLIENT] handleStepNavigation called: ${newStep}`)
-    // Check if trying to enter build step without auth
-    if (newStep === 'build' && status !== 'authenticated') {
-      // Store that user wanted to go to build after login
-      sessionStorage.setItem('intendedStepAfterLogin', 'build')
-      // Allow navigation to build step - user can explore up to x=3
-      setStep('build')
-      setLastReachedStep('build')
-      // Auth modal will show when they try to go beyond x=3
-      return
-    }
-
-    // Check if leaving build step with progress
-    if (shouldWarnOnExit && newStep !== 'build') {
-      setAttemptedStep(newStep)
-      setShowBuildProgressDialog(true)
-    } else {
-      // Use navigateToStep for consistent navigation logic
-      navigateToStep(newStep)
-    }
-  }, [shouldWarnOnExit, status, navigateToStep, setStep, setLastReachedStep])
-
-  // Save project metadata (name)
-
-  // Load a project
-  const loadProject = useCallback(async (project: any) => {
-    devLog('[CLIENT] Loading project:', project.name, 'step:', project.lastReachedStep)
-    devLog('[DEBUG] Project data received:', {
-      id: project.id,
-      currentX: project.currentX,
-      currentY: project.currentY,
-      percentComplete: project.percentComplete,
-      totalDice: project.totalDice,
-      completedDice: project.completedDice
-    })
-
-    // Set loading flag to prevent build progress reset
-    loadingProjectRef.current = true
-
-    // Don't save progress when loading a new project - it causes contamination issues
-
-    // If project doesn't have image data but needs it, fetch full project
-    if (!project.croppedImage && !project.originalImage && project.lastReachedStep !== 'upload') {
-      devLog(`[DB] Fetching full project data for ${project.id}`)
-      try {
-        const response = await fetch(`/api/projects/${project.id}`)
-        if (response.ok) {
-          const fullProject = await response.json()
-          devLog('Fetched full project with image data')
-          devLog('[DEBUG] Full project data:', {
-            id: fullProject.id,
-            currentX: fullProject.currentX,
-            currentY: fullProject.currentY,
-            percentComplete: fullProject.percentComplete
-          })
-          project = fullProject // Just use the full project data - it has everything
-        }
-      } catch (error) {
-        devError('Failed to fetch full project:', error)
-      }
-    }
-
-    // Clear all existing state first
-    setOriginalImage(null)
-    setCroppedImage(null)
-    setCropParams(null)
-    setProcessedImageUrl(null)
-    setDiceGrid(null)
-    setDiceStats({
-      blackCount: 0,
-      whiteCount: 0,
-      totalCount: 0,
-    })
-    // Don't reset build progress here - we'll set it to the correct values below
-
-    // Set project info
-    devLog('[DEBUG] About to set currentProjectId from', currentProjectId, 'to', project.id)
-    setCurrentProjectId(project.id)
-    setProjectName(project.name)
-    updateURLWithProject(project.id)
-
-    // Set last saved date from project's updatedAt
-    if (project.updatedAt) {
-      setLastSaved(new Date(project.updatedAt))
-    }
-
-    // Load images
-    if (project.originalImage) {
-      devLog('Setting original image')
-      setOriginalImage(project.originalImage)
-    }
-
-    // Load crop parameters and regenerate cropped image if needed
-    if (project.cropX !== null && project.cropY !== null && project.cropWidth && project.cropHeight) {
-      const params = {
-        x: project.cropX,
-        y: project.cropY,
-        width: project.cropWidth,
-        height: project.cropHeight,
-        rotation: project.cropRotation || 0
-      }
-      setCropParams(params)
-      devLog('Loaded crop parameters:', params)
-
-      // If we have the original image and crop params, regenerate the cropped image
-      if (project.originalImage) {
-        // Create a canvas to generate the cropped image
-        const img = new Image()
-        img.onload = () => {
-          const canvas = document.createElement('canvas')
-          canvas.width = params.width
-          canvas.height = params.height
-          const ctx = canvas.getContext('2d')
-          if (ctx) {
-            // Don't apply rotation here - the coordinates already account for it
-            // Draw the cropped portion
-            ctx.drawImage(img, params.x, params.y, params.width, params.height, 0, 0, params.width, params.height)
-            const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.95)
-            devLog('Regenerated cropped image from parameters')
-            setCroppedImage(croppedDataUrl)
-          }
-        }
-        img.src = project.originalImage
-      }
-    } else if (project.croppedImage) {
-      // Fallback to old cropped image if no crop params
-      devLog('Setting cropped image (legacy)')
-      setCroppedImage(project.croppedImage)
-      // If we have a cropped image and are loading into build state,
-      // use the cropped image as the processed image so the build view has something to display
-      if (project.currentStep === 'build') {
-        devLog('Setting processed image for build state')
-        setProcessedImageUrl(project.croppedImage)
-      }
-    }
-
-    // Load parameters
-    devLog('[CLIENT] Setting dice params from project')
-    const newDiceParams = {
-      numRows: project.numRows || 30,
-      colorMode: project.colorMode || 'both',
-      contrast: project.contrast || 0,
-      gamma: project.gamma || 1.0,
-      edgeSharpening: project.edgeSharpening || 0,
-      rotate2: project.rotate2 || false,
-      rotate3: project.rotate3 || false,
-      rotate6: project.rotate6 || false
-    }
-    setDiceParams(newDiceParams)
-
-    // Set the grid hash to prevent reset when grid is generated
-    const newHash = generateGridHash(newDiceParams)
-    setLastGridHash(newHash)
-    devLog('[DEBUG] Set initial grid hash during project load:', newHash)
-
-    // Load die size and cost
-    setDieSize(project.dieSize || 16)
-    setCostPer1000(project.costPer1000 || 60)
-
-    // Grid will be generated from parameters when needed
-    // Load saved stats if available
-    if (project.totalDice) {
-      setDiceStats({
-        blackCount: project.blackDice || 0,
-        whiteCount: project.whiteDice || 0,
-        totalCount: project.totalDice || 0
-      })
-    }
-
-    // Load build progress - do this AFTER setting project ID to avoid saving to wrong project
-    devLog('[CLIENT] Loading build progress from project:', {
-      currentX: project.currentX,
-      currentY: project.currentY,
-      percentComplete: project.percentComplete
-    })
-    const newProgress = {
-      x: project.currentX || 0,
-      y: project.currentY || 0,
-      percentage: project.percentComplete || 0
-    }
-    devLog('[DEBUG] Setting buildProgress to:', newProgress)
-    setBuildProgress(newProgress)
-
-    // Always load to lastReachedStep
-    if (project.lastReachedStep) {
-      devLog('[CLIENT] Setting step to lastReachedStep:', project.lastReachedStep)
-      setStep(project.lastReachedStep)
-      setLastReachedStep(project.lastReachedStep)
-    } else {
-      // Fallback to determining step from data
-      if (project.croppedImage) {
-        devLog('Navigating to tune step')
-        setStep('tune')
-        setLastReachedStep('tune')
-      } else if (project.originalImage) {
-        devLog('Navigating to crop step')
-        setStep('crop')
-        setLastReachedStep('crop')
-      } else {
-        devLog('Starting at upload step')
-        setStep('upload')
-        setLastReachedStep('upload')
-      }
-    }
-
-    // Clear loading flag after a short delay
-    setTimeout(() => {
-      loadingProjectRef.current = false
-      devLog('[DEBUG] Project loading complete - clearing loading flag')
-    }, 100)
-  }, [saveProgressOnly])
-
-  const handleStepperClick = useCallback((clickedStep: WorkflowStep) => {
-    devLog(`[CLIENT] handleStepperClick called: ${clickedStep}`)
-    // Use handleStepNavigation for all navigation to ensure auth checks
-    handleStepNavigation(clickedStep)
-  }, [handleStepNavigation])
 
   // Schedule auto-save for build progress
   const scheduleBuildAutoSave = useCallback(() => {
@@ -1500,8 +795,15 @@ function EditorContent() {
   // Show loading screen while initializing or session is loading
   if (isInitializing || status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="bg-gradient">
+          <div className="orb one"></div>
+          <div className="orb two"></div>
+          <div className="orb three"></div>
+        </div>
+        <div className="grid-overlay"></div>
+        <div className="text-center relative z-10">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mb-4"></div>
           <p className="text-white text-lg">Loading workspace...</p>
         </div>
@@ -1510,7 +812,14 @@ function EditorContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#000000' }}>
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="bg-gradient">
+        <div className="orb one"></div>
+        <div className="orb two"></div>
+        <div className="orb three"></div>
+      </div>
+      <div className="grid-overlay"></div>
 
       <header
         className="relative"
@@ -1559,7 +868,7 @@ function EditorContent() {
                         />
                       ) : null}
                       <div
-                        className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-semibold"
+                        className="w-full h-full bg-gradient-to-br from-pink-500 to-purple-600 items-center justify-center text-white font-semibold"
                         style={{ display: session.user?.image ? 'none' : 'flex' }}
                       >
                         {session.user?.name?.[0]?.toUpperCase() || session.user?.email?.[0]?.toUpperCase() || 'U'}
@@ -1568,7 +877,7 @@ function EditorContent() {
 
                     {/* Dropdown menu */}
                     {showUserMenu && (
-                      <div className="absolute top-full right-0 mt-2 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden z-50" style={{ minWidth: '250px' }}>
+                      <div className="absolute top-full right-0 mt-2 bg-[#0a0014]/90 backdrop-blur-xl rounded-lg shadow-2xl border border-white/10 overflow-hidden z-50" style={{ minWidth: '250px' }}>
                         <div className="px-4 py-3 border-b border-gray-700">
                           <div className="text-sm font-medium text-white">
                             {session.user?.name || 'User'}
@@ -1661,7 +970,7 @@ function EditorContent() {
                                         setShowUserMenu(false)
                                         setShowProjectsSubmenu(false)
                                       }}
-                                      className="w-full px-6 py-2 text-sm text-left text-blue-400 hover:text-blue-300 hover:bg-white/10 transition-colors flex items-center border-t border-gray-700"
+                                      className="w-full px-6 py-2 text-sm text-left text-pink-400 hover:text-pink-300 hover:bg-white/10 transition-colors flex items-center border-t border-gray-700"
                                     >
                                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1679,7 +988,7 @@ function EditorContent() {
                                       setShowUserMenu(false)
                                       setShowProjectsSubmenu(false)
                                     }}
-                                    className="text-sm text-blue-400 hover:text-blue-300"
+                                    className="text-sm text-pink-400 hover:text-pink-300"
                                   >
                                     Create your first project
                                   </button>
@@ -1712,7 +1021,7 @@ function EditorContent() {
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white bg-pink-600 hover:bg-pink-700 rounded-lg transition-colors"
                 >
                   Sign in
                 </button>
@@ -1732,9 +1041,8 @@ function EditorContent() {
                   // Just update the local state - ProjectSelector handles the API call
                   setProjectName(name)
                   // Update the local projects list to reflect the change
-                  setUserProjects(prev => prev.map(p =>
-                    p.id === currentProjectId ? { ...p, name: name } : p
-                  ))
+                  // Note: setUserProjects is not exposed from hook, but we can refetch
+                  fetchUserProjects()
                 }}
               />
             )}
@@ -1752,11 +1060,13 @@ function EditorContent() {
 
         {/* Step Content */}
         {step === 'upload' && (
-          <ImageUploader />
-        )}
-
-        {step === 'crop' && originalImage && (
-          <Cropper />
+          <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {!originalImage ? (
+              <ImageUploader />
+            ) : (
+              <Cropper />
+            )}
+          </div>
         )}
 
         {step === 'tune' && croppedImage && (
@@ -1771,7 +1081,7 @@ function EditorContent() {
                   backdropFilter: 'blur(10px)',
                   borderColor: `${theme.colors.accent.purple}33`,
                   boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                             0 0 60px rgba(59, 130, 246, 0.08),
+                             0 0 60px rgba(236, 72, 153, 0.08),
                              0 5px 20px rgba(0, 0, 0, 0.3)`
                 }}
               >
@@ -1786,7 +1096,7 @@ function EditorContent() {
                   backdropFilter: 'blur(10px)',
                   borderColor: `${theme.colors.accent.purple}33`,
                   boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                             0 0 60px rgba(59, 130, 246, 0.08),
+                             0 0 60px rgba(236, 72, 153, 0.08),
                              0 5px 20px rgba(0, 0, 0, 0.3)`
                 }}
               >
@@ -1799,8 +1109,8 @@ function EditorContent() {
             {/* Main content */}
             <div className="flex-1 min-w-0" style={{ maxWidth: '720px' }}>
               <DiceCanvas
-                maxWidth={720}
-                maxHeight={600}
+                maxWidth={900}
+                maxHeight={850}
               />
             </div>
           </div>
@@ -1820,7 +1130,7 @@ function EditorContent() {
                       backdropFilter: 'blur(10px)',
                       borderColor: `${theme.colors.accent.purple}33`,
                       boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                               0 0 60px rgba(59, 130, 246, 0.08),
+                               0 0 60px rgba(236, 72, 153, 0.08),
                                0 5px 20px rgba(0, 0, 0, 0.3)`
                     }}
                   >
@@ -1858,7 +1168,7 @@ function EditorContent() {
                     backdropFilter: 'blur(10px)',
                     borderColor: `${theme.colors.accent.purple}33`,
                     boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                             0 0 60px rgba(59, 130, 246, 0.08),
+                             0 0 60px rgba(236, 72, 153, 0.08),
                              0 5px 20px rgba(0, 0, 0, 0.3)`
                   }}
                 >
@@ -1914,9 +1224,9 @@ function EditorContent() {
         message="Changing the underlying image would reset progress. Do you want to Proceed?"
         progress={buildProgress.percentage}
         confirmText="Yes"
-        confirmButtonColor={theme.colors.accent.blue}
+        confirmButtonColor={theme.colors.accent.pink}
         cancelText="Back to Build"
-        cancelButtonColor={theme.colors.accent.pink}
+        cancelButtonColor={theme.colors.accent.blue}
         onConfirm={handleContinueToStep}
         onCancel={handleStayInBuild}
       />
@@ -1979,8 +1289,15 @@ function EditorContent() {
 export default function Editor() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#000000' }}>
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="bg-gradient">
+          <div className="orb one"></div>
+          <div className="orb two"></div>
+          <div className="orb three"></div>
+        </div>
+        <div className="grid-overlay"></div>
+        <div className="text-center relative z-10">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mb-4"></div>
           <p className="text-white text-lg">Loading workspace...</p>
         </div>

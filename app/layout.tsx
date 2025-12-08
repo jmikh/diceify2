@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Outfit, Syne } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import Providers from '@/components/Providers'
 
 const inter = Inter({ subsets: ['latin'] })
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit', display: 'swap' })
+const syne = Syne({ subsets: ['latin'], variable: '--font-syne', display: 'swap' })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://diceify.art'),
@@ -92,10 +94,7 @@ export const metadata: Metadata = {
         type: 'image/png',
         sizes: '192x192',
       },
-      {
-        url: '/favicon.svg',
-        type: 'image/svg+xml',
-      },
+
     ],
     apple: '/apple-touch-icon.png',
     shortcut: '/favicon.ico',
@@ -112,7 +111,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${outfit.variable} ${syne.variable}`}>
       <body className={inter.className}>
         <Providers>
           {children}

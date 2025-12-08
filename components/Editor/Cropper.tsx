@@ -1,24 +1,26 @@
 'use client'
 
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { FixedCropper, FixedCropperRef, ImageRestriction } from 'react-advanced-cropper'
+import { Cropper, CropperRef, ImageRestriction } from 'react-advanced-cropper'
 import 'react-advanced-cropper/dist/style.css'
 import 'react-advanced-cropper/dist/themes/corners.css'
 import styles from './Cropper.module.css'
 import { theme } from '@/lib/theme'
 import { overlayButtonStyles, getOverlayButtonStyle } from '@/lib/styles/overlay-buttons'
-import { RotateCw } from 'lucide-react'
+import { RotateCw, Upload, Image as ImageIcon, Proportions } from 'lucide-react'
 import { devLog, devError } from '@/lib/utils/debug'
 import { useEditorStore } from '@/lib/store/useEditorStore'
 
 interface CropperProps {
   containerWidth?: number
   containerHeight?: number
-  onCropperReady?: (cropper: FixedCropperRef) => void
+  onCropperReady?: (cropper: CropperRef) => void
   hideControls?: boolean
+  onBack?: () => void
+  onContinue?: () => void
 }
 
-type AspectRatio = '4:3' | '3:2' | '1:1' | '2:3' | '3:4'
+type AspectRatio = '1:1' | '3:4' | '4:3' | '2:3' | '16:9'
 
 interface AspectRatioOption {
   value: AspectRatio
@@ -31,38 +33,14 @@ interface AspectRatioOption {
 
 const aspectRatioOptions: AspectRatioOption[] = [
   {
-    value: '3:2',
-    label: '3:2',
-    ratio: 3 / 2,
-    width: 3,
-    height: 2,
-    icon: (
-      <svg className="w-6 h-4" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="1" y="1" width="34" height="22" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    value: '4:3',
-    label: '4:3',
-    ratio: 4 / 3,
-    width: 4,
-    height: 3,
-    icon: (
-      <svg className="w-5 h-4" viewBox="0 0 32 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="1" y="1" width="30" height="22" rx="1" />
-      </svg>
-    ),
-  },
-  {
     value: '1:1',
     label: '1:1',
     ratio: 1,
     width: 1,
     height: 1,
     icon: (
-      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="1" y="1" width="22" height="22" rx="1" />
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
       </svg>
     ),
   },
@@ -74,7 +52,19 @@ const aspectRatioOptions: AspectRatioOption[] = [
     height: 4,
     icon: (
       <svg className="w-4 h-5" viewBox="0 0 24 32" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="1" y="1" width="22" height="30" rx="1" />
+        <rect x="2" y="2" width="20" height="28" rx="2" />
+      </svg>
+    ),
+  },
+  {
+    value: '4:3',
+    label: '4:3',
+    ratio: 4 / 3,
+    width: 4,
+    height: 3,
+    icon: (
+      <svg className="w-5 h-4" viewBox="0 0 32 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="2" y="2" width="28" height="20" rx="2" />
       </svg>
     ),
   },
@@ -86,20 +76,32 @@ const aspectRatioOptions: AspectRatioOption[] = [
     height: 3,
     icon: (
       <svg className="w-4 h-6" viewBox="0 0 24 36" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="1" y="1" width="22" height="34" rx="1" />
+        <rect x="2" y="2" width="20" height="32" rx="2" />
+      </svg>
+    ),
+  },
+  {
+    value: '16:9',
+    label: '16:9',
+    ratio: 16 / 9,
+    width: 16,
+    height: 9,
+    icon: (
+      <svg className="w-6 h-4" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="2" y="4" width="32" height="16" rx="2" />
       </svg>
     ),
   },
 ]
 
-export default function Cropper({
-  containerWidth, containerHeight, onCropperReady, hideControls = false }: CropperProps) {
+export default function ImageCropper({
+  containerWidth, containerHeight, onCropperReady, hideControls = false, onBack, onContinue }: CropperProps) {
   const imageUrl = useEditorStore(state => state.originalImage)
   const initialCrop = useEditorStore(state => state.cropParams)
   const completeCrop = useEditorStore(state => state.completeCrop)
   const updateCrop = useEditorStore(state => state.updateCrop)
 
-  const fixedCropperRef = useRef<FixedCropperRef>(null)
+  const fixedCropperRef = useRef<CropperRef>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -120,11 +122,14 @@ export default function Cropper({
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Calculate responsive cropper size: max 720px, min 320px
+  // Calculate responsive cropper size taking sidebar into account
   const getResponsiveCropperSize = () => {
-    // Use 90% of window width for smaller screens, with padding
-    const availableWidth = windowWidth * 0.9
-    const cropperSize = Math.min(720, Math.max(320, availableWidth))
+    // Available width = Window width - Sidebar (320) - Gap (24) - Padding (32) - Scrollbar/Margin (~24)
+    const sidebarWidth = 320 + 24 + 32 + 24
+    const availableWidth = windowWidth - sidebarWidth
+
+    // Max width increased to 1400px to fill screen, min 320
+    const cropperSize = Math.min(1400, Math.max(320, availableWidth))
     return cropperSize
   }
 
@@ -158,34 +163,12 @@ export default function Cropper({
     }
   }, [selectedRatio, selectedOption])
 
-  // Calculate stencil size to maintain 3% padding from top and bottom
-  const defaultContainerHeight = responsiveCropperSize * 0.714  // Maintain aspect ratio (~500/700)
+  // Calculate stencil size
+  const defaultContainerHeight = Math.min(window.innerHeight - 200, responsiveCropperSize * 0.8)
   const defaultContainerWidth = responsiveCropperSize
   const actualContainerHeight = containerHeight || defaultContainerHeight
   const actualContainerWidth = containerWidth || defaultContainerWidth
-  const paddingPercent = 0.94  // 94% of container (3% padding on each side)
-
-
-  // Calculate based on height with 3% padding
-  let stencilHeight = actualContainerHeight * paddingPercent
-  let stencilWidth = selectedOption.ratio ? stencilHeight * selectedOption.ratio : stencilHeight
-
-  // If width would exceed container, scale down proportionally
-  if (stencilWidth > actualContainerWidth * paddingPercent) {
-    stencilWidth = actualContainerWidth * paddingPercent
-    stencilHeight = selectedOption.ratio ? stencilWidth / selectedOption.ratio : stencilWidth
-  }
-
-  devLog('Stencil size calculation:', {
-    actualContainerHeight,
-    actualContainerWidth,
-    paddingPercent,
-    selectedRatio,
-    selectedOption,
-    stencilWidth,
-    stencilHeight
-  })
-
+  const paddingPercent = 0.9  // 90% of container (10% remaining space as requested)
 
 
   const performAutoCrop = useCallback(async (isComplete = false) => {
@@ -198,7 +181,7 @@ export default function Cropper({
       // Get the canvas with the cropped image
       const canvas = cropper.getCanvas({
         width: 2048,
-        height: selectedOption.ratio ? 2048 / selectedOption.ratio : 2048,
+        height: (!selectedOption.ratio) ? 2048 : 2048 / selectedOption.ratio,
       })
 
       if (canvas) {
@@ -243,6 +226,7 @@ export default function Cropper({
     setIsProcessing(true)
     try {
       await performAutoCrop(true)
+      if (onContinue) onContinue()
     } finally {
       setIsProcessing(false)
     }
@@ -279,141 +263,141 @@ export default function Cropper({
   if (!imageUrl) return null
 
   return (
-    <div className={containerWidth ? "" : "w-full max-w-4xl mx-auto px-4"}>
-      <div className="relative rounded-xl overflow-hidden mx-auto border" style={{
-        width: containerWidth ? `${containerWidth}px` : `${responsiveCropperSize}px`,
-        height: containerHeight ? `${containerHeight}px` : `${responsiveCropperSize * 0.714}px`, // Maintain aspect ratio
-        background: 'rgba(255, 255, 255, 0.05)',
-        backdropFilter: 'blur(10px)',
-        borderColor: 'rgba(139, 92, 246, 0.2)',
-        boxShadow: `0 20px 60px rgba(139, 92, 246, 0.3),
-                        0 0 100px rgba(59, 130, 246, 0.1),
-                        0 10px 30px rgba(0, 0, 0, 0.3)`
-      }}>
-        <FixedCropper
-          ref={fixedCropperRef}
-          src={imageUrl}
-          className={`h-full ${styles.cropper}`}
-          stencilProps={{
-            aspectRatio: selectedOption.ratio,
-            handlers: false,
-            lines: true,
-            movable: false,
-            resizable: false,
-            grid: true,
-            overlayClassName: styles.overlay,
-          }}
-          stencilSize={{
-            width: stencilWidth,
-            height: stencilHeight,
-          }}
-          imageRestriction={ImageRestriction.stencil}
-          onReady={() => {
-            devLog('Cropper onReady fired')
-            setImageLoaded(true)
+    <div className="w-full mx-auto px-4 flex gap-6 items-stretch justify-center h-[calc(100vh-180px)] min-h-[600px]" style={{ maxWidth: '1400px' }}>
 
-            if (fixedCropperRef.current) {
-              const state = fixedCropperRef.current.getState()
-              devLog('Cropper state on ready:', {
-                state: state,
-                coordinates: fixedCropperRef.current.getCoordinates()
-              })
-
-              // Refresh to ensure proper sizing
-              fixedCropperRef.current.refresh()
-
-              // Notify parent component that cropper is ready
-              if (onCropperReady) {
-                devLog('Cropper ready, passing ref to parent')
-                onCropperReady(fixedCropperRef.current)
-              }
-            }
-
-            // Apply initial crop if provided, but only once
-            if (initialCrop && fixedCropperRef.current && !hasAppliedInitialCrop) {
-              const cropper = fixedCropperRef.current
-              devLog('Applying initial crop:', initialCrop)
-              // Don't apply rotation - it's cumulative and causes issues
-              // The rotation is already applied when we generate the cropped image
-              // Just set the crop coordinates
-              cropper.setCoordinates({
-                left: initialCrop.x,
-                top: initialCrop.y,
-                width: initialCrop.width,
-                height: initialCrop.height
-              })
-              setHasAppliedInitialCrop(true)
-            }
-          }}
-          onChange={handleCropperChange}
-        />
-
-        {/* Floating rotate button */}
-        {!hideControls && (
-          <div className="absolute top-3 right-3 flex gap-2 z-10">
-            <button
-              onClick={() => handleRotate(90)}
-              className={overlayButtonStyles.button}
-              style={getOverlayButtonStyle('rotate', false, theme)}
-              title="Rotate 90°"
-            >
-              <RotateCw className={overlayButtonStyles.iconSmall} style={{ color: 'white' }} />
-            </button>
+      {/* Left Panel: Aspect Ratio & Controls */}
+      <div className="flex-shrink-0 flex flex-col" style={{ width: '320px' }}>
+        <div className="bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col h-full">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center">
+              <Proportions className="w-4 h-4 text-pink-500" />
+            </div>
+            <h3 className="text-lg font-bold text-white">Aspect Ratio</h3>
           </div>
-        )}
 
-        {/* Floating aspect ratio selector */}
-        {!hideControls && (
-          <div className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-gray-900/80 rounded-l border border-white/20 overflow-hidden shadow-2xl z-10">
-            {aspectRatioOptions.map((option, index) => (
-              <div key={option.value} className="relative">
-                <button
-                  onClick={() => setSelectedRatio(option.value)}
-                  onMouseEnter={() => setHoveredRatio(option.value)}
-                  onMouseLeave={() => setHoveredRatio(null)}
-                  className={`relative flex items-center justify-center p-3 transition-all w-full ${selectedRatio === option.value
-                    ? 'text-white'
-                    : 'text-white/60 hover:bg-white/10 hover:text-white'
-                    } ${index !== 0 ? 'border-t border-white/10' : ''}`}
-                  style={{
-                    backgroundColor: selectedRatio === option.value ? theme.colors.glass.heavy : 'transparent'
-                  }}
-                >
-                  {selectedRatio === option.value && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: theme.colors.accent.purple }}></div>
-                  )}
-                  <div className="flex items-center justify-center" style={{ height: '24px', width: '32px' }}>
-                    {option.icon}
-                  </div>
-                </button>
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {aspectRatioOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setSelectedRatio(option.value)}
+                className={`
+                    group relative flex flex-col items-center justify-center gap-3
+                    aspect-square rounded-xl border transition-all duration-200
+                    ${selectedRatio === option.value
+                    ? 'bg-pink-500/10 border-pink-500'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                  }
+                  `}
+              >
+                <div className={`
+                    transition-colors duration-200
+                    ${selectedRatio === option.value ? 'text-pink-500' : 'text-gray-400 group-hover:text-gray-300'}
+                  `}>
+                  {option.icon}
+                </div>
+                <span className={`
+                    text-xs font-semibold
+                    ${selectedRatio === option.value ? 'text-pink-500' : 'text-gray-500 group-hover:text-gray-400'}
+                  `}>
+                  {option.label}
+                </span>
 
-                {/* Tooltip */}
-                {hoveredRatio === option.value && (
-                  <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg border border-white/20 pointer-events-none z-20 whitespace-nowrap">
-                    <div className="text-xs text-white/60 mb-1">Aspect Ratio</div>
-                    <div className="text-sm font-medium text-white">{option.label}</div>
-                  </div>
+                {/* Selected glow effect */}
+                {selectedRatio === option.value && (
+                  <div className="absolute inset-0 bg-pink-500/5 rounded-xl animate-pulse pointer-events-none" />
                 )}
-              </div>
+              </button>
             ))}
           </div>
-        )}
 
-        {/* Done Button */}
-        {!hideControls && (
-          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+          {/* Additional Controls */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => handleRotate(90)}
+              className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2 transition-colors text-sm font-medium text-gray-300"
+            >
+              <RotateCw className="w-4 h-4" />
+              Rotate 90°
+            </button>
+          </div>
+
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-grow" />
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-3 mt-6 pt-6 border-t border-white/10">
+            <button
+              onClick={onBack}
+              className="flex-1 py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
+            >
+              ← Back
+            </button>
+
             <button
               onClick={handleCrop}
               disabled={isProcessing}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-medium shadow-lg transition-colors flex items-center gap-2"
+              className="
+                  flex-1 py-3.5 rounded-full
+                  bg-pink-500 hover:bg-pink-600
+                  text-white font-semibold
+                  shadow-[0_0_20px_rgba(236,72,153,0.3)]
+                  hover:shadow-[0_0_30px_rgba(236,72,153,0.5)]
+                  transition-all disabled:opacity-50 disabled:cursor-not-allowed
+                  flex items-center justify-center gap-2 text-sm
+                "
             >
-              {isProcessing ? 'Processing...' : 'Done'}
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              {isProcessing ? 'Processing...' : 'Continue'} →
             </button>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* Right Panel: Cropper Canvas */}
+      <div className="flex-grow flex flex-col items-center justify-center h-full" style={{ maxWidth: '900px' }}>
+        <div className="group relative w-full h-full rounded-3xl bg-[#0a0a0f] transition-all duration-500 ease-out flex items-center justify-center overflow-hidden border border-white/10">
+
+          {/* Glass Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-20 pointer-events-none z-10" />
+          <Cropper
+            ref={fixedCropperRef}
+            src={imageUrl}
+            className={`h-full ${styles.cropper}`}
+            stencilProps={{
+              aspectRatio: selectedOption.ratio,
+              grid: true,
+              overlayClassName: styles.overlay,
+            }}
+            defaultSize={({ visibleArea }) => {
+              if (!visibleArea) return { width: 0, height: 0 }
+              return {
+                width: visibleArea.width * 0.9,
+                height: visibleArea.height * 0.9,
+              }
+            }}
+            imageRestriction={ImageRestriction.stencil}
+            onReady={() => {
+              devLog('Cropper onReady fired')
+              setImageLoaded(true)
+
+              if (fixedCropperRef.current) {
+                const state = fixedCropperRef.current.getState()
+                devLog('Cropper state on ready:', {
+                  state: state,
+                  coordinates: fixedCropperRef.current.getCoordinates()
+                })
+
+                // Refresh to ensure proper sizing
+                fixedCropperRef.current.refresh()
+
+                // Notify parent component that cropper is ready
+                if (onCropperReady) {
+                  onCropperReady(fixedCropperRef.current)
+                }
+              }
+            }}
+            onChange={handleCropperChange}
+          />
+        </div>
       </div>
     </div>
   )

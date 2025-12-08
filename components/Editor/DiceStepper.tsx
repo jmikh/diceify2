@@ -10,10 +10,9 @@ interface DiceStepperProps {
 }
 
 const steps: { id: WorkflowStep; dice: string; label: string }[] = [
-  { id: 'upload', dice: '⚀', label: 'Upload' },
-  { id: 'crop', dice: '⚁', label: 'Crop' },
-  { id: 'tune', dice: '⚂', label: 'Tune' },
-  { id: 'build', dice: '⚃', label: 'Build' },
+  { id: 'upload', dice: '⚀', label: 'Image' },
+  { id: 'tune', dice: '⚁', label: 'Tune' },
+  { id: 'build', dice: '⚂', label: 'Build' },
 ]
 
 const DiceStepper = memo(function DiceStepper({ vertical = false }: DiceStepperProps) {
@@ -38,7 +37,7 @@ const DiceStepper = memo(function DiceStepper({ vertical = false }: DiceStepperP
         const isActive = s.id === step
 
         // Determine if step is clickable based on lastReachedStep
-        const stepOrder: WorkflowStep[] = ['upload', 'crop', 'tune', 'build']
+        const stepOrder: WorkflowStep[] = ['upload', 'tune', 'build']
         const currentIndex = stepOrder.indexOf(s.id)
         const lastReachedIndex = lastReachedStep ? stepOrder.indexOf(lastReachedStep) : -1
 
@@ -86,7 +85,7 @@ const DiceStepper = memo(function DiceStepper({ vertical = false }: DiceStepperP
                  `}
                   style={{
                     display: 'inline-block',
-                    transform: (s.id === 'crop' || s.id === 'tune') ? 'rotate(90deg)' : 'none'
+                    transform: (s.id === 'tune') ? 'rotate(90deg)' : 'none'
                   }}
                 >
                   {s.dice}
@@ -96,7 +95,7 @@ const DiceStepper = memo(function DiceStepper({ vertical = false }: DiceStepperP
               {/* Label */}
               <div className={`
                  mt-1 text-xs font-medium text-center transition-colors
-                 ${isActive ? 'text-blue-400/80' : isClickable ? 'text-gray-500' : 'text-gray-600/50'}
+                 ${isActive ? 'text-pink-400/80' : isClickable ? 'text-gray-500' : 'text-gray-600/50'}
                `}>
                 {s.label}
               </div>

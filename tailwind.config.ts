@@ -15,17 +15,25 @@ const config: Config = {
             primary: 'var(--bg-primary)',
             secondary: 'var(--bg-secondary)',
             dark: 'var(--bg-dark)',
+            deep: 'var(--bg-deep)',
+            glass: {
+              DEFAULT: 'var(--bg-glass)',
+              hover: 'var(--bg-glass-hover)',
+            }
           },
           glass: {
             light: 'var(--glass-light)',
             medium: 'var(--glass-medium)',
             heavy: 'var(--glass-heavy)',
             border: 'var(--glass-border)',
+            DEFAULT: 'var(--bg-glass)',
+            hover: 'var(--bg-glass-hover)',
           },
           text: {
             primary: 'var(--text-primary)',
             secondary: 'var(--text-secondary)',
             muted: 'var(--text-muted)',
+            dim: 'var(--text-dim)',
           },
           accent: {
             blue: 'var(--accent-blue)',
@@ -33,14 +41,25 @@ const config: Config = {
             pink: 'var(--accent-pink)',
             green: 'var(--accent-green)',
             red: 'var(--accent-red)',
+            'pink-light': 'var(--pink-light)',
+            'pink-glow': 'var(--pink-glow)',
+            'pink-glow-soft': 'var(--pink-glow-soft)',
           },
           glow: {
             blue: 'var(--glow-blue)',
             purple: 'var(--glow-purple)',
             pink: 'var(--glow-pink)',
             green: 'var(--glow-green)',
+          },
+          border: {
+            glass: 'var(--border-glass)',
+            'glass-light': 'var(--border-glass-light)',
           }
         }
+      },
+      fontFamily: {
+        syne: ['var(--font-syne)', 'sans-serif'],
+        outfit: ['var(--font-outfit)', 'sans-serif'],
       },
       animation: {
         'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',

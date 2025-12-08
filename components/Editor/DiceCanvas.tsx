@@ -320,7 +320,7 @@ export default function DiceCanvas({ maxWidth = 700, maxHeight = 500 }: DiceCanv
         backdropFilter: 'blur(10px)',
         borderColor: 'rgba(139, 92, 246, 0.2)',
         boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                   0 0 60px rgba(59, 130, 246, 0.08),
+                   0 0 60px rgba(236, 72, 153, 0.08),
                    0 5px 20px rgba(0, 0, 0, 0.3)`
       }}>
         {/* Canvas view */}
@@ -411,8 +411,8 @@ export default function DiceCanvas({ maxWidth = 700, maxHeight = 500 }: DiceCanv
                 onClick={() => setRenderMode('canvas')}
                 className="px-3 py-2 backdrop-blur-md border text-xs rounded-lg transition-all"
                 style={{
-                  backgroundColor: renderMode === 'canvas' ? theme.colors.accent.blue : theme.colors.glass.light,
-                  borderColor: renderMode === 'canvas' ? theme.colors.accent.blue : theme.colors.glass.border,
+                  backgroundColor: renderMode === 'canvas' ? theme.colors.accent.pink : theme.colors.glass.light,
+                  borderColor: renderMode === 'canvas' ? theme.colors.accent.pink : theme.colors.glass.border,
                   color: renderMode === 'canvas' ? 'white' : theme.colors.text.secondary
                 }}
               >
@@ -422,8 +422,8 @@ export default function DiceCanvas({ maxWidth = 700, maxHeight = 500 }: DiceCanv
                 onClick={() => setRenderMode('svg')}
                 className="px-3 py-2 backdrop-blur-md border text-xs rounded-lg transition-all"
                 style={{
-                  backgroundColor: renderMode === 'svg' ? theme.colors.accent.blue : theme.colors.glass.light,
-                  borderColor: renderMode === 'svg' ? theme.colors.accent.blue : theme.colors.glass.border,
+                  backgroundColor: renderMode === 'svg' ? theme.colors.accent.pink : theme.colors.glass.light,
+                  borderColor: renderMode === 'svg' ? theme.colors.accent.pink : theme.colors.glass.border,
                   color: renderMode === 'svg' ? 'white' : theme.colors.text.secondary
                 }}
               >

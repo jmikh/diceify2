@@ -30,6 +30,7 @@ import { theme } from '@/lib/theme'
 import { useState } from 'react'
 import { Grid3x3, Contrast, Sun, Sparkles, RotateCw, Palette } from 'lucide-react'
 import { useEditorStore } from '@/lib/store/useEditorStore'
+import styles from './ControlPanel.module.css'
 
 export default function ControlPanel() {
   const params = useEditorStore(state => state.diceParams)
@@ -107,7 +108,7 @@ export default function ControlPanel() {
               onClick={() => setDiceParams({ colorMode: 'both' })}
               className="flex-1 h-10 flex items-center justify-center transition-all relative"
               style={{
-                backgroundColor: params.colorMode === 'both' ? theme.colors.accent.blue : 'transparent',
+                backgroundColor: params.colorMode === 'both' ? theme.colors.accent.pink : 'transparent',
               }}
             >
               {/* Diagonally split square */}
@@ -123,7 +124,7 @@ export default function ControlPanel() {
               onClick={() => setDiceParams({ colorMode: 'black' })}
               className="flex-1 h-10 flex items-center justify-center transition-all relative"
               style={{
-                backgroundColor: params.colorMode === 'black' ? theme.colors.accent.blue : 'transparent',
+                backgroundColor: params.colorMode === 'black' ? theme.colors.accent.pink : 'transparent',
                 borderRight: `1px solid ${theme.colors.glass.border}`
               }}
             >
@@ -136,7 +137,7 @@ export default function ControlPanel() {
               onClick={() => setDiceParams({ colorMode: 'white' })}
               className="flex-1 h-10 flex items-center justify-center transition-all relative"
               style={{
-                backgroundColor: params.colorMode === 'white' ? theme.colors.accent.blue : 'transparent'
+                backgroundColor: params.colorMode === 'white' ? theme.colors.accent.pink : 'transparent'
               }}
             >
               {/* White square */}
@@ -181,7 +182,7 @@ export default function ControlPanel() {
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                 style={{
-                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
+                  background: `radial-gradient(circle at center, ${theme.colors.glow.pink}, transparent)`
                 }}
               />
             </button>
@@ -211,7 +212,7 @@ export default function ControlPanel() {
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                 style={{
-                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
+                  background: `radial-gradient(circle at center, ${theme.colors.glow.pink}, transparent)`
                 }}
               />
             </button>
@@ -238,7 +239,7 @@ export default function ControlPanel() {
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                 style={{
-                  background: `radial-gradient(circle at center, ${theme.colors.glow.blue}, transparent)`
+                  background: `radial-gradient(circle at center, ${theme.colors.glow.pink}, transparent)`
                 }}
               />
             </button>
@@ -260,9 +261,9 @@ export default function ControlPanel() {
               onMouseUp={() => setIsDragging({ ...isDragging, numRows: false })}
               onTouchStart={() => setIsDragging({ ...isDragging, numRows: true })}
               onTouchEnd={() => setIsDragging({ ...isDragging, numRows: false })}
-              className="flex-1 h-1 rounded-lg appearance-none cursor-pointer"
+              className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
               style={{
-                background: `linear-gradient(to right, ${theme.colors.accent.blue} 0%, ${theme.colors.accent.blue} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} 100%)`
+                background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} 100%)`
               }}
             />
           </div>
@@ -295,9 +296,9 @@ export default function ControlPanel() {
               onMouseUp={() => setIsDragging({ ...isDragging, contrast: false })}
               onTouchStart={() => setIsDragging({ ...isDragging, contrast: true })}
               onTouchEnd={() => setIsDragging({ ...isDragging, contrast: false })}
-              className="flex-1 h-1 rounded-lg appearance-none cursor-pointer"
+              className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
               style={{
-                background: `linear-gradient(to right, ${theme.colors.accent.blue} 0%, ${theme.colors.accent.blue} ${params.contrast}%, ${theme.colors.glass.border} ${params.contrast}%, ${theme.colors.glass.border} 100%)`
+                background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${params.contrast}%, ${theme.colors.glass.border} ${params.contrast}%, ${theme.colors.glass.border} 100%)`
               }}
             />
           </div>
@@ -331,9 +332,9 @@ export default function ControlPanel() {
               onMouseUp={() => setIsDragging({ ...isDragging, gamma: false })}
               onTouchStart={() => setIsDragging({ ...isDragging, gamma: true })}
               onTouchEnd={() => setIsDragging({ ...isDragging, gamma: false })}
-              className="flex-1 h-1 rounded-lg appearance-none cursor-pointer"
+              className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
               style={{
-                background: `linear-gradient(to right, ${theme.colors.accent.blue} 0%, ${theme.colors.accent.blue} ${((params.gamma - 0.5) / 1.0) * 100}%, ${theme.colors.glass.border} ${((params.gamma - 0.5) / 1.0) * 100}%, ${theme.colors.glass.border} 100%)`
+                background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${((params.gamma - 0.5) / 1.0) * 100}%, ${theme.colors.glass.border} ${((params.gamma - 0.5) / 1.0) * 100}%, ${theme.colors.glass.border} 100%)`
               }}
             />
           </div>
@@ -366,9 +367,9 @@ export default function ControlPanel() {
               onMouseUp={() => setIsDragging({ ...isDragging, edgeSharpening: false })}
               onTouchStart={() => setIsDragging({ ...isDragging, edgeSharpening: true })}
               onTouchEnd={() => setIsDragging({ ...isDragging, edgeSharpening: false })}
-              className="flex-1 h-1 rounded-lg appearance-none cursor-pointer"
+              className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
               style={{
-                background: `linear-gradient(to right, ${theme.colors.accent.blue} 0%, ${theme.colors.accent.blue} ${params.edgeSharpening}%, ${theme.colors.glass.border} ${params.edgeSharpening}%, ${theme.colors.glass.border} 100%)`
+                background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${params.edgeSharpening}%, ${theme.colors.glass.border} ${params.edgeSharpening}%, ${theme.colors.glass.border} 100%)`
               }}
             />
           </div>
