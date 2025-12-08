@@ -4,13 +4,12 @@ import { useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Image as ImageIcon } from 'lucide-react'
 import { useEditorStore } from '@/lib/store/useEditorStore'
-import { theme } from '@/lib/theme'
 
-interface ImageUploaderProps {
+interface UploadMainProps {
     onUpload?: (url: string) => void
 }
 
-export default function ImageUploader({ onUpload }: ImageUploaderProps) {
+export default function UploadMain({ onUpload }: UploadMainProps) {
     const uploadImage = useEditorStore(state => state.uploadImage)
     const originalImage = useEditorStore(state => state.originalImage)
 
@@ -29,7 +28,6 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
                             onUpload(result)
                         } else {
                             uploadImage(result)
-                            // Removed auto-advance to allow manual continue
                         }
                     }
                 }
