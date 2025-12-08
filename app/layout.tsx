@@ -112,7 +112,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${outfit.variable} ${syne.variable}`}>
-      <body className={inter.className}>
+      <body className={outfit.className}>
         <Providers>
           {children}
         </Providers>

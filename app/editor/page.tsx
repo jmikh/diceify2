@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'rea
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { SlidersHorizontal } from 'lucide-react'
 import ImageUploader from '@/components/Editor/ImageUploader'
 import Cropper from '@/components/Editor/Cropper'
 import DiceCanvas from '@/components/Editor/DiceCanvas'
@@ -1070,48 +1071,54 @@ function EditorContent() {
         )}
 
         {step === 'tune' && croppedImage && (
-          <div className="flex flex-col md:flex-row gap-6 justify-center items-center md:items-start">
+          <div className="w-full mx-auto px-4 flex gap-6 items-stretch justify-center h-[calc(100vh-180px)] min-h-[600px]" style={{ maxWidth: '1400px' }}>
             {/* Left floating panels */}
-            <div className="flex flex-col space-y-4 w-80 flex-shrink-0">
-              {/* Control panel - desktop: first, mobile: second (right above canvas) */}
-              <div
-                className="backdrop-blur-md rounded-2xl border overflow-hidden order-2 md:order-1"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)',
-                  borderColor: `${theme.colors.accent.purple}33`,
-                  boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                             0 0 60px rgba(236, 72, 153, 0.08),
-                             0 5px 20px rgba(0, 0, 0, 0.3)`
-                }}
-              >
-                <ControlPanel />
-              </div>
+            <div className="flex-shrink-0 flex flex-col" style={{ width: '320px' }}>
+              <div className="bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col h-full overflow-y-auto custom-scrollbar">
 
-              {/* Stats display - desktop: second, mobile: first */}
-              <div
-                className="backdrop-blur-md border text-white px-4 py-3 rounded-2xl order-1 md:order-2"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)',
-                  borderColor: `${theme.colors.accent.purple}33`,
-                  boxShadow: `0 10px 40px rgba(139, 92, 246, 0.25),
-                             0 0 60px rgba(236, 72, 153, 0.08),
-                             0 5px 20px rgba(0, 0, 0, 0.3)`
-                }}
-              >
-                <DiceStatsComponent
-                  key={`tune-stats-${currentProjectId}-${diceStats.totalCount}-${croppedImage?.substring(0, 20)}`}
-                />
+                {/* Control Panel */}
+                <div className="mb-6">
+                  <ControlPanel />
+                </div>
+
+                {/* Spacer to push buttons to bottom */}
+                <div className="flex-grow" />
+
+                {/* Navigation Buttons */}
+                <div className="flex gap-3 mt-6 pt-6 border-t border-white/10 flex-shrink-0">
+                  <button
+                    onClick={() => setStep('upload')}
+                    className="flex-1 py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
+                  >
+                    ← Back
+                  </button>
+
+                  <button
+                    onClick={() => setStep('build')}
+                    className="
+                      flex-1 py-3.5 rounded-full
+                      bg-pink-500 hover:bg-pink-600
+                      text-white font-semibold
+                      shadow-[0_0_20px_rgba(236,72,153,0.3)]
+                      hover:shadow-[0_0_30px_rgba(236,72,153,0.5)]
+                      transition-all
+                      flex items-center justify-center gap-2 text-sm
+                    "
+                  >
+                    Continue →
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Main content */}
-            <div className="flex-1 min-w-0" style={{ maxWidth: '720px' }}>
-              <DiceCanvas
-                maxWidth={900}
-                maxHeight={850}
-              />
+            <div className="flex-grow flex flex-col items-center justify-center h-full" style={{ maxWidth: '900px' }}>
+              <div className="w-full h-full rounded-3xl bg-[#0a0a0f] transition-all duration-500 ease-out flex items-center justify-center overflow-hidden border border-white/10 p-4">
+                <DiceCanvas
+                  maxWidth={900}
+                  maxHeight={850}
+                />
+              </div>
             </div>
           </div>
         )}
