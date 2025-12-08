@@ -1,6 +1,5 @@
 'use client'
 
-import { EDITOR_LAYOUT_CLASSES } from '@/lib/styles/editor-layout'
 import { DiceGrid, Dice } from '@/lib/dice/types'
 import { devLog } from '@/lib/utils/debug'
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
@@ -797,7 +796,7 @@ export default function BuilderMain({
     handleNavigationReady
 }: BuilderMainProps) {
     return (
-        <div className={EDITOR_LAYOUT_CLASSES.rightColumn}>
+        <>
             {/* Debug logging - preserved from page.tsx */}
             {(() => {
                 devLog('[DEBUG] Passing to BuildViewer:', {
@@ -817,6 +816,6 @@ export default function BuilderMain({
                 onPositionChange={handleBuildProgressUpdate}
                 onNavigationReady={handleNavigationReady}
             />
-        </div>
+        </>
     )
 }

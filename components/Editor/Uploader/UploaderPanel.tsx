@@ -1,14 +1,13 @@
 'use client'
 
 import { useEditorStore } from '@/lib/store/useEditorStore'
-import { EDITOR_LAYOUT_CLASSES } from '@/lib/styles/editor-layout'
 
 export default function UploaderPanel() {
     const originalImage = useEditorStore(state => state.originalImage)
     const setStep = useEditorStore(state => state.setStep)
 
     return (
-        <div className={EDITOR_LAYOUT_CLASSES.leftPanelCard}>
+        <>
             {/* Info / Instructions */}
             <div>
                 <h3 className="text-xl font-bold text-white mb-2">Upload Image</h3>
@@ -36,6 +35,6 @@ export default function UploaderPanel() {
                     Continue
                 </button>
             </div>
-        </div>
+        </>
     )
 }

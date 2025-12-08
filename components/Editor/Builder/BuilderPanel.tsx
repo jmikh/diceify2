@@ -1,6 +1,5 @@
 'use client'
 
-import { EDITOR_LAYOUT_CLASSES } from '@/lib/styles/editor-layout'
 import { DiceGrid, DiceStats } from '@/lib/types'
 import { Dice } from '@/lib/dice/types'
 import { useRef, useEffect } from 'react'

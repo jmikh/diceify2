@@ -114,7 +114,7 @@ export default function TunerPanel({ onBack, onContinue }: TunerPanelProps) {
   const onParamChange = setDiceParams // Alias for compatibility with existing code structure if needed, or just use setDiceParams directly
 
   return (
-    <div className="h-full flex flex-col">
+    <>
       <div className="space-y-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
         {/* Stats Section - MOVED HERE */}
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
@@ -573,6 +573,6 @@ export default function TunerPanel({ onBack, onContinue }: TunerPanelProps) {
           Continue →
         </button>
       </div>
-    </div >
+    </>
   )
 }

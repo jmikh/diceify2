@@ -1,6 +1,5 @@
 'use client'
 
-import { EDITOR_LAYOUT_CLASSES } from '@/lib/styles/editor-layout'
 import { Proportions, RotateCw } from 'lucide-react'
 
 export type AspectRatio = '1:1' | '3:4' | '4:3' | '2:3' | '16:9'
@@ -95,7 +94,7 @@ export default function CropperPanel({
     isProcessing
 }: CropperPanelProps) {
     return (
-        <div className={EDITOR_LAYOUT_CLASSES.leftPanelCard}>
+        <>
             <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center">
                     <Proportions className="w-4 h-4 text-pink-500" />
@@ -180,6 +179,6 @@ export default function CropperPanel({
                     {isProcessing ? 'Processing...' : 'Continue'} →
                 </button>
             </div>
-        </div>
+        </>
     )
 }

@@ -48,7 +48,6 @@ import Footer from '@/components/Footer'
 import { theme } from '@/lib/theme'
 import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
 import { FixedCropperRef } from 'react-advanced-cropper'
-import { EDITOR_LAYOUT_CLASSES } from '@/lib/styles/editor-layout'
 import { devLog, devError } from '@/lib/utils/debug'
 
 import { useEditorStore } from '@/lib/store/useEditorStore'
@@ -1234,24 +1233,12 @@ function EditorContent() {
 
         {/* Step Content */}
         {/* Step Content */}
-        {step === 'upload' && (
-          <div className={EDITOR_LAYOUT_CLASSES.container}>
-            {/* Left floating panels */}
-            <div className={EDITOR_LAYOUT_CLASSES.leftColumn} >
-              <UploaderPanel />
-            </div>
+        <div className="w-full mx-auto px-4 flex gap-6 items-stretch justify-center h-auto min-h-[calc(100vh-180px)]">
+          {/* LEFT PANEL AREA */}
+          <div className="flex-shrink-0 flex flex-col w-[350px] min-w-[350px] max-w-[350px] min-h-[650px] max-h-[850px] bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+            {step === 'upload' && <UploaderPanel />}
 
-            {/* Main Content Area - Center */}
-            {/* Main Content Area - Center */}
-            <div className={EDITOR_LAYOUT_CLASSES.rightColumn}>
-              <UploadMain />
-            </div>
-          </div>
-        )}
-
-        {step === 'crop' && (
-          <div className={EDITOR_LAYOUT_CLASSES.container} style={{ maxWidth: '1400px' }}>
-            <div className={EDITOR_LAYOUT_CLASSES.leftColumn}>
+            {step === 'crop' && (
               <CropperPanel
                 selectedRatio={selectedRatio}
                 onRatioChange={setSelectedRatio}
@@ -1260,98 +1247,101 @@ function EditorContent() {
                 onContinue={handleCropContinue}
                 isProcessing={isProcessing}
               />
-            </div>
+            )}
 
-            <CropperMain
-              fixedCropperRef={fixedCropperRef}
-              imageUrl={originalImage || ''}
-              selectedOption={selectedOption}
-              stencilSize={stencilSize}
-              setImageLoaded={setImageLoaded}
-              onCropperChange={handleCropperChange}
-            />
-          </div>
-        )}
-
-        {step === 'tune' && (
-          <div className={EDITOR_LAYOUT_CLASSES.container} style={{ maxWidth: '1400px' }}>
-            <div className={EDITOR_LAYOUT_CLASSES.leftColumn} >
+            {step === 'tune' && (
               <TunerPanel
                 onBack={() => setStep('crop')}
                 onContinue={() => setStep('build')}
               />
-            </div>
+            )}
 
-            <TunerMain
-              diceCanvasRef={diceCanvasRef}
-              cropParams={cropParams}
-            />
+            {step === 'build' && diceGrid && (
+              <BuilderPanel
+                currentX={buildProgress.x}
+                currentY={buildProgress.y}
+                totalRows={diceGrid.height}
+                totalCols={diceGrid.width}
+                currentDice={null}
+                currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
+                totalDice={diceGrid.width * diceGrid.height}
+                blackCount={diceStats.blackCount}
+                whiteCount={diceStats.whiteCount}
+                onNavigate={(direction) => {
+                  // Check if trying to go forward beyond x=3 without authentication
+                  if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
+                    devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
+                    setShowAuthModal(true)
+                    return
+                  }
+
+                  if (!buildNavigation) return
+
+                  if (direction === 'prev') buildNavigation.navigatePrev()
+                  else if (direction === 'next') buildNavigation.navigateNext()
+                  else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
+                  else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
+                }}
+                canNavigate={buildNavigation?.canNavigate || { prev: false, next: false, prevDiff: false, nextDiff: false }}
+                onBack={() => setStep('tune')}
+                buildNavigation={buildNavigation}
+              />
+            )}
           </div>
-        )}
 
-        {step === 'build' && (
-          diceGrid ? (
-            <div className={EDITOR_LAYOUT_CLASSES.container}>
-              <div className={EDITOR_LAYOUT_CLASSES.leftColumn}>
-                <BuilderPanel
-                  currentX={buildProgress.x}
-                  currentY={buildProgress.y}
-                  totalRows={diceGrid.height}
-                  totalCols={diceGrid.width}
-                  currentDice={null}
-                  currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
-                  totalDice={diceGrid.width * diceGrid.height}
-                  blackCount={diceStats.blackCount}
-                  whiteCount={diceStats.whiteCount}
-                  onNavigate={(direction) => {
-                    // Check if trying to go forward beyond x=3 without authentication
-                    if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
-                      devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
-                      setShowAuthModal(true)
-                      return
-                    }
+          {/* MAIN CONTENT AREA */}
+          <div className="flex-grow flex items-center justify-center relative min-w-[400px] max-w-[850px] max-h-[850px] overflow-hidden">
+            {step === 'upload' && <UploadMain />}
 
-                    if (!buildNavigation) return
+            {step === 'crop' && (
+              <CropperMain
+                fixedCropperRef={fixedCropperRef}
+                imageUrl={originalImage || ''}
+                selectedOption={selectedOption}
+                stencilSize={stencilSize}
+                setImageLoaded={setImageLoaded}
+                onCropperChange={handleCropperChange}
+              />
+            )}
 
-                    if (direction === 'prev') buildNavigation.navigatePrev()
-                    else if (direction === 'next') buildNavigation.navigateNext()
-                    else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
-                    else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
-                  }}
-                  canNavigate={buildNavigation?.canNavigate || { prev: false, next: false, prevDiff: false, nextDiff: false }}
-                  onBack={() => setStep('tune')}
-                  buildNavigation={buildNavigation}
+            {step === 'tune' && (
+              <TunerMain
+                diceCanvasRef={diceCanvasRef}
+                cropParams={cropParams}
+              />
+            )}
+
+            {step === 'build' && (
+              diceGrid ? (
+                <BuilderMain
+                  currentProjectId={currentProjectId || ''}
+                  diceGrid={diceGrid}
+                  buildProgress={buildProgress}
+                  handleBuildProgressUpdate={handleBuildProgressUpdate}
+                  handleNavigationReady={handleNavigationReady}
                 />
-              </div>
+              ) : croppedImage ? (
+                // Show DiceCanvas to generate the grid
+                <div className="flex justify-center w-full items-center">
+                  <DiceCanvas
+                    maxWidth={900}
+                    maxHeight={600}
+                  />
+                </div>
+              ) : (
+                <div className="text-center text-white/60 mt-20 w-full">
+                  <p>No image data available.</p>
+                  <p className="text-sm mt-2">Please go back to the Upload or Crop step.</p>
+                </div>
+              )
+            )}
+          </div>
+        </div>
 
-              <BuilderMain
-                currentProjectId={currentProjectId || ''}
-                diceGrid={diceGrid}
-                buildProgress={buildProgress}
-                handleBuildProgressUpdate={handleBuildProgressUpdate}
-                handleNavigationReady={handleNavigationReady}
-              />
-            </div>
-          ) : croppedImage ? (
-            // Show DiceCanvas to generate the grid
-            <div className="flex justify-center">
-              <DiceCanvas
-                maxWidth={900}
-                maxHeight={600}
-              />
-            </div>
-          ) : (
-            <div className="text-center text-white/60 mt-20">
-              <p>No image data available.</p>
-              <p className="text-sm mt-2">Please go back to the Upload or Crop step.</p>
-            </div>
-          )
-        )}
-
-      </main>
+      </main >
 
       {/* Build Progress Dialog */}
-      <ConfirmDialog
+      < ConfirmDialog
         isOpen={showBuildProgressDialog}
         title="Build in Progress"
         message="Changing the underlying image would reset progress. Do you want to Proceed?"
@@ -1365,12 +1355,13 @@ function EditorContent() {
       />
 
       {/* Auth Modal */}
-      <AuthModal
+      < AuthModal
         isOpen={showAuthModal}
         onClose={() => {
           setShowAuthModal(false)
           // User can continue exploring up to x=3
-        }}
+        }
+        }
         onSuccess={() => {
           setShowAuthModal(false)
           setStep('build')
@@ -1414,7 +1405,7 @@ function EditorContent() {
 
       {/* Footer */}
       <Footer />
-    </div>
+    </div >
   )
 }
 
