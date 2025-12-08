@@ -28,7 +28,8 @@ import {
 } from 'lucide-react'
 import UploaderPanel from '@/components/Editor/Uploader/UploaderPanel'
 import UploadMain from '@/components/Editor/Uploader/UploadMain'
-import Cropper from '@/components/Editor/Cropper'
+import CropperPanel, { AspectRatio, aspectRatioOptions } from '@/components/Editor/Cropper/CropperPanel'
+import CropperMain from '@/components/Editor/Cropper/CropperMain'
 import DiceCanvas, { DiceCanvasRef } from '@/components/Editor/DiceCanvas'
 import ControlPanel from '@/components/Editor/ControlPanel'
 
@@ -44,6 +45,7 @@ import DonationModal from '@/components/DonationModal'
 import Footer from '@/components/Footer'
 import { theme } from '@/lib/theme'
 import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
+import { FixedCropperRef } from 'react-advanced-cropper'
 import { EDITOR_LAYOUT_CLASSES } from '@/lib/styles/editor-layout'
 import { devLog, devError } from '@/lib/utils/debug'
 
@@ -140,6 +142,36 @@ function EditorContent() {
   const [showProjectsSubmenu, setShowProjectsSubmenu] = useState(false)
   const [isRestoringOAuthState, setIsRestoringOAuthState] = useState(false)
   const lastDiceIndexRef = useRef(0)
+
+  // Cropper State
+  const fixedCropperRef = useRef<FixedCropperRef>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
+  const [imageLoaded, setImageLoaded] = useState(false)
+
+  // Need to bring in updateCrop and completeCrop from store if not already there, 
+  // or define handlers. page.tsx uses setCroppedImage etc.
+  // The original Cropper used useEditorStore hooks: completeCrop, updateCrop. 
+  // These are actions on the store. I should fetch them here.
+  const completeCrop = useEditorStore(state => state.completeCrop)
+  const updateCrop = useEditorStore(state => state.updateCrop)
+
+  // Track window size for responsive cropper
+  const [windowSize, setWindowSize] = useState({ width: 800, height: 600 })
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: typeof window !== 'undefined' ? window.innerWidth : 800,
+        height: typeof window !== 'undefined' ? window.innerHeight : 600
+      })
+    }
+
+    handleResize() // Set initial size
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
 
   // Memoize frame dimensions to prevent re-renders
   const frameWidth = useMemo(() => {
@@ -262,6 +294,120 @@ function EditorContent() {
     // Store the generated cropped image
     setCroppedImage(croppedImageUrl)
   }, [cropParams, lastReachedStep, buildProgress, setCropParams, setCroppedImage, setHasCropChanged, setLastReachedStep, setBuildProgress])
+
+
+
+  // --- Cropper Logic Start ---
+
+  const selectedOption = aspectRatioOptions.find(opt => opt.value === selectedRatio) || aspectRatioOptions[2]
+
+  // Calculate stencil size
+  const getStencilSize = useCallback(() => {
+    if (typeof window === 'undefined') return { width: 0, height: 0 }
+
+    const sidebarTotalWidth = 350 + 24 + 32
+    const availableWidth = Math.min(900, windowSize.width - sidebarTotalWidth)
+    const containerHeight = Math.max(500, Math.min(800, windowSize.height - 180))
+    const availableHeight = containerHeight - 32
+
+    const maxWidth = availableWidth * 0.9
+    const maxHeight = availableHeight * 0.9
+
+    const ratio = selectedOption.ratio || 1
+
+    let width = maxWidth
+    let height = width / ratio
+
+    if (height > maxHeight) {
+      height = maxHeight
+      width = height * ratio
+    }
+
+    return { width, height }
+  }, [windowSize, selectedOption])
+
+  const stencilSize = getStencilSize()
+
+  const performAutoCrop = useCallback(async (isComplete = false) => {
+    if (isProcessing) return
+
+    try {
+      const cropper = fixedCropperRef.current
+      if (!cropper) return
+
+      const canvas = cropper.getCanvas({
+        width: 2048,
+        height: (!selectedOption.ratio) ? 2048 : 2048 / selectedOption.ratio,
+      })
+
+      if (canvas) {
+        const coordinates = cropper.getCoordinates()
+        const state = cropper.getState()
+        const croppedImage = canvas.toDataURL('image/jpeg', 0.95)
+
+        const cropData = {
+          x: coordinates?.left || 0,
+          y: coordinates?.top || 0,
+          width: coordinates?.width || 0,
+          height: coordinates?.height || 0,
+          rotation: state?.transforms?.rotate || 0
+        }
+
+        if (isComplete) {
+          completeCrop(croppedImage, cropData)
+        } else {
+          updateCrop(croppedImage, cropData)
+        }
+      }
+    } catch (error) {
+      devError('Error auto-cropping image:', error)
+    }
+  }, [isProcessing, selectedOption.ratio, completeCrop, updateCrop])
+
+  // Auto-crop when image is ready or when aspect ratio changes
+  useEffect(() => {
+    if (imageLoaded) {
+      const timeout = setTimeout(() => {
+        performAutoCrop(false)
+      }, 100)
+      return () => clearTimeout(timeout)
+    }
+  }, [imageLoaded, selectedRatio, performAutoCrop])
+
+  const handleCropContinue = async () => {
+    setIsProcessing(true)
+    try {
+      await performAutoCrop(true)
+      setStep('tune')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleRotate = (angle: number) => {
+    fixedCropperRef.current?.rotateImage(angle)
+  }
+
+  const cropChangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleCropperChange = useCallback(() => {
+    if (cropChangeTimeoutRef.current) {
+      clearTimeout(cropChangeTimeoutRef.current)
+    }
+    cropChangeTimeoutRef.current = setTimeout(() => {
+      performAutoCrop(false)
+    }, 500)
+  }, [performAutoCrop])
+
+  useEffect(() => {
+    return () => {
+      if (cropChangeTimeoutRef.current) {
+        clearTimeout(cropChangeTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // --- Cropper Logic End ---
 
   const handleParamChange = (params: Partial<DiceParams>) => {
     setDiceParams(params) // Store handles merging
@@ -1102,10 +1248,25 @@ function EditorContent() {
         )}
 
         {step === 'crop' && (
-          <div className="w-full max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col items-center gap-6">
-            <Cropper
-              onBack={() => setStep('upload')}
-              onContinue={() => setStep('tune')}
+          <div className={EDITOR_LAYOUT_CLASSES.container} style={{ maxWidth: '1400px' }}>
+            <div className={EDITOR_LAYOUT_CLASSES.leftColumn}>
+              <CropperPanel
+                selectedRatio={selectedRatio}
+                onRatioChange={setSelectedRatio}
+                onRotate={handleRotate}
+                onBack={() => setStep('upload')}
+                onContinue={handleCropContinue}
+                isProcessing={isProcessing}
+              />
+            </div>
+
+            <CropperMain
+              fixedCropperRef={fixedCropperRef}
+              imageUrl={originalImage || ''}
+              selectedOption={selectedOption}
+              stencilSize={stencilSize}
+              setImageLoaded={setImageLoaded}
+              onCropperChange={handleCropperChange}
             />
           </div>
         )}
