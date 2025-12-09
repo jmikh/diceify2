@@ -104,7 +104,7 @@ function EditorContent() {
 
   // Local UI state
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showProjectsSubmenu, setShowProjectsSubmenu] = useState(false)
+
   const [isRestoringOAuthState, setIsRestoringOAuthState] = useState(false)
 
   // Track window size for responsive cropper
@@ -146,7 +146,7 @@ function EditorContent() {
       const target = event.target as HTMLElement
       if (!target.closest('.user-menu-container')) {
         setShowUserMenu(false)
-        setShowProjectsSubmenu(false)
+
       }
     }
 
@@ -721,130 +721,14 @@ function EditorContent() {
                           </div>
                         </div>
 
-                        {/* Projects Menu Item */}
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowProjectsSubmenu(!showProjectsSubmenu)}
-                            className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-between"
-                          >
-                            <span>Projects</span>
-                            <svg
-                              className={`w-4 h-4 transition-transform ${showProjectsSubmenu ? 'rotate-180' : ''}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-
-                          {/* Projects Submenu */}
-                          {showProjectsSubmenu && (
-                            <div className="border-t border-gray-700">
-                              {userProjects.length > 0 ? (
-                                <>
-                                  {userProjects.map((project) => (
-                                    <div
-                                      key={project.id}
-                                      className="w-full px-6 py-2 text-sm hover:bg-white/10 transition-colors flex items-center justify-between group"
-                                    >
-                                      <button
-                                        onClick={() => {
-                                          devLog('[DEBUG] Loading project from menu:', {
-                                            id: project.id,
-                                            name: project.name,
-                                            currentX: project.currentX,
-                                            currentY: project.currentY,
-                                            percentComplete: project.percentComplete
-                                          })
-                                          loadProject(project)
-                                          setShowUserMenu(false)
-                                          setShowProjectsSubmenu(false)
-                                        }}
-                                        className="flex-1 min-w-0 text-left flex items-center"
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-white/80 truncate">
-                                            {project.name || 'Untitled Project'}
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            {new Date(project.updatedAt).toLocaleDateString()}
-                                            {project.percentComplete !== undefined && (
-                                              <span className="ml-1">• {Math.round(project.percentComplete)}%</span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </button>
-                                      <div className="flex items-center gap-2 ml-2">
-                                        {project.id === currentProjectId ? (
-                                          <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                          </svg>
-                                        ) : (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              deleteProject(project.id)
-                                            }}
-                                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
-                                            title="Delete project"
-                                          >
-                                            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {userProjects.length < 3 && (
-                                    <button
-                                      onClick={() => {
-                                        createProject()
-                                        setShowUserMenu(false)
-                                        setShowProjectsSubmenu(false)
-                                      }}
-                                      className="w-full px-6 py-2 text-sm text-left text-pink-400 hover:text-pink-300 hover:bg-white/10 transition-colors flex items-center border-t border-gray-700"
-                                    >
-                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                      </svg>
-                                      Create New Project
-                                    </button>
-                                  )}
-                                </>
-                              ) : (
-                                <div className="px-6 py-3">
-                                  <div className="text-xs text-gray-500 mb-2">No projects yet</div>
-                                  <button
-                                    onClick={() => {
-                                      createProject()
-                                      setShowUserMenu(false)
-                                      setShowProjectsSubmenu(false)
-                                    }}
-                                    className="text-sm text-pink-400 hover:text-pink-300"
-                                  >
-                                    Create your first project
-                                  </button>
-                                </div>
-                              )}
-                              {userProjects.length >= 3 && (
-                                <div className="px-6 py-2 text-xs text-gray-500 border-t border-gray-700">
-                                  At capacity (3 max)
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
                         {/* Sign Out */}
                         <button
                           onClick={() => {
                             setShowUserMenu(false)
-                            setShowProjectsSubmenu(false)
+
                             signOut()
                           }}
-                          className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors border-t border-gray-700"
+                          className="w-full px-4 py-2 text-sm text-left text-white/90 hover:text-white hover:bg-white/10 transition-colors hover:rounded-b-lg"
                         >
                           Sign out
                         </button>
@@ -871,13 +755,21 @@ function EditorContent() {
                 currentProjectId={currentProjectId}
                 lastSaved={lastSaved}
                 isSaving={isSaving}
+                projects={userProjects}
                 onProjectChange={(name: string) => {
                   // Just update the local state - ProjectSelector handles the API call
                   setProjectName(name)
                   // Update the local projects list to reflect the change
-                  // Note: setUserProjects is not exposed from hook, but we can refetch
                   fetchUserProjects()
                 }}
+                onSelectProject={(projectId) => {
+                  const project = userProjects.find(p => p.id === projectId)
+                  if (project) {
+                    loadProject(project)
+                  }
+                }}
+                onCreateNew={createProject}
+                onDeleteProject={deleteProject}
               />
             )}
           </div>

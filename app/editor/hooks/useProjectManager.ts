@@ -108,11 +108,11 @@ export function useProjectManager() {
         handleResetWorkflow()
 
         // Use provided name or generate default
-        let projectName = name
+        const projectName = name
         if (!projectName) {
-            const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
-            projectName = `Untitled Project ${randomChars}`
+            return // Name is required now
         }
+
 
         devLog(`[DB] Creating new empty project: ${projectName}`)
         try {
