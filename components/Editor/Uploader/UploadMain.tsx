@@ -4,14 +4,14 @@ import { useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Image as ImageIcon } from 'lucide-react'
 import { useEditorStore } from '@/lib/store/useEditorStore'
+import { usePersistence } from '@/app/editor/hooks/usePersistence'
 
-interface UploadMainProps {
-    onUpload?: (url: string) => void
-}
+interface UploadMainProps { }
 
-export default function UploadMain({ onUpload }: UploadMainProps) {
+export default function UploadMain({ }: UploadMainProps) {
     const uploadImage = useEditorStore(state => state.uploadImage)
     const originalImage = useEditorStore(state => state.originalImage)
+    const { saveUploadStep } = usePersistence()
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0]
@@ -24,17 +24,15 @@ export default function UploadMain({ onUpload }: UploadMainProps) {
                     const img = new Image()
                     img.src = result
                     img.onload = () => {
-                        if (onUpload) {
-                            onUpload(result)
-                        } else {
-                            uploadImage(result)
-                        }
+                        // Always update store and persist internally
+                        uploadImage(result)
+                        saveUploadStep(result)
                     }
                 }
             }
             reader.readAsDataURL(file)
         }
-    }, [uploadImage, onUpload])
+    }, [uploadImage, saveUploadStep])
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
@@ -44,7 +42,7 @@ export default function UploadMain({ onUpload }: UploadMainProps) {
         maxFiles: 1
     })
 
-    if (originalImage && !onUpload) {
+    if (originalImage) {
         return (
             <div className="w-full h-full flex flex-col items-center justify-center">
                 <div className="relative w-full h-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black/40 group">

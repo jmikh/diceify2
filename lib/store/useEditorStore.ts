@@ -26,6 +26,7 @@ interface EditorState {
   croppedImage: string | null
   processedImageUrl: string | null
   cropParams: CropParams | null
+  hasCropChanged: boolean
 
   // Dice Configuration
   diceParams: DiceParams
@@ -58,6 +59,7 @@ interface EditorState {
   setCroppedImage: (url: string | null) => void
   setProcessedImageUrl: (url: string | null) => void
   setCropParams: (params: CropParams | null) => void
+  setHasCropChanged: (changed: boolean) => void
   setDiceParams: (params: Partial<DiceParams>) => void
   setDiceStats: (stats: DiceStats) => void
   setDiceGrid: (grid: DiceGrid | null) => void
@@ -106,6 +108,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   croppedImage: null,
   processedImageUrl: null,
   cropParams: null,
+  hasCropChanged: false,
 
   diceParams: DEFAULT_DICE_PARAMS,
   dieSize: 16,
@@ -133,7 +136,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setOriginalImage: (url) => set({ originalImage: url }),
   setCroppedImage: (url) => set({ croppedImage: url }),
   setProcessedImageUrl: (url) => set({ processedImageUrl: url }),
+
   setCropParams: (params) => set({ cropParams: params }),
+  setHasCropChanged: (changed) => set({ hasCropChanged: changed }),
 
   setDiceParams: (params) => set((state) => ({
     diceParams: { ...state.diceParams, ...params }
@@ -161,12 +166,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   uploadImage: (url: string) => {
     set({
       originalImage: url,
-      step: 'upload',
-      lastReachedStep: 'upload',
+      step: 'crop',
+      lastReachedStep: 'crop',
       croppedImage: null,
       processedImageUrl: null,
       diceGrid: null,
-      cropParams: null
+      cropParams: null,
+      diceStats: DEFAULT_DICE_STATS,
+      buildProgress: { x: 0, y: 0, percentage: 0 }
     })
   },
 

@@ -6,25 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 import {
-  Upload,
-  Crop as CropIcon,
-  SlidersHorizontal,
-  Box,
-  Share2,
-  Download,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
-  ZoomIn,
-  ZoomOut,
-  Undo,
-  Redo,
-  Image as ImageIcon,
-  Palette,
-  Layers,
-  LayoutGrid,
-  Settings,
   Dices
 } from 'lucide-react'
 import UploaderPanel from '@/components/Editor/Uploader/UploaderPanel'
@@ -46,15 +27,12 @@ import Logo from '@/components/Logo'
 import AuthModal from '@/components/AuthModal'
 import DonationModal from '@/components/DonationModal'
 import Footer from '@/components/Footer'
-import { theme } from '@/lib/theme'
-import { WorkflowStep, DiceParams, DiceStats, DiceGrid } from '@/lib/types'
-import { FixedCropperRef } from 'react-advanced-cropper'
 import { devLog, devError } from '@/lib/utils/debug'
 
 import { useEditorStore } from '@/lib/store/useEditorStore'
 import { useProjectManager } from './hooks/useProjectManager'
 import { usePersistence } from './hooks/usePersistence'
-import { useWorkflow } from './hooks/useWorkflow'
+import { useCropper } from '@/components/Editor/Cropper/useCropper'
 
 function EditorContent() {
   const { data: session, status } = useSession()
@@ -68,11 +46,9 @@ function EditorContent() {
     userProjects,
     fetchUserProjects,
     createProject,
-    createProjectFromCurrent,
     deleteProject,
     loadProject,
     updateURLWithProject,
-    handleResetWorkflow,
     loadingProjectRef,
     lastGridHash,
     setLastGridHash,
@@ -81,19 +57,8 @@ function EditorContent() {
 
   const {
     saveProgressOnly,
-    saveUploadStep
   } = usePersistence()
 
-  const {
-    handleStepNavigation,
-    handleContinueToStep,
-    handleStayInBuild,
-    handleStepperClick,
-    showBuildProgressDialog,
-    attemptedStep,
-    setHasCropChanged,
-    setHasTuneChanged
-  } = useWorkflow()
 
   // Store state
   const step = useEditorStore(state => state.step)
@@ -134,8 +99,6 @@ function EditorContent() {
   const setDieSize = useEditorStore(state => state.setDieSize)
   const setCostPer1000 = useEditorStore(state => state.setCostPer1000)
   const setProjectName = useEditorStore(state => state.setProjectName)
-  const setCurrentProjectId = useEditorStore(state => state.setCurrentProjectId)
-  const setLastSaved = useEditorStore(state => state.setLastSaved)
   const setIsInitializing = useEditorStore(state => state.setIsInitializing)
   const setBuildProgress = useEditorStore(state => state.setBuildProgress)
 
@@ -144,19 +107,6 @@ function EditorContent() {
   const [showProjectsSubmenu, setShowProjectsSubmenu] = useState(false)
   const [isRestoringOAuthState, setIsRestoringOAuthState] = useState(false)
   const lastDiceIndexRef = useRef(0)
-
-  // Cropper State
-  const fixedCropperRef = useRef<FixedCropperRef>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
-  const [imageLoaded, setImageLoaded] = useState(false)
-
-  // Need to bring in updateCrop and completeCrop from store if not already there, 
-  // or define handlers. page.tsx uses setCroppedImage etc.
-  // The original Cropper used useEditorStore hooks: completeCrop, updateCrop. 
-  // These are actions on the store. I should fetch them here.
-  const completeCrop = useEditorStore(state => state.completeCrop)
-  const updateCrop = useEditorStore(state => state.updateCrop)
 
   // Track window size for responsive cropper
   const [windowSize, setWindowSize] = useState({ width: 800, height: 600 })
@@ -174,6 +124,20 @@ function EditorContent() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Cropper Logic Hook
+  const {
+    fixedCropperRef,
+    isProcessing,
+    selectedRatio,
+    setSelectedRatio,
+    imageLoaded,
+    setImageLoaded,
+    selectedOption,
+    stencilSize,
+    handleCropContinue,
+    handleRotate,
+    handleCropperChange
+  } = useCropper({ windowSize })
 
   // Memoize frame dimensions to prevent re-renders
   const frameWidth = useMemo(() => {
@@ -223,207 +187,6 @@ function EditorContent() {
     }
   }, [showUserMenu])
 
-
-  const handleImageUpload = (imageUrl: string) => {
-    setOriginalImage(imageUrl)
-    setCroppedImage(null)
-    setCropParams(null)
-    setDiceGrid(null)
-    setBuildProgress({ x: 0, y: 0, percentage: 0 })
-    setDiceStats({
-      blackCount: 0,
-      whiteCount: 0,
-      totalCount: 0,
-    })
-    setDiceStats({
-      blackCount: 0,
-      whiteCount: 0,
-      totalCount: 0,
-    })
-    // When uploading image, we stay in upload step (which now includes crop)
-    // We don't change step, but we might want to ensure we're on upload if not already
-    setStep('upload')
-    setLastReachedStep('upload')
-
-    // Save the uploaded image if we have a project
-    // Upload is saved immediately when image is uploaded
-    if (currentProjectId && session?.user?.id) {
-      // Pass the image directly since state hasn't updated yet
-      saveUploadStep(imageUrl)
-    }
-  }
-
-  // Helper function to compare crop parameters
-  const areCropParamsEqual = (params1: typeof cropParams, params2: typeof cropParams): boolean => {
-    if (!params1 || !params2) return params1 === params2
-
-    // Compare with small tolerance for floating point differences
-    const tolerance = 0.01
-    return Math.abs(params1.x - params2.x) < tolerance &&
-      Math.abs(params1.y - params2.y) < tolerance &&
-      Math.abs(params1.width - params2.width) < tolerance &&
-      Math.abs(params1.height - params2.height) < tolerance &&
-      Math.abs(params1.rotation - params2.rotation) < tolerance
-  }
-
-  const handleCropComplete = useCallback((croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => {
-    // Check if crop parameters actually changed
-    const hasChanged = !areCropParamsEqual(cropParams, params)
-
-    // Only mark as changed if parameters are different
-    if (hasChanged) {
-      // Changes tracked internally
-      setHasCropChanged(true) // Mark that crop has changed
-      devLog('[CROP] Crop parameters changed')
-
-      // When crop changes, reset lastReachedStep to 'tune' if needed
-      if (lastReachedStep === 'build') {
-        devLog('[CROP] Resetting lastReachedStep to tune - user must re-tune after crop change')
-        setLastReachedStep('tune')
-      }
-
-      // Reset build progress if there was any
-      if (buildProgress.x !== 0 || buildProgress.y !== 0) {
-        devLog('[CROP] Reset build progress due to crop change')
-        setBuildProgress({ x: 0, y: 0, percentage: 0 })
-      }
-    } else {
-      devLog('[CROP] Crop parameters unchanged')
-    }
-
-    setCropParams(params)
-
-    // Store the generated cropped image
-    setCroppedImage(croppedImageUrl)
-  }, [cropParams, lastReachedStep, buildProgress, setCropParams, setCroppedImage, setHasCropChanged, setLastReachedStep, setBuildProgress])
-
-
-
-  // --- Cropper Logic Start ---
-
-  const selectedOption = aspectRatioOptions.find(opt => opt.value === selectedRatio) || aspectRatioOptions[2]
-
-  // Calculate stencil size
-  const getStencilSize = useCallback(() => {
-    if (typeof window === 'undefined') return { width: 0, height: 0 }
-
-    const sidebarTotalWidth = 350 + 24 + 32
-    const availableWidth = Math.min(900, windowSize.width - sidebarTotalWidth)
-    const containerHeight = Math.max(500, Math.min(800, windowSize.height - 180))
-    const availableHeight = containerHeight - 32
-
-    const maxWidth = availableWidth * 0.9
-    const maxHeight = availableHeight * 0.9
-
-    const ratio = selectedOption.ratio || 1
-
-    let width = maxWidth
-    let height = width / ratio
-
-    if (height > maxHeight) {
-      height = maxHeight
-      width = height * ratio
-    }
-
-    return { width, height }
-  }, [windowSize, selectedOption])
-
-  const stencilSize = getStencilSize()
-
-  const performAutoCrop = useCallback(async (isComplete = false) => {
-    if (isProcessing) return
-
-    try {
-      const cropper = fixedCropperRef.current
-      if (!cropper) return
-
-      const canvas = cropper.getCanvas({
-        width: 2048,
-        height: (!selectedOption.ratio) ? 2048 : 2048 / selectedOption.ratio,
-      })
-
-      if (canvas) {
-        const coordinates = cropper.getCoordinates()
-        const state = cropper.getState()
-        const croppedImage = canvas.toDataURL('image/jpeg', 0.95)
-
-        const cropData = {
-          x: coordinates?.left || 0,
-          y: coordinates?.top || 0,
-          width: coordinates?.width || 0,
-          height: coordinates?.height || 0,
-          rotation: state?.transforms?.rotate || 0
-        }
-
-        if (isComplete) {
-          completeCrop(croppedImage, cropData)
-        } else {
-          updateCrop(croppedImage, cropData)
-        }
-      }
-    } catch (error) {
-      devError('Error auto-cropping image:', error)
-    }
-  }, [isProcessing, selectedOption.ratio, completeCrop, updateCrop])
-
-  // Auto-crop when image is ready or when aspect ratio changes
-  useEffect(() => {
-    if (imageLoaded) {
-      const timeout = setTimeout(() => {
-        performAutoCrop(false)
-      }, 100)
-      return () => clearTimeout(timeout)
-    }
-  }, [imageLoaded, selectedRatio, performAutoCrop])
-
-  const handleCropContinue = async () => {
-    setIsProcessing(true)
-    try {
-      await performAutoCrop(true)
-      setStep('tune')
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const handleRotate = (angle: number) => {
-    fixedCropperRef.current?.rotateImage(angle)
-  }
-
-  const cropChangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const handleCropperChange = useCallback(() => {
-    if (cropChangeTimeoutRef.current) {
-      clearTimeout(cropChangeTimeoutRef.current)
-    }
-    cropChangeTimeoutRef.current = setTimeout(() => {
-      performAutoCrop(false)
-    }, 500)
-  }, [performAutoCrop])
-
-  useEffect(() => {
-    return () => {
-      if (cropChangeTimeoutRef.current) {
-        clearTimeout(cropChangeTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  // --- Cropper Logic End ---
-
-  const handleParamChange = (params: Partial<DiceParams>) => {
-    setDiceParams(params) // Store handles merging
-    if (step === 'tune') {
-      // Changes tracked internally
-      setHasTuneChanged(true) // Mark that tune has changed
-
-      // Reset build progress if there was any
-      if (buildProgress.x !== 0 || buildProgress.y !== 0) {
-        setBuildProgress({ x: 0, y: 0, percentage: 0 })
-        devLog('[TUNE] Reset build progress due to parameter change')
-      }
-    }
-  }
 
   const handleGridUpdate = (grid: DiceGrid) => {
     setDiceGrid(grid)
@@ -1251,20 +1014,6 @@ function EditorContent() {
         </div>
 
       </main >
-
-      {/* Build Progress Dialog */}
-      < ConfirmDialog
-        isOpen={showBuildProgressDialog}
-        title="Build in Progress"
-        message="Changing the underlying image would reset progress. Do you want to Proceed?"
-        progress={buildProgress.percentage}
-        confirmText="Yes"
-        confirmButtonColor={theme.colors.accent.pink}
-        cancelText="Back to Build"
-        cancelButtonColor={theme.colors.accent.blue}
-        onConfirm={handleContinueToStep}
-        onCancel={handleStayInBuild}
-      />
 
       {/* Auth Modal */}
       < AuthModal
