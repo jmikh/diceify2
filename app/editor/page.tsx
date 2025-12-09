@@ -626,6 +626,25 @@ function EditorContent() {
     )
   }
 
+  // Render main content based on current step
+  const renderMainContent = () => {
+    if (step === 'upload') {
+      return <UploadMain />
+    }
+    if (step === 'crop' || !croppedImage) {
+      return <CropperMain windowSize={windowSize} />
+    }
+    if (step === 'tune' || !diceGrid) {
+      return (
+        <TunerMain
+          diceCanvasRef={diceCanvasRef}
+          cropParams={cropParams}
+        />
+      )
+    }
+    return <BuilderMain />
+  }
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Background Elements */}
@@ -884,44 +903,14 @@ function EditorContent() {
 
             {step === 'tune' && <TunerPanel />}
 
-            {step === 'build' && diceGrid && (
+            {step === 'build' && (
               <BuilderPanel />
             )}
           </div>
 
           {/* MAIN CONTENT AREA */}
           <div className="flex-grow flex items-center justify-center relative min-w-[400px] max-w-[850px] max-h-[850px] overflow-hidden bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-            {step === 'upload' && <UploadMain />}
-
-            {step === 'crop' && (
-              <CropperMain windowSize={windowSize} />
-            )}
-
-            {step === 'tune' && (
-              <TunerMain
-                diceCanvasRef={diceCanvasRef}
-                cropParams={cropParams}
-              />
-            )}
-
-            {step === 'build' && (
-              diceGrid ? (
-                <BuilderMain />
-              ) : croppedImage ? (
-                // Show DiceCanvas to generate the grid
-                <div className="flex justify-center w-full items-center">
-                  <DiceCanvas
-                    maxWidth={900}
-                    maxHeight={600}
-                  />
-                </div>
-              ) : (
-                <div className="text-center text-white/60 mt-20 w-full">
-                  <p>No image data available.</p>
-                  <p className="text-sm mt-2">Please go back to the Upload or Crop step.</p>
-                </div>
-              )
-            )}
+            {renderMainContent()}
           </div>
         </div>
 
