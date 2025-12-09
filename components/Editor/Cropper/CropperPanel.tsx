@@ -86,7 +86,7 @@ export default function CropperPanel() {
     const setSelectedRatio = useEditorStore(state => state.setSelectedRatio)
     const setCropRotation = useEditorStore(state => state.setCropRotation)
     const setStep = useEditorStore(state => state.setStep)
-    const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
+
 
     const handleRotate = () => {
         setCropRotation(cropRotation + 90)
@@ -97,7 +97,7 @@ export default function CropperPanel() {
     }
 
     const handleContinue = () => {
-        setLastReachedStep('tune')
+
         setStep('tune')
     }
 

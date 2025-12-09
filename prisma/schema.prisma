@@ -71,7 +71,7 @@ model Project {
   createdAt       DateTime @default(now())
   costPer1000     Float    @default(60)
   dieSize         Int      @default(16)
-  lastReachedStep String   @default("upload")
+
   cropHeight      Float?
   cropRotation    Float    @default(0)
   cropWidth       Float?

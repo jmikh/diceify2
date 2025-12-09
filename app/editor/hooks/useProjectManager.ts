@@ -20,7 +20,7 @@ export function useProjectManager() {
     const diceGrid = useEditorStore(state => state.diceGrid)
     const dieSize = useEditorStore(state => state.dieSize)
     const costPer1000 = useEditorStore(state => state.costPer1000)
-    const lastReachedStep = useEditorStore(state => state.lastReachedStep)
+
     const buildProgress = useEditorStore(state => state.buildProgress)
     const showProjectModal = useEditorStore(state => state.showProjectModal)
 
@@ -40,7 +40,7 @@ export function useProjectManager() {
     const setDieSize = useEditorStore(state => state.setDieSize)
     const setCostPer1000 = useEditorStore(state => state.setCostPer1000)
     const setBuildProgress = useEditorStore(state => state.setBuildProgress)
-    const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
+
     const setIsInitializing = useEditorStore(state => state.setIsInitializing)
     const resetWorkflow = useEditorStore(state => state.resetWorkflow)
 
@@ -121,7 +121,7 @@ export function useProjectManager() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: projectName,
-                    lastReachedStep: 'upload',
+
                     originalImage: null,
                     croppedImage: null,
                     numRows: 50,
@@ -178,7 +178,7 @@ export function useProjectManager() {
         try {
             const payload = {
                 name: projectName,
-                lastReachedStep,
+
                 originalImage,
                 croppedImage,
                 numRows: diceParams.numRows,
@@ -226,7 +226,7 @@ export function useProjectManager() {
         } catch (error) {
             devError('Failed to create project:', error)
         }
-    }, [session, lastReachedStep, originalImage, croppedImage, diceParams, dieSize, costPer1000, diceGrid, diceStats, buildProgress, fetchUserProjects, cropParams, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal])
+    }, [session, originalImage, croppedImage, diceParams, dieSize, costPer1000, diceGrid, diceStats, buildProgress, fetchUserProjects, cropParams, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal])
 
     // Delete project
     const deleteProject = useCallback(async (projectId: string) => {
@@ -356,26 +356,20 @@ export function useProjectManager() {
             percentage: project.percentComplete || 0
         })
 
-        if (project.lastReachedStep) {
-            setStep(project.lastReachedStep)
-            setLastReachedStep(project.lastReachedStep)
-        } else {
-            if (project.croppedImage) {
-                setStep('tune')
-                setLastReachedStep('tune')
-            } else if (project.originalImage) {
-                setStep('crop')
-                setLastReachedStep('crop')
+        if (project.originalImage) {
+            if ((project.currentX && project.currentX > 0) || (project.currentY && project.currentY > 0)) {
+                setStep('build')
             } else {
-                setStep('upload')
-                setLastReachedStep('upload')
+                setStep('tune')
             }
+        } else {
+            setStep('upload')
         }
 
         setTimeout(() => {
             loadingProjectRef.current = false
         }, 100)
-    }, [setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setOriginalImage, setCroppedImage, setCropParams, setProcessedImageUrl, setDiceGrid, setDiceStats, setDiceParams, setDieSize, setCostPer1000, setBuildProgress, setStep, setLastReachedStep])
+    }, [setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setOriginalImage, setCroppedImage, setCropParams, setProcessedImageUrl, setDiceGrid, setDiceStats, setDiceParams, setDieSize, setCostPer1000, setBuildProgress, setStep])
 
     return {
         userProjects,

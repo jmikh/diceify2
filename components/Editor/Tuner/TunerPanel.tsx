@@ -39,7 +39,7 @@ export default function TunerPanel() {
   const params = useEditorStore(state => state.diceParams)
   const setDiceParams = useEditorStore(state => state.setDiceParams)
   const setStep = useEditorStore(state => state.setStep)
-  const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
+
   const diceStats = useEditorStore(state => state.diceStats)
   const { blackCount, whiteCount, totalCount } = diceStats
 
@@ -560,7 +560,7 @@ export default function TunerPanel() {
         <button
           onClick={() => {
             setStep('build')
-            setLastReachedStep('build')
+
           }}
           className="
             flex-1 py-3.5 rounded-full

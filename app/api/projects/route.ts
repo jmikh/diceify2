@@ -6,11 +6,11 @@ import { devLog, devError } from '@/lib/utils/debug'
 // GET /api/projects - Get all projects for current user
 export async function GET() {
   const session = await auth()
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  
+
   devLog(`[DB] GET /api/projects - Fetching all projects for user ${session.user.id}`)
   try {
     const projects = await prisma.project.findMany({
@@ -23,7 +23,7 @@ export async function GET() {
       select: {
         id: true,
         name: true,
-        lastReachedStep: true,
+
         percentComplete: true,
         totalDice: true,
         completedDice: true,
@@ -35,7 +35,7 @@ export async function GET() {
         // These will be fetched only when loading a specific project
       }
     })
-    
+
     devLog(`[DB] Found ${projects.length} projects for user`)
     return NextResponse.json(projects)
   } catch (error) {
@@ -47,11 +47,11 @@ export async function GET() {
 // POST /api/projects - Create new project
 export async function POST(request: NextRequest) {
   const session = await auth()
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  
+
   devLog(`[DB] POST /api/projects - Creating new project for user ${session.user.id}`)
   try {
     // Check if user already has 3 projects
@@ -61,17 +61,17 @@ export async function POST(request: NextRequest) {
         userId: session.user.id
       }
     })
-    
+
     if (projectCount >= 3) {
-      return NextResponse.json({ 
-        error: 'Project limit reached. Maximum 3 projects allowed. Please delete a project to create a new one.' 
+      return NextResponse.json({
+        error: 'Project limit reached. Maximum 3 projects allowed. Please delete a project to create a new one.'
       }, { status: 403 })
     }
-    
+
     const body = await request.json()
-    const { 
+    const {
       name = 'Untitled Project',
-      lastReachedStep = 'upload',
+
       originalImage,
       croppedImage, // This will be stored as originalImage if no originalImage provided
       numRows,
@@ -97,19 +97,19 @@ export async function POST(request: NextRequest) {
       cropHeight,
       cropRotation
     } = body
-    
+
     devLog(`[DB] Creating new project with name: ${name}`)
     devLog(`[DB] Has originalImage: ${!!originalImage}, Has croppedImage: ${!!croppedImage}`)
-    
+
     // Use croppedImage as originalImage if originalImage is not provided
     // This happens when user crops before saving
     const imageToSave = originalImage || croppedImage
-    
+
     const project = await prisma.project.create({
       data: {
         name,
         userId: session.user.id,
-        lastReachedStep,
+
         originalImage: imageToSave,
         numRows,
         colorMode,
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         cropRotation
       }
     })
-    
+
     devLog(`[DB] Created project ${project.id}`)
     return NextResponse.json(project)
   } catch (error) {

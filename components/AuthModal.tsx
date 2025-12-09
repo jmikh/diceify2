@@ -19,7 +19,7 @@ interface AuthModalProps {
     cropParams?: any
     diceParams?: any
     step?: string
-    lastReachedStep?: string
+
   }
 }
 

@@ -9,7 +9,7 @@ async function updateProgress(
   params: { id: string }
 ) {
   const session = await auth()
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -17,9 +17,9 @@ async function updateProgress(
   devLog(`[DB] /api/projects/${params.id}/progress - Updating progress for user ${session.user.id}`)
   try {
     const body = await request.json()
-    const { currentX, currentY, completedDice, lastReachedStep } = body
-    devLog(`[DB] Progress update: x=${currentX}, y=${currentY}, completed=${completedDice}, lastReachedStep=${lastReachedStep}`)
-    
+    const { currentX, currentY, completedDice } = body
+    devLog(`[DB] Progress update: x=${currentX}, y=${currentY}, completed=${completedDice}`)
+
     // Check if project belongs to user
     devLog(`[DB] Checking project ownership`)
     const existingProject = await prisma.project.findFirst({
@@ -28,12 +28,12 @@ async function updateProgress(
         userId: session.user.id
       }
     })
-    
+
     if (!existingProject) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
-    
-    // Update progress fields and lastReachedStep
+
+    // Update progress fields
     devLog(`[DB] Updating progress for project ${params.id}`)
     const project = await prisma.project.update({
       where: {
@@ -46,10 +46,10 @@ async function updateProgress(
         percentComplete: existingProject.totalDice > 0
           ? (completedDice / existingProject.totalDice) * 100
           : 0,
-        lastReachedStep: lastReachedStep || 'build' // Default to 'build' if not provided
+
       }
     })
-    
+
     devLog(`[DB] Successfully updated progress for project ${params.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {

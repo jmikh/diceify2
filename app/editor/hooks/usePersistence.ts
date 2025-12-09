@@ -17,13 +17,13 @@ export function usePersistence() {
     const dieSize = useEditorStore(state => state.dieSize)
     const costPer1000 = useEditorStore(state => state.costPer1000)
     const step = useEditorStore(state => state.step)
-    const lastReachedStep = useEditorStore(state => state.lastReachedStep)
+
     const buildProgress = useEditorStore(state => state.buildProgress)
 
     // Store actions
     const setLastSaved = useEditorStore(state => state.setLastSaved)
     const setIsSaving = useEditorStore(state => state.setIsSaving)
-    const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
+
 
     // Keep latest buildProgress in a ref to avoid stale closures
     const buildProgressRef = useRef(buildProgress)
@@ -44,16 +44,14 @@ export function usePersistence() {
                     currentX: currentProgress.x,
                     currentY: currentProgress.y,
                     completedDice: Math.floor((currentProgress.percentage / 100) * diceStats.totalCount),
-                    lastReachedStep: 'build'
+
                 })
             })
 
             if (response.ok) {
                 devLog('Progress saved successfully')
                 setLastSaved(new Date())
-                if (lastReachedStep !== 'build') {
-                    setLastReachedStep('build')
-                }
+
                 localStorage.removeItem('editorState')
             }
         } catch (error) {
@@ -61,7 +59,7 @@ export function usePersistence() {
         } finally {
             setIsSaving(false)
         }
-    }, [session, currentProjectId, diceStats.totalCount, lastReachedStep, setIsSaving, setLastSaved, setLastReachedStep])
+    }, [session, currentProjectId, diceStats.totalCount, setIsSaving, setLastSaved])
 
     // Save upload step data
     const saveUploadStep = useCallback(async (imageToSave?: string) => {
@@ -75,7 +73,7 @@ export function usePersistence() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     originalImage: image,
-                    lastReachedStep
+
                 })
             })
 
@@ -87,7 +85,7 @@ export function usePersistence() {
         } catch (error) {
             devError('Failed to save upload data:', error)
         }
-    }, [session, currentProjectId, originalImage, lastReachedStep, setLastSaved])
+    }, [session, currentProjectId, originalImage, setLastSaved])
 
     // Save crop step data
     const saveCropStep = useCallback(async () => {
@@ -104,7 +102,7 @@ export function usePersistence() {
                     cropWidth: cropParams.width,
                     cropHeight: cropParams.height,
                     cropRotation: cropParams.rotation,
-                    lastReachedStep
+
                 })
             })
 
@@ -116,7 +114,7 @@ export function usePersistence() {
         } catch (error) {
             devError('Failed to save crop data:', error)
         }
-    }, [session, currentProjectId, cropParams, lastReachedStep, setLastSaved])
+    }, [session, currentProjectId, cropParams, setLastSaved])
 
     // Save tune step parameters
     const saveTuneStep = useCallback(async () => {
@@ -141,7 +139,7 @@ export function usePersistence() {
                     gridWidth: diceGrid?.width || null,
                     gridHeight: diceGrid?.height || null,
                     totalDice: diceStats.totalCount,
-                    lastReachedStep: 'build'
+
                 })
             })
 

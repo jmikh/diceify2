@@ -61,7 +61,7 @@ function EditorContent() {
 
   // Store state
   const step = useEditorStore(state => state.step)
-  const lastReachedStep = useEditorStore(state => state.lastReachedStep)
+
   const showAuthModal = useEditorStore(state => state.showAuthModal)
   const showProjectModal = useEditorStore(state => state.showProjectModal)
   const showDonationModal = useEditorStore(state => state.showDonationModal)
@@ -85,7 +85,7 @@ function EditorContent() {
 
   // Store actions
   const setStep = useEditorStore(state => state.setStep)
-  const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
+
   const setShowAuthModal = useEditorStore(state => state.setShowAuthModal)
   const setShowProjectModal = useEditorStore(state => state.setShowProjectModal)
   const setShowDonationModal = useEditorStore(state => state.setShowDonationModal)
@@ -214,7 +214,7 @@ function EditorContent() {
             currentX: currentProgress.x,
             currentY: currentProgress.y,
             completedDice: Math.floor((currentProgress.percentage / 100) * diceStats.totalCount),
-            lastReachedStep: 'build'
+
           })
           navigator.sendBeacon(`/api/projects/${currentProjectId}/progress`, data)
         }
@@ -284,7 +284,7 @@ function EditorContent() {
           cropParams,     // Used to regenerate cropped image
           diceParams,     // Used to regenerate dice grid
           step,
-          lastReachedStep,
+
           dieSize,
           costPer1000,
           projectName,
@@ -303,7 +303,7 @@ function EditorContent() {
               cropParams,
               diceParams,
               step,
-              lastReachedStep,
+
               dieSize,
               costPer1000,
               projectName,
@@ -323,7 +323,7 @@ function EditorContent() {
       // Clear localStorage when logged in (using database instead)
       localStorage.removeItem('editorState')
     }
-  }, [session?.user?.id, originalImage, cropParams, diceParams, step, lastReachedStep, dieSize, costPer1000, projectName, buildProgress, diceStats])
+  }, [session?.user?.id, originalImage, cropParams, diceParams, step, dieSize, costPer1000, projectName, buildProgress, diceStats])
 
   // Restore state from localStorage on mount (if no project is loaded)
   useEffect(() => {
@@ -351,7 +351,7 @@ function EditorContent() {
             if (state.buildProgress) setBuildProgress(state.buildProgress)
             if (state.diceStats) setDiceStats(state.diceStats)
             if (state.step) setStep(state.step)
-            if (state.lastReachedStep) setLastReachedStep(state.lastReachedStep)
+            if (state.step) setStep(state.step)
 
             // If we have crop params and original image, regenerate the cropped image
             // This is needed for the tune and build steps
@@ -417,7 +417,7 @@ function EditorContent() {
           devLog('  - croppedImage:', state.croppedImage ? `${state.croppedImage.substring(0, 50)}...` : 'null')
           devLog('  - processedImageUrl:', state.processedImageUrl ? `${state.processedImageUrl.substring(0, 50)}...` : 'null')
           devLog('  - step:', state.step)
-          devLog('  - lastReachedStep:', state.lastReachedStep)
+
           devLog('  - cropParams:', state.cropParams)
           devLog('  - diceParams:', state.diceParams)
 
@@ -446,10 +446,7 @@ function EditorContent() {
             devLog('[DEBUG] Restoring step')
             setStep(state.step)
           }
-          if (state.lastReachedStep) {
-            devLog('[DEBUG] Restoring lastReachedStep')
-            setLastReachedStep(state.lastReachedStep)
-          }
+
 
           // Clear the saved state and URL param
           sessionStorage.removeItem('editorStateBeforeAuth')
@@ -470,7 +467,7 @@ function EditorContent() {
             sessionStorage.removeItem('intendedStepAfterLogin')
             // Set step to build after restoration
             setStep('build')
-            setLastReachedStep('build')
+
           }
 
           // Mark restoration as complete - this will trigger auto-save logic
@@ -838,7 +835,7 @@ function EditorContent() {
           cropParams,
           diceParams,
           step,
-          lastReachedStep
+
         }}
       />
 

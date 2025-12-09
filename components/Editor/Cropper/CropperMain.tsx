@@ -24,7 +24,7 @@ export default function CropperMain({
     // Store Actions
     const updateCrop = useEditorStore(state => state.updateCrop)
     const setStep = useEditorStore(state => state.setStep)
-    const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
+
     const setBuildProgress = useEditorStore(state => state.setBuildProgress)
     const setHasCropChanged = useEditorStore(state => state.setHasCropChanged)
     const setCropParams = useEditorStore(state => state.setCropParams)
@@ -32,7 +32,7 @@ export default function CropperMain({
 
     // Store State
     const cropParams = useEditorStore(state => state.cropParams)
-    const lastReachedStep = useEditorStore(state => state.lastReachedStep)
+
     const buildProgress = useEditorStore(state => state.buildProgress)
 
     // Local State
@@ -78,9 +78,7 @@ export default function CropperMain({
             if (setHasCropChanged) setHasCropChanged(true)
 
             // Allow re-tuning if already built
-            if (lastReachedStep === 'build') {
-                setLastReachedStep('tune')
-            }
+
 
             // Reset build progress
             if (buildProgress.x !== 0 || buildProgress.y !== 0) {
@@ -90,7 +88,7 @@ export default function CropperMain({
 
         setCropParams(params)
         setCroppedImage(croppedImageUrl)
-    }, [cropParams, lastReachedStep, buildProgress, setCropParams, setCroppedImage, setHasCropChanged, setLastReachedStep, setBuildProgress])
+    }, [cropParams, buildProgress, setCropParams, setCroppedImage, setHasCropChanged, setBuildProgress])
 
     const selectedOption = aspectRatioOptions.find(opt => opt.value === selectedRatio) || aspectRatioOptions[2]
 

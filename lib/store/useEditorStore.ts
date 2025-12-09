@@ -19,7 +19,7 @@ interface BuildProgress {
 interface EditorState {
   // Workflow State
   step: WorkflowStep
-  lastReachedStep: WorkflowStep
+
 
   // Editor Data
   originalImage: string | null
@@ -58,7 +58,7 @@ interface EditorState {
 
   // Actions
   setStep: (step: WorkflowStep) => void
-  setLastReachedStep: (step: WorkflowStep) => void
+
   setOriginalImage: (url: string | null) => void
   setCroppedImage: (url: string | null) => void
   setProcessedImageUrl: (url: string | null) => void
@@ -108,7 +108,7 @@ const DEFAULT_DICE_STATS: DiceStats = {
 export const useEditorStore = create<EditorState>((set, get) => ({
   // Initial State
   step: 'upload',
-  lastReachedStep: 'upload',
+
 
   originalImage: null,
   croppedImage: null,
@@ -140,7 +140,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Actions
   setStep: (step) => set({ step }),
-  setLastReachedStep: (step) => set({ lastReachedStep: step }),
+
 
   setOriginalImage: (url) => set({ originalImage: url }),
   setCroppedImage: (url) => set({ croppedImage: url }),
@@ -179,7 +179,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       originalImage: url,
       step: 'crop',
-      lastReachedStep: 'crop',
+
       croppedImage: null,
       processedImageUrl: null,
       diceGrid: null,
@@ -202,7 +202,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       croppedImage: croppedImageUrl,
       cropParams: crop,
       step: 'tune',
-      lastReachedStep: 'tune',
+
       diceGrid: null
     })
   },
