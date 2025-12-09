@@ -133,22 +133,9 @@ function EditorContent() {
     return diceGrid ? (diceGrid.height * dieSize) / 10 : undefined
   }, [diceGrid?.height, dieSize])
 
-  // Build navigation handlers
-  const [buildNavigation, setBuildNavigation] = useState<{
-    navigatePrev: () => void
-    navigateNext: () => void
-    navigatePrevDiff: () => void
-    navigateNextDiff: () => void
-    canNavigate: {
-      prev: boolean
-      next: boolean
-      prevDiff: boolean
-      nextDiff: boolean
-    }
-  } | null>(null)
-
   // Auto-save timeout ref for build step
   const buildAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   // Keep latest buildProgress in a ref to avoid stale closures
   const buildProgressRef = useRef(buildProgress)
   buildProgressRef.current = buildProgress
@@ -250,11 +237,6 @@ function EditorContent() {
       handleBeforeUnload()
     }
   }, [step, currentProjectId, session?.user?.id, diceStats.totalCount])
-
-  // Memoize the navigation ready handler
-  const handleNavigationReady = useCallback((nav: any) => {
-    setBuildNavigation(nav)
-  }, [])
 
   // Handle project loading from URL
   useEffect(() => {
@@ -903,35 +885,7 @@ function EditorContent() {
             {step === 'tune' && <TunerPanel />}
 
             {step === 'build' && diceGrid && (
-              <BuilderPanel
-                currentX={buildProgress.x}
-                currentY={buildProgress.y}
-                totalRows={diceGrid.height}
-                totalCols={diceGrid.width}
-                currentDice={null}
-                currentIndex={buildProgress.y * diceGrid.width + buildProgress.x}
-                totalDice={diceGrid.width * diceGrid.height}
-                blackCount={diceStats.blackCount}
-                whiteCount={diceStats.whiteCount}
-                onNavigate={(direction) => {
-                  // Check if trying to go forward beyond x=3 without authentication
-                  if (!session && (direction === 'next' || direction === 'nextDiff') && buildProgress.x >= 3) {
-                    devLog('[AUTH] Navigation blocked at x=3 - showing auth modal')
-                    setShowAuthModal(true)
-                    return
-                  }
-
-                  if (!buildNavigation) return
-
-                  if (direction === 'prev') buildNavigation.navigatePrev()
-                  else if (direction === 'next') buildNavigation.navigateNext()
-                  else if (direction === 'prevDiff') buildNavigation.navigatePrevDiff()
-                  else if (direction === 'nextDiff') buildNavigation.navigateNextDiff()
-                }}
-                canNavigate={buildNavigation?.canNavigate || { prev: false, next: false, prevDiff: false, nextDiff: false }}
-                onBack={() => setStep('tune')}
-                buildNavigation={buildNavigation}
-              />
+              <BuilderPanel />
             )}
           </div>
 
@@ -952,13 +906,7 @@ function EditorContent() {
 
             {step === 'build' && (
               diceGrid ? (
-                <BuilderMain
-                  currentProjectId={currentProjectId || ''}
-                  diceGrid={diceGrid}
-                  buildProgress={buildProgress}
-                  handleBuildProgressUpdate={handleBuildProgressUpdate}
-                  handleNavigationReady={handleNavigationReady}
-                />
+                <BuilderMain />
               ) : croppedImage ? (
                 // Show DiceCanvas to generate the grid
                 <div className="flex justify-center w-full items-center">

@@ -1,54 +1,34 @@
 'use client'
 
-import { DiceGrid, Dice } from '@/lib/dice/types'
 import { devLog } from '@/lib/utils/debug'
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
 import { animate } from 'motion'
 import { Plus, Minus } from 'lucide-react'
 import { DiceSVGRenderer } from '@/lib/dice/svg-renderer'
 import { theme } from '@/lib/theme'
+import { useEditorStore } from '@/lib/store/useEditorStore'
+import { useBuildNavigation } from './useBuildNavigation'
 
 // --- BuildViewer Component (Internal) ---
 
-interface BuildViewerProps {
-    grid: DiceGrid
-    initialX?: number
-    initialY?: number
-    onPositionChange?: (x: number, y: number) => void
-    onNavigationReady?: (handlers: {
-        navigatePrev: () => void
-        navigateNext: () => void
-        navigatePrevDiff: () => void
-        navigateNextDiff: () => void
-        canNavigate: {
-            prev: boolean
-            next: boolean
-            prevDiff: boolean
-            nextDiff: boolean
-        }
-    }) => void
-}
+const BuildViewer = memo(function BuildViewer() {
+    const diceGrid = useEditorStore(state => state.diceGrid)
 
-const BuildViewer = memo(function BuildViewer({
-    grid,
-    initialX = 0,
-    initialY = 0,
-    onPositionChange,
-    onNavigationReady
-}: BuildViewerProps) {
+    const {
+        currentX,
+        currentY,
+        navigatePrev,
+        navigateNext,
+        navigatePrevDiff,
+        navigateNextDiff,
+        canNavigate,
+        currentDice,
+        totalCols,
+        totalRows
+    } = useBuildNavigation()
 
-    devLog(`[BuildViewer] Rendering with grid ${grid.width}x${grid.height}, initial position (${initialX}, ${initialY})`)
-    devLog('[DEBUG BuildViewer] Props received:', { initialX, initialY })
-
-    // Use refs to track the initial values but don't use them as state initializers
-    // This prevents re-renders when initialX/Y change
-    const initialPositionRef = useRef({ x: initialX, y: initialY })
-
-    // Now using x,y coordinates where (0,0) is bottom-left
-    const [currentX, setCurrentX] = useState(() => initialPositionRef.current.x)
-    const [currentY, setCurrentY] = useState(() => initialPositionRef.current.y)
-    const totalCols = grid.width  // Number of columns (x-axis)
-    const totalRows = grid.height // Number of rows (y-axis)
+    const grid = diceGrid
+    if (!grid) return null
 
     // Performance monitoring
     const [showDebug, setShowDebug] = useState(false)
@@ -61,26 +41,11 @@ const BuildViewer = memo(function BuildViewer({
     const [svgContent, setSvgContent] = useState<string>('')
 
     // Track viewBox with ref only - no React state to avoid re-renders
-    const viewBoxRef = useRef(`0 0 ${totalCols} ${totalRows}`)
+    const viewBoxRef = useRef(`0 0 ${totalCols} ${totalRows}`) // Initial fallback
     const containerRef = useRef<HTMLDivElement>(null)
     const svgRef = useRef<SVGSVGElement>(null)
     const animationRef = useRef<any>(null)
     const [containerDimensions, setContainerDimensions] = useState({ width: 600, height: 600 })
-
-
-    // Update position when props change
-    useEffect(() => {
-        if (initialX !== undefined && initialY !== undefined) {
-            setCurrentX(initialX)
-            setCurrentY(initialY)
-        }
-    }, [initialX, initialY])
-
-    // Calculate index for progress (counting from bottom-left as position 0)
-    // Since (0,0) is now bottom-left, the index is straightforward
-    const currentIndex = useMemo(() => currentY * totalCols + currentX, [currentY, totalCols, currentX])
-    const totalDice = useMemo(() => totalRows * totalCols, [totalRows, totalCols])
-    const currentDice = useMemo(() => grid.dice[currentX]?.[currentY] || null, [grid.dice, currentX, currentY])
 
     // Calculate and animate viewBox transition
     const buildZoom = useCallback(() => {
@@ -196,11 +161,20 @@ const BuildViewer = memo(function BuildViewer({
         // Generate SVG without highlighting (we handle it separately now)
         const svgResult = svgRendererRef.current.renderWithStats(grid)
         setSvgContent(svgResult.svg)
-    }, [grid]) // Only regenerate when the grid actually changes!
+    }, [grid])
 
     // Initial setup effect - run once on mount
     useEffect(() => {
         // Calculate initial viewBox without animation
+        // Needs currentX and currentY which are now from hook, so they are available immediately.
+        // We can just rely on the main zoom effect, but need to initialize viewBoxRef correctly first time.
+        // Actually, since buildZoom has dependencies on currentX, currentY, it will run on mount/update.
+        // But to avoid animation from 0 0 0 0, we should set viewBoxRef to a reasonable start before first render if possible.
+        // However, viewBoxRef is init with 0 0 totalCols totalRows.
+
+        // Let's just manually trigger a calculation without animation for the very first frame if needed, or just let it animate.
+        // The original code had a separate effect for initial setup.
+
         const containerAspect = containerDimensions.width / containerDimensions.height
         let viewWidth = Math.min(zoomLevel, totalCols)
         let viewHeight = viewWidth / containerAspect
@@ -231,6 +205,7 @@ const BuildViewer = memo(function BuildViewer({
 
         const initialViewBox = `${viewX} ${viewY} ${viewWidth} ${viewHeight}`
         viewBoxRef.current = initialViewBox
+
         // Set initial viewBox directly on the SVG element after it mounts
         setTimeout(() => {
             if (svgRef.current) {
@@ -257,138 +232,11 @@ const BuildViewer = memo(function BuildViewer({
         }
     }, [])
 
-
-
-    // Rebuild viewBox when container dimensions or zoom changes
-
-
     // Rebuild viewBox when container dimensions or zoom changes
     useEffect(() => {
         buildZoom()
     }, [buildZoom, containerDimensions, zoomLevel])
 
-    // Navigation functions (build order: left to right, bottom to top)
-    const navigatePrev = useCallback(() => {
-        if (currentX > 0) {
-            setCurrentX(currentX - 1)
-        } else if (currentY > 0) {
-            // Use functional updates to ensure batching
-            setCurrentY(prev => prev - 1)
-            setCurrentX(totalCols - 1)
-        }
-    }, [currentX, currentY, totalCols])
-
-    const navigateNext = useCallback(() => {
-        if (currentX < totalCols - 1) {
-            setCurrentX(currentX + 1)
-        } else if (currentY < totalRows - 1) {
-            // Use functional updates to ensure batching
-            setCurrentY(prev => prev + 1)
-            setCurrentX(0)
-        }
-    }, [currentX, currentY, totalCols, totalRows])
-
-    const navigatePrevDiff = useCallback(() => {
-        // Find previous different dice on same row first
-        const currentFace = currentDice?.face
-        const currentColor = currentDice?.color
-
-        for (let x = currentX - 1; x >= 0; x--) {
-            const dice = grid.dice[x][currentY]
-            if (dice.face !== currentFace || dice.color !== currentColor) {
-                setCurrentX(x)
-                return
-            }
-        }
-
-        // If no different dice found on this row and not at first row, move to previous row
-        if (currentY > 0) {
-            // Batch both state updates together
-            setCurrentY(currentY - 1)
-            setCurrentX(totalCols - 1)
-        }
-    }, [currentX, currentY, currentDice, totalCols, grid.dice])
-
-    const navigateNextDiff = useCallback(() => {
-        // Find next different dice on same row first
-        const currentFace = currentDice?.face
-        const currentColor = currentDice?.color
-
-        for (let x = currentX + 1; x < totalCols; x++) {
-            const dice = grid.dice[x][currentY]
-            if (dice.face !== currentFace || dice.color !== currentColor) {
-                setCurrentX(x)
-                return
-            }
-        }
-
-        // If no different dice found on this row and not at last row, move to next row
-        if (currentY < totalRows - 1) {
-            // Batch both state updates together
-            setCurrentY(currentY + 1)
-            setCurrentX(0)
-        }
-    }, [currentX, currentY, currentDice, totalCols, totalRows, grid.dice])
-
-    // Check if navigation is possible - memoize to prevent recreation
-    const canNavigate = useMemo(() => ({
-        prev: currentIndex > 0,
-        next: currentIndex < totalDice - 1,
-        prevDiff: (() => {
-            const currentFace = currentDice?.face
-            const currentColor = currentDice?.color
-            // Check if there's a different dice on the same row
-            for (let x = currentX - 1; x >= 0; x--) {
-                const dice = grid.dice[x]?.[currentY]
-                if (dice && (dice.face !== currentFace || dice.color !== currentColor)) {
-                    return true
-                }
-            }
-            // Or if we can move to previous row
-            return currentY > 0
-        })(),
-        nextDiff: (() => {
-            const currentFace = currentDice?.face
-            const currentColor = currentDice?.color
-            // Check if there's a different dice on the same row
-            for (let x = currentX + 1; x < totalCols; x++) {
-                const dice = grid.dice[x]?.[currentY]
-                if (dice && (dice.face !== currentFace || dice.color !== currentColor)) {
-                    return true
-                }
-            }
-            // Or if we can move to next row
-            return currentY < totalRows - 1
-        })()
-    }), [currentIndex, totalDice, currentDice, currentX, currentY, totalCols, totalRows, grid.dice])
-
-    // Notify parent when position changes - use ref to track last notified position
-    const lastNotifiedPosition = useRef({ x: currentX, y: currentY })
-
-    useEffect(() => {
-        if (onPositionChange &&
-            (lastNotifiedPosition.current.x !== currentX ||
-                lastNotifiedPosition.current.y !== currentY)) {
-            lastNotifiedPosition.current = { x: currentX, y: currentY }
-            onPositionChange(currentX, currentY)
-        }
-    }, [currentX, currentY, onPositionChange])
-
-    // Expose navigation handlers to parent - memoize the entire object
-    const navigationHandlers = useMemo(() => ({
-        navigatePrev,
-        navigateNext,
-        navigatePrevDiff,
-        navigateNextDiff,
-        canNavigate
-    }), [navigatePrev, navigateNext, navigatePrevDiff, navigateNextDiff, canNavigate])
-
-    // Call onNavigationReady whenever navigation handlers change
-    useEffect(() => {
-        if (onNavigationReady) {
-            onNavigationReady(navigationHandlers)
-        }
-    }, [onNavigationReady, navigationHandlers])
 
     // FPS monitoring
     useEffect(() => {
@@ -541,7 +389,7 @@ const BuildViewer = memo(function BuildViewer({
                                 height={0.96}
                                 fill={theme.colors.accent.pink}
                                 fillOpacity="0.2"
-                                stroke={theme.colors.dice.highlightColor} // This might need check, but it is typically blue/primary. Let's leave it or change it? lib/theme says highlightColor: '#6495ff'. I should probably update that in lib/theme.ts later.
+                                stroke={theme.colors.dice.highlightColor}
                                 strokeWidth="0.06"
                                 rx="0.1"
                                 style={{
@@ -726,51 +574,12 @@ const BuildViewer = memo(function BuildViewer({
             </div>
         </div>
     )
-}, (prevProps, nextProps) => {
-    // Custom comparison - only re-render if grid actually changes
-    // Ignore callback reference changes and position changes since component manages its own state
-    const gridEqual = prevProps.grid === nextProps.grid
-    return gridEqual
 })
 
-// --- BuilderMain Component (Main Export) ---
+// --- BuilderMain Component ---
 
-interface BuilderMainProps {
-    currentProjectId: string
-    diceGrid: DiceGrid
-    buildProgress: { x: number; y: number }
-    handleBuildProgressUpdate: (x: number, y: number) => void
-    handleNavigationReady: (handlers: any) => void
-}
-
-export default function BuilderMain({
-    currentProjectId,
-    diceGrid,
-    buildProgress,
-    handleBuildProgressUpdate,
-    handleNavigationReady
-}: BuilderMainProps) {
+export default function BuilderMain() {
     return (
-        <>
-            {/* Debug logging - preserved from page.tsx */}
-            {(() => {
-                devLog('[DEBUG] Passing to BuildViewer:', {
-                    currentProjectId,
-                    buildProgress,
-                    'buildProgress.x': buildProgress.x,
-                    'buildProgress.y': buildProgress.y
-                })
-                return null
-            })()}
-
-            <BuildViewer
-                key={`${currentProjectId}-viewer`}
-                grid={diceGrid}
-                initialX={buildProgress.x}
-                initialY={buildProgress.y}
-                onPositionChange={handleBuildProgressUpdate}
-                onNavigationReady={handleNavigationReady}
-            />
-        </>
+        <BuildViewer />
     )
 }
