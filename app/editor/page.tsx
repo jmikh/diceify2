@@ -24,7 +24,8 @@ import {
   Palette,
   Layers,
   LayoutGrid,
-  Settings
+  Settings,
+  Dices
 } from 'lucide-react'
 import UploaderPanel from '@/components/Editor/Uploader/UploaderPanel'
 import UploadMain from '@/components/Editor/Uploader/UploadMain'
@@ -789,42 +790,11 @@ function EditorContent() {
           sessionStorage.removeItem('shouldAutoSaveRestoredState')
         }
 
-        if (hasWorkInProgress) {
-          // User has work - try to save it
-          devLog('[LOGIN EFFECT] User has work in progress')
-          if (projectCount < 3) {
-            // Under limit - auto-create project from current state
-            devLog('[LOGIN EFFECT] Creating project from current state...')
-            createProjectFromCurrent().then(() => {
-              devLog('[LOGIN EFFECT] Work saved successfully as new project')
-            }).catch(err => {
-              devError('[LOGIN EFFECT] Failed to auto-save work:', err)
-            })
-          } else {
-            // At capacity - show deletion modal 
-            devLog('[LOGIN EFFECT] At capacity with unsaved work - showing deletion modal')
-            setShowProjectModal(true)
-          }
-        } else {
-          // No work in progress - load most recent project if available
-          devLog('[LOGIN EFFECT] No work in progress')
-          // Don't load a project if URL already has a project ID (will be handled by URL effect)
-          const urlProjectId = searchParams.get('project')
-          if (!urlProjectId && projects && projects.length > 0) {
-            // Load the most recent project (already sorted by updatedAt desc from API)
-            const mostRecentProject = projects[0]
-            devLog('[LOGIN EFFECT] Loading most recent project:', mostRecentProject.name, mostRecentProject.id)
-            loadProject(mostRecentProject)
-          } else if (!urlProjectId && projectCount < 3) {
-            // No existing projects and under limit - create fresh project
-            devLog('[LOGIN EFFECT] No existing projects - creating fresh project')
-            createProject()
-          } else if (!urlProjectId && projectCount >= 3) {
-            // At capacity with no projects (shouldn't happen)
-            devLog('[LOGIN EFFECT] At capacity with no projects - showing deletion modal')
-            setShowProjectModal(true)
-          }
-        }
+        // Always show the modal on login - giving user choice to create named project or load
+        // Even if they have work in progress, we let them "Save & Create" via the modal
+        devLog('[LOGIN EFFECT] Showing project dashboard')
+        setShowProjectModal(true)
+
         // Mark initialization as complete after handling all login logic with small delay
         setTimeout(() => setIsInitializing(false), 500)
       }).catch(err => {
@@ -867,81 +837,43 @@ function EditorContent() {
       return // Prevent the update
     }
 
-    const now = Date.now()
-    const timeSinceLastUpdate = now - lastUpdateTimeRef.current
+    // Update local state immediately for UI
+    const percentage = diceStats.totalCount > 0
+      ? Math.round(((diceStats.blackCount + diceStats.whiteCount) / diceStats.totalCount) * 100)
+      : 0
 
-    // Clear any pending timeout
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current)
-      updateTimeoutRef.current = null
-    }
+    setBuildProgress({ x, y, percentage })
 
-    // Store the pending update
-    pendingUpdateRef.current = { x, y }
-
-    // Calculate current index for threshold check
-    const currentIndex = y * diceGrid.width + x
-
-    // Check for crossing dice 50 threshold
-    if (currentIndex >= 50 && lastDiceIndexRef.current < 50) {
-      setShowDonationModal(true)
-    }
-    lastDiceIndexRef.current = currentIndex
-
-    // Throttle updates to max 10 per second (100ms)
-    if (timeSinceLastUpdate >= 100) {
-      // Enough time has passed, update immediately
-      lastUpdateTimeRef.current = now
-      setBuildProgress(prev => {
-        if (prev.x === x && prev.y === y) {
-          return prev // No change, return same reference
-        }
-
-        const totalDice = diceGrid.width * diceGrid.height
-        const percentage = Math.round((currentIndex / totalDice) * 100)
-
-        const newProgress = { x, y, percentage }
-        devLog(`[BUILD] Setting buildProgress to x: ${x}, y: ${y}, percentage: ${percentage}`)
-
-        // Schedule auto-save
-        if (session?.user?.id && currentProjectId) {
-          scheduleBuildAutoSave()
-        }
-
-        return newProgress
-      })
-      pendingUpdateRef.current = null
+    // Schedule DB update with throttling
+    const currentTime = Date.now()
+    if (currentTime - lastUpdateTimeRef.current >= 2000) {
+      // If enough time passed, update immediately
+      if (session?.user?.id && currentProjectId) {
+        scheduleBuildAutoSave(x, y)
+        lastUpdateTimeRef.current = currentTime
+      }
     } else {
-      // Schedule an update for when the throttle period expires
-      const delay = 100 - timeSinceLastUpdate
-      updateTimeoutRef.current = setTimeout(() => {
-        const pending = pendingUpdateRef.current
-        if (pending) {
-          lastUpdateTimeRef.current = Date.now()
-          setBuildProgress(prev => {
-            if (prev.x === pending.x && prev.y === pending.y) {
-              return prev // No change, return same reference
-            }
+      // Otherwise schedule for later if not already scheduled
+      if (!updateTimeoutRef.current) {
+        // Store pending update
+        pendingUpdateRef.current = { x, y }
 
-            const totalDice = diceGrid.width * diceGrid.height
-            const currentIndex = pending.y * diceGrid.width + pending.x
-            const percentage = Math.round((currentIndex / totalDice) * 100)
-
-            const newProgress = { x: pending.x, y: pending.y, percentage }
-
-            // Schedule auto-save
+        updateTimeoutRef.current = setTimeout(() => {
+          if (pendingUpdateRef.current) {
             if (session?.user?.id && currentProjectId) {
-              scheduleBuildAutoSave()
+              scheduleBuildAutoSave(pendingUpdateRef.current.x, pendingUpdateRef.current.y)
+              lastUpdateTimeRef.current = Date.now()
             }
-
-            return newProgress
-          })
-          pendingUpdateRef.current = null
-        }
-        updateTimeoutRef.current = null
-      }, delay)
+            pendingUpdateRef.current = null
+            updateTimeoutRef.current = null
+          }
+        }, 2000)
+      } else {
+        // Update the pending value to latest
+        pendingUpdateRef.current = { x, y }
+      }
     }
-  }, [diceGrid, session, currentProjectId, scheduleBuildAutoSave, setShowAuthModal])
+  }, [diceGrid, diceStats, session, currentProjectId, scheduleBuildAutoSave, setShowAuthModal])
 
   // No cleanup needed - removed auto-save timers
 
@@ -957,7 +889,7 @@ function EditorContent() {
         </div>
         <div className="grid-overlay"></div>
         <div className="text-center relative z-10">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mb-4"></div>
+          <img src="/icon.svg" alt="Loading..." className="animate-spin w-12 h-12 mb-4 mx-auto block" />
           <p className="text-white text-lg">Loading workspace...</p>
         </div>
       </div>
@@ -1396,7 +1328,7 @@ export default function EditorPage() {
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0014] to-black z-0" />
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full border-t-2 border-r-2 border-pink-500 animate-spin mb-4" />
+          <Dices className="w-12 h-12 text-pink-500 animate-spin mb-4" />
           <p className="text-white/60 font-medium">Loading editor...</p>
         </div>
       </div>

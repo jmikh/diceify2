@@ -101,23 +101,26 @@ export function useProjectManager() {
     }, [session])
 
     // Create a new project
-    const createProject = useCallback(async () => {
+    const createProject = useCallback(async (name?: string) => {
         if (!session?.user?.id) return
 
         // Reset all states for new project
         handleResetWorkflow()
 
-        // Generate random 3 characters for default name
-        const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
-        const defaultName = `Untitled Project ${randomChars}`
+        // Use provided name or generate default
+        let projectName = name
+        if (!projectName) {
+            const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
+            projectName = `Untitled Project ${randomChars}`
+        }
 
-        devLog(`[DB] Creating new empty project`)
+        devLog(`[DB] Creating new empty project: ${projectName}`)
         try {
             const response = await fetch('/api/projects', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: defaultName,
+                    name: projectName,
                     lastReachedStep: 'upload',
                     originalImage: null,
                     croppedImage: null,
@@ -161,17 +164,20 @@ export function useProjectManager() {
     }, [session, handleResetWorkflow, fetchUserProjects, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal, setStep])
 
     // Create project from current state
-    const createProjectFromCurrent = useCallback(async () => {
+    const createProjectFromCurrent = useCallback(async (name?: string) => {
         if (!session?.user?.id) return
 
-        const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
-        const defaultName = `Untitled Project ${randomChars}`
+        let projectName = name
+        if (!projectName) {
+            const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase()
+            projectName = `Untitled Project ${randomChars}`
+        }
 
-        devLog(`[DB] Creating new project with current state`)
+        devLog(`[DB] Creating new project with current state: ${projectName}`)
 
         try {
             const payload = {
-                name: defaultName,
+                name: projectName,
                 lastReachedStep,
                 originalImage,
                 croppedImage,
@@ -234,29 +240,18 @@ export function useProjectManager() {
 
             if (response.ok) {
                 await fetchUserProjects()
+                // If we deleted the current project, reset the editor
                 if (projectId === currentProjectId) {
                     handleResetWorkflow()
                     setCurrentProjectId(null)
-                    setProjectName(`Untitled Project ${Math.random().toString(36).substring(2, 5).toUpperCase()}`)
+                    // Don't set a new name immediately, let the user choose or let it remain null until they create/load
                     updateURLWithProject(null)
-                }
-
-                if (showProjectModal) {
-                    setShowProjectModal(false)
-                    const hasWorkInProgress = originalImage || processedImageUrl
-                    if (hasWorkInProgress) {
-                        await createProjectFromCurrent()
-                        localStorage.removeItem('editorState')
-                    } else {
-                        createProject()
-                        localStorage.removeItem('editorState')
-                    }
                 }
             }
         } catch (error) {
             devError('Failed to delete project:', error)
         }
-    }, [session, currentProjectId, fetchUserProjects, handleResetWorkflow, showProjectModal, originalImage, processedImageUrl, createProjectFromCurrent, createProject, setCurrentProjectId, setProjectName, updateURLWithProject, setShowProjectModal])
+    }, [session, currentProjectId, fetchUserProjects, handleResetWorkflow, setCurrentProjectId, updateURLWithProject])
 
     // Load a project
     const loadProject = useCallback(async (project: any) => {
