@@ -2,7 +2,8 @@
 
 import { Proportions, RotateCw } from 'lucide-react'
 
-export type AspectRatio = '1:1' | '3:4' | '4:3' | '2:3' | '16:9'
+import { AspectRatio } from '@/lib/types'
+import { useEditorStore } from '@/lib/store/useEditorStore'
 
 export interface AspectRatioOption {
     value: AspectRatio
@@ -76,23 +77,30 @@ export const aspectRatioOptions: AspectRatioOption[] = [
     },
 ]
 
-interface CropperPanelProps {
-    selectedRatio: AspectRatio
-    onRatioChange: (ratio: AspectRatio) => void
-    onRotate: (angle: number) => void
-    onBack: () => void
-    onContinue: () => void
-    isProcessing: boolean
-}
+export default function CropperPanel() {
+    // Store State
+    const selectedRatio = useEditorStore(state => state.selectedRatio)
+    const cropRotation = useEditorStore(state => state.cropRotation)
 
-export default function CropperPanel({
-    selectedRatio,
-    onRatioChange,
-    onRotate,
-    onBack,
-    onContinue,
-    isProcessing
-}: CropperPanelProps) {
+    // Store Actions
+    const setSelectedRatio = useEditorStore(state => state.setSelectedRatio)
+    const setCropRotation = useEditorStore(state => state.setCropRotation)
+    const setStep = useEditorStore(state => state.setStep)
+    const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
+
+    const handleRotate = () => {
+        setCropRotation(cropRotation + 90)
+    }
+
+    const handleBack = () => {
+        setStep('upload')
+    }
+
+    const handleContinue = () => {
+        setLastReachedStep('tune')
+        setStep('tune')
+    }
+
     return (
         <>
             <div className="flex items-center gap-3 mb-6">
@@ -106,7 +114,7 @@ export default function CropperPanel({
                 {aspectRatioOptions.map((option) => (
                     <button
                         key={option.value}
-                        onClick={() => onRatioChange(option.value)}
+                        onClick={() => setSelectedRatio(option.value)}
                         className={`
               group relative flex flex-col items-center justify-center gap-3
               aspect-square rounded-xl border transition-all duration-200
@@ -140,7 +148,7 @@ export default function CropperPanel({
             {/* Additional Controls */}
             <div className="flex flex-col gap-3">
                 <button
-                    onClick={() => onRotate(90)}
+                    onClick={handleRotate}
                     className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2 transition-colors text-sm font-medium text-gray-300"
                 >
                     <RotateCw className="w-4 h-4" />
@@ -157,15 +165,14 @@ export default function CropperPanel({
             {/* Navigation Buttons */}
             <div className="flex gap-3 mt-6 pt-6 border-t border-white/10">
                 <button
-                    onClick={onBack}
+                    onClick={handleBack}
                     className="flex-1 py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
                 >
                     ← Back
                 </button>
 
                 <button
-                    onClick={onContinue}
-                    disabled={isProcessing}
+                    onClick={handleContinue}
                     className="
             flex-1 py-3.5 rounded-full
             bg-pink-500 hover:bg-pink-600
@@ -176,7 +183,7 @@ export default function CropperPanel({
             flex items-center justify-center gap-2 text-sm
           "
                 >
-                    {isProcessing ? 'Processing...' : 'Continue'} →
+                    Continue →
                 </button>
             </div>
         </>

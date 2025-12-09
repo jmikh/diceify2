@@ -10,7 +10,8 @@ import {
 } from 'lucide-react'
 import UploaderPanel from '@/components/Editor/Uploader/UploaderPanel'
 import UploadMain from '@/components/Editor/Uploader/UploadMain'
-import CropperPanel, { AspectRatio, aspectRatioOptions } from '@/components/Editor/Cropper/CropperPanel'
+import CropperPanel, { aspectRatioOptions } from '@/components/Editor/Cropper/CropperPanel'
+import { AspectRatio } from '@/lib/types'
 import CropperMain from '@/components/Editor/Cropper/CropperMain'
 import DiceCanvas, { DiceCanvasRef } from '@/components/Editor/DiceCanvas'
 import TunerPanel from '@/components/Editor/Tuner/TunerPanel'
@@ -19,7 +20,6 @@ import TunerMain from '@/components/Editor/Tuner/TunerMain'
 import BuilderPanel from '@/components/Editor/Builder/BuilderPanel'
 import BuilderMain from '@/components/Editor/Builder/BuilderMain'
 
-import ConfirmDialog from '@/components/Editor/ConfirmDialog'
 import ProjectSelector from '@/components/Editor/ProjectSelector'
 import ProjectSelectionModal from '@/components/ProjectSelectionModal'
 import DiceStepper from '@/components/Editor/DiceStepper'
@@ -70,6 +70,7 @@ function EditorContent() {
   const originalImage = useEditorStore(state => state.originalImage)
   const croppedImage = useEditorStore(state => state.croppedImage)
   const cropParams = useEditorStore(state => state.cropParams)
+  const cropRotation = useEditorStore(state => state.cropRotation)
   const diceParams = useEditorStore(state => state.diceParams)
   const diceStats = useEditorStore(state => state.diceStats)
   const diceGrid = useEditorStore(state => state.diceGrid)
@@ -106,7 +107,6 @@ function EditorContent() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showProjectsSubmenu, setShowProjectsSubmenu] = useState(false)
   const [isRestoringOAuthState, setIsRestoringOAuthState] = useState(false)
-  const lastDiceIndexRef = useRef(0)
 
   // Track window size for responsive cropper
   const [windowSize, setWindowSize] = useState({ width: 800, height: 600 })
@@ -127,15 +127,15 @@ function EditorContent() {
   // Cropper Logic Hook
   const {
     fixedCropperRef,
-    isProcessing,
-    selectedRatio,
-    setSelectedRatio,
+    // isProcessing, // Removed
+    // selectedRatio, // Removed
+    // setSelectedRatio, // Removed
     imageLoaded,
     setImageLoaded,
     selectedOption,
     stencilSize,
-    handleCropContinue,
-    handleRotate,
+    // handleCropContinue, // Removed
+    // handleRotate, // Removed
     handleCropperChange
   } = useCropper({ windowSize })
 
@@ -913,16 +913,7 @@ function EditorContent() {
           <div className="flex-shrink-0 flex flex-col w-[350px] min-w-[350px] max-w-[350px] min-h-[650px] max-h-[850px] bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
             {step === 'upload' && <UploaderPanel />}
 
-            {step === 'crop' && (
-              <CropperPanel
-                selectedRatio={selectedRatio}
-                onRatioChange={setSelectedRatio}
-                onRotate={handleRotate}
-                onBack={() => setStep('upload')}
-                onContinue={handleCropContinue}
-                isProcessing={isProcessing}
-              />
-            )}
+            {step === 'crop' && <CropperPanel />}
 
             {step === 'tune' && (
               <TunerPanel
@@ -973,6 +964,7 @@ function EditorContent() {
                 fixedCropperRef={fixedCropperRef}
                 imageUrl={originalImage || ''}
                 selectedOption={selectedOption}
+                rotation={cropRotation}
                 stencilSize={stencilSize}
                 setImageLoaded={setImageLoaded}
                 onCropperChange={handleCropperChange}

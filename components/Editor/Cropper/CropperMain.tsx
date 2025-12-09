@@ -12,6 +12,7 @@ interface CropperMainProps {
     fixedCropperRef: RefObject<FixedCropperRef>
     imageUrl: string
     selectedOption: AspectRatioOption
+    rotation: number
     stencilSize: StencilSize
     onCropperReady?: (cropper: FixedCropperRef) => void
     setImageLoaded: (loaded: boolean) => void
@@ -22,6 +23,7 @@ export default function CropperMain({
     fixedCropperRef,
     imageUrl,
     selectedOption,
+    rotation,
     stencilSize,
     onCropperReady,
     setImageLoaded,
@@ -45,6 +47,7 @@ export default function CropperMain({
                     resizable: false,
                 }}
                 stencilSize={stencilSize}
+                defaultTransforms={{ rotate: rotation }}
                 imageRestriction={ImageRestriction.stencil}
                 onReady={() => {
                     devLog('Cropper onReady fired')

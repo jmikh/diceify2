@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { FixedCropperRef, StencilSize } from 'react-advanced-cropper'
-import { AspectRatio, AspectRatioOption, aspectRatioOptions } from './CropperPanel'
+import { AspectRatioOption, aspectRatioOptions } from './CropperPanel'
+import { AspectRatio } from '@/lib/types'
 import { useEditorStore } from '@/lib/store/useEditorStore'
 import { devLog, devError } from '@/lib/utils/debug'
 
@@ -26,11 +27,31 @@ export function useCropper({ windowSize }: UseCropperProps) {
 
     // Local State
     const fixedCropperRef = useRef<FixedCropperRef>(null)
-    const [isProcessing, setIsProcessing] = useState(false)
-    const [selectedRatio, setSelectedRatio] = useState<AspectRatio>('1:1')
     const [imageLoaded, setImageLoaded] = useState(false)
 
+    // Global State
+    const selectedRatio = useEditorStore(state => state.selectedRatio)
+    const cropRotation = useEditorStore(state => state.cropRotation)
+
     const cropChangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    // Rotation synchronization
+    const prevRotationRef = useRef(cropRotation)
+
+    // Sync rotation from store to cropper
+    useEffect(() => {
+        const cropper = fixedCropperRef.current
+        if (cropper && prevRotationRef.current !== cropRotation) {
+            const delta = cropRotation - prevRotationRef.current
+            cropper.rotateImage(delta)
+            prevRotationRef.current = cropRotation
+            devLog('[CROP] Synced rotation:', { delta, newRotation: cropRotation })
+        }
+    }, [cropRotation])
+
+    // Store initial params to detect changes against the session start,
+    // since live cropParams are updated during interaction.
+    const initialCropParamsRef = useRef(cropParams)
 
     // Helper function to compare crop parameters
     const areCropParamsEqual = (params1: typeof cropParams, params2: typeof cropParams): boolean => {
@@ -46,8 +67,11 @@ export function useCropper({ windowSize }: UseCropperProps) {
     }
 
     const handleCropComplete = useCallback((croppedImageUrl: string, params: { x: number, y: number, width: number, height: number, rotation: number }) => {
-        // Check if crop parameters actually changed
-        const hasChanged = !areCropParamsEqual(cropParams, params)
+        // Check if crop parameters actually changed from the start of the session
+        const hasChanged = !areCropParamsEqual(initialCropParamsRef.current, params)
+        devLog('[CROP] Crop parameters initial: ', initialCropParamsRef.current)
+        devLog('[CROP] Crop parameters current: ', params)
+        devLog('[CROP] Crop parameters changed: ', hasChanged)
 
         // Only mark as changed if parameters are different
         if (hasChanged) {
@@ -104,7 +128,6 @@ export function useCropper({ windowSize }: UseCropperProps) {
     const stencilSize = getStencilSize()
 
     const performAutoCrop = useCallback(async (isComplete = false) => {
-        if (isProcessing) return
 
         try {
             const cropper = fixedCropperRef.current
@@ -137,21 +160,9 @@ export function useCropper({ windowSize }: UseCropperProps) {
         } catch (error) {
             devError('Error auto-cropping image:', error)
         }
-    }, [isProcessing, selectedOption.ratio, handleCropComplete, updateCrop])
 
-    const handleCropContinue = async () => {
-        setIsProcessing(true)
-        try {
-            await performAutoCrop(true)
-            setStep('tune')
-        } finally {
-            setIsProcessing(false)
-        }
-    }
+    }, [selectedOption.ratio, handleCropComplete, updateCrop])
 
-    const handleRotate = (angle: number) => {
-        fixedCropperRef.current?.rotateImage(angle)
-    }
 
     const handleCropperChange = useCallback(() => {
         if (cropChangeTimeoutRef.current) {
@@ -183,16 +194,11 @@ export function useCropper({ windowSize }: UseCropperProps) {
 
     return {
         fixedCropperRef,
-        isProcessing,
-        selectedRatio,
-        setSelectedRatio,
         imageLoaded,
         setImageLoaded,
         selectedOption,
         stencilSize,
         performAutoCrop,
-        handleCropContinue,
-        handleRotate,
         handleCropperChange
     }
 }

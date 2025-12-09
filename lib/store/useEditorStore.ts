@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { WorkflowStep, DiceParams, DiceStats, DiceGrid, ColorMode } from '@/lib/types'
+import { WorkflowStep, DiceParams, DiceStats, DiceGrid, ColorMode, AspectRatio } from '@/lib/types'
 import { devLog } from '@/lib/utils/debug'
 
 interface CropParams {
@@ -52,6 +52,10 @@ interface EditorState {
   // Build State
   buildProgress: BuildProgress
 
+  // Crop State
+  selectedRatio: AspectRatio
+  cropRotation: number
+
   // Actions
   setStep: (step: WorkflowStep) => void
   setLastReachedStep: (step: WorkflowStep) => void
@@ -74,6 +78,8 @@ interface EditorState {
   setShowProjectModal: (show: boolean) => void
   setShowDonationModal: (show: boolean) => void
   setBuildProgress: (progress: BuildProgress | ((prev: BuildProgress) => BuildProgress)) => void
+  setSelectedRatio: (ratio: AspectRatio) => void
+  setCropRotation: (rotation: number) => void
 
   // Complex Actions
   uploadImage: (url: string) => void
@@ -129,6 +135,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   buildProgress: { x: 0, y: 0, percentage: 0 },
 
+  selectedRatio: '1:1',
+  cropRotation: 0,
+
   // Actions
   setStep: (step) => set({ step }),
   setLastReachedStep: (step) => set({ lastReachedStep: step }),
@@ -162,6 +171,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setBuildProgress: (progress) => set((state) => ({
     buildProgress: typeof progress === 'function' ? progress(state.buildProgress) : progress
   })),
+
+  setSelectedRatio: (ratio) => set({ selectedRatio: ratio }),
+  setCropRotation: (rotation) => set({ cropRotation: rotation }),
 
   uploadImage: (url: string) => {
     set({
@@ -209,6 +221,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       diceGrid: null,
       dieSize: 16,
       costPer1000: 60,
+      selectedRatio: '1:1',
+      cropRotation: 0,
       // We don't reset project ID or name here usually, unless explicitly creating new
     })
   }

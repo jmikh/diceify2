@@ -34,3 +34,6 @@ export interface DiceStats {
 
 // Re-export dice types for convenience
 export type { DiceGrid } from '../dice/types'
+
+// Aspect Ratio options for image cropping
+export type AspectRatio = '1:1' | '3:4' | '4:3' | '2:3' | '16:9'
