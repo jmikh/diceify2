@@ -258,16 +258,17 @@ export function useProjectManager() {
         devLog('[CLIENT] Loading project:', project.name)
         loadingProjectRef.current = true
 
-        if (!project.croppedImage && !project.originalImage && project.lastReachedStep !== 'upload') {
-            try {
-                const response = await fetch(`/api/projects/${project.id}`)
-                if (response.ok) {
-                    const fullProject = await response.json()
-                    project = fullProject
-                }
-            } catch (error) {
-                devError('Failed to fetch full project:', error)
+        // Always fetch the latest full project data
+        try {
+            const response = await fetch(`/api/projects/${project.id}`)
+            if (response.ok) {
+                const fullProject = await response.json()
+                // Merge the fetched data with the existing project object
+                // This ensures we have the latest server state (images, grid, etc.)
+                project = fullProject
             }
+        } catch (error) {
+            devError('Failed to fetch full project:', error)
         }
 
         // Clear state
