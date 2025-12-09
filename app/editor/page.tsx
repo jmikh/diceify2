@@ -239,8 +239,17 @@ function EditorContent() {
   }, [step, currentProjectId, session?.user?.id, diceStats.totalCount])
 
   // Handle project loading from URL
+  // Handle project loading from URL
   useEffect(() => {
     const projectId = searchParams.get('project')
+
+    // Redirect if unauthenticated
+    if (projectId && status === 'unauthenticated') {
+      devLog('[URL] Unauthenticated user accessing project, redirecting...')
+      router.replace('/editor')
+      return
+    }
+
     if (projectId && session?.user?.id && !currentProjectId) {
       devLog('[URL] Loading project from URL:', projectId)
       // Fetch and load the specific project
@@ -261,7 +270,7 @@ function EditorContent() {
           updateURLWithProject(null)
         })
     }
-  }, [searchParams, session?.user?.id, currentProjectId, loadProject, updateURLWithProject])
+  }, [searchParams, status, session?.user?.id, currentProjectId, loadProject, updateURLWithProject, router])
 
   // Save state to localStorage whenever it changes (for recovery on refresh)
   useEffect(() => {
