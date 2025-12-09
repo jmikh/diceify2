@@ -33,14 +33,13 @@ import { Grid3x3, Contrast, Sun, Sparkles, RotateCw, Palette } from 'lucide-reac
 import { useEditorStore } from '@/lib/store/useEditorStore'
 import styles from './TunerPanel.module.css'
 
-interface TunerPanelProps {
-  onBack: () => void
-  onContinue: () => void
-}
+// Removed interface TunerPanelProps
 
-export default function TunerPanel({ onBack, onContinue }: TunerPanelProps) {
+export default function TunerPanel() {
   const params = useEditorStore(state => state.diceParams)
   const setDiceParams = useEditorStore(state => state.setDiceParams)
+  const setStep = useEditorStore(state => state.setStep)
+  const setLastReachedStep = useEditorStore(state => state.setLastReachedStep)
   const diceStats = useEditorStore(state => state.diceStats)
   const { blackCount, whiteCount, totalCount } = diceStats
 
@@ -552,14 +551,17 @@ export default function TunerPanel({ onBack, onContinue }: TunerPanelProps) {
       {/* Navigation Buttons */}
       <div className="flex gap-3 mt-6 pt-6 border-t border-white/10 flex-shrink-0">
         <button
-          onClick={onBack}
+          onClick={() => setStep('crop')}
           className="flex-1 py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm"
         >
           ← Back
         </button>
 
         <button
-          onClick={onContinue}
+          onClick={() => {
+            setStep('build')
+            setLastReachedStep('build')
+          }}
           className="
             flex-1 py-3.5 rounded-full
             bg-pink-500 hover:bg-pink-600

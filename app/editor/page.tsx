@@ -32,7 +32,6 @@ import { devLog, devError } from '@/lib/utils/debug'
 import { useEditorStore } from '@/lib/store/useEditorStore'
 import { useProjectManager } from './hooks/useProjectManager'
 import { usePersistence } from './hooks/usePersistence'
-import { useCropper } from '@/components/Editor/Cropper/useCropper'
 
 function EditorContent() {
   const { data: session, status } = useSession()
@@ -124,20 +123,6 @@ function EditorContent() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Cropper Logic Hook
-  const {
-    fixedCropperRef,
-    // isProcessing, // Removed
-    // selectedRatio, // Removed
-    // setSelectedRatio, // Removed
-    imageLoaded,
-    setImageLoaded,
-    selectedOption,
-    stencilSize,
-    // handleCropContinue, // Removed
-    // handleRotate, // Removed
-    handleCropperChange
-  } = useCropper({ windowSize })
 
   // Memoize frame dimensions to prevent re-renders
   const frameWidth = useMemo(() => {
@@ -915,12 +900,7 @@ function EditorContent() {
 
             {step === 'crop' && <CropperPanel />}
 
-            {step === 'tune' && (
-              <TunerPanel
-                onBack={() => setStep('crop')}
-                onContinue={() => setStep('build')}
-              />
-            )}
+            {step === 'tune' && <TunerPanel />}
 
             {step === 'build' && diceGrid && (
               <BuilderPanel
@@ -960,15 +940,7 @@ function EditorContent() {
             {step === 'upload' && <UploadMain />}
 
             {step === 'crop' && (
-              <CropperMain
-                fixedCropperRef={fixedCropperRef}
-                imageUrl={originalImage || ''}
-                selectedOption={selectedOption}
-                rotation={cropRotation}
-                stencilSize={stencilSize}
-                setImageLoaded={setImageLoaded}
-                onCropperChange={handleCropperChange}
-              />
+              <CropperMain windowSize={windowSize} />
             )}
 
             {step === 'tune' && (
