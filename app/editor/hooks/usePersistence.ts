@@ -107,6 +107,10 @@ export function usePersistence() {
             if (response.ok) {
                 devLog('Crop data saved successfully')
                 setLastSaved(new Date())
+
+                // Update saved state to mark as clean
+                useEditorStore.getState().setSavedCropState(cropParams)
+
                 localStorage.removeItem('editorState')
             }
         } catch (error) {

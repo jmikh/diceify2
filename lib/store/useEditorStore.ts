@@ -29,8 +29,7 @@ interface EditorState {
   hasCropChanged: boolean
 
   // Dice Configuration
-
-  // Generated Data
+  diceParams: DiceParams
   diceStats: DiceStats
   diceGrid: DiceGrid | null
 
@@ -42,6 +41,7 @@ interface EditorState {
 
   // Saved State for Dirty Checking
   savedDiceParams: DiceParams | null
+  savedCropParams: CropParams | null
 
   // UI State
   isInitializing: boolean
@@ -66,11 +66,11 @@ interface EditorState {
   setHasCropChanged: (changed: boolean) => void
   setDiceParams: (params: Partial<DiceParams>) => void
   setDiceStats: (stats: DiceStats) => void
-  setDiceStats: (stats: DiceStats) => void
   setDiceGrid: (grid: DiceGrid | null) => void
 
   // Actions to update saved state
   setSavedTuneState: (params: DiceParams) => void
+  setSavedCropState: (params: CropParams) => void
 
   setProjectName: (name: string) => void
   setCurrentProjectId: (id: string | null) => void
@@ -118,6 +118,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   processedImageUrl: null,
   cropParams: null,
   hasCropChanged: false,
+  savedCropParams: null,
 
   diceParams: DEFAULT_DICE_PARAMS,
 
@@ -157,11 +158,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   })),
 
   setDiceStats: (stats) => set({ diceStats: stats }),
-  setDiceStats: (stats) => set({ diceStats: stats }),
   setDiceGrid: (grid) => set({ diceGrid: grid }),
 
   setSavedTuneState: (params) => set({
     savedDiceParams: { ...params },
+  }),
+
+  setSavedCropState: (params) => set({
+    savedCropParams: { ...params },
   }),
 
   setProjectName: (name) => set({ projectName: name }),
@@ -225,8 +229,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       diceStats: DEFAULT_DICE_STATS,
       buildProgress: { x: 0, y: 0, percentage: 0 },
       diceGrid: null,
-      diceGrid: null,
       savedDiceParams: null,
+      savedCropParams: null,
       selectedRatio: '1:1',
       cropRotation: 0,
       // We don't reset project ID or name here usually, unless explicitly creating new

@@ -295,6 +295,9 @@ export function useProjectManager() {
             }
             setCropParams(params)
 
+            // Initialize saved state for crop dirty checking
+            useEditorStore.getState().setSavedCropState(params)
+
             if (project.originalImage) {
                 const img = new Image()
                 img.onload = () => {

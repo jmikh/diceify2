@@ -4,6 +4,7 @@ import { Proportions, RotateCw } from 'lucide-react'
 
 import { AspectRatio } from '@/lib/types'
 import { useEditorStore } from '@/lib/store/useEditorStore'
+import { usePersistence } from '@/app/editor/hooks/usePersistence'
 
 export interface AspectRatioOption {
     value: AspectRatio
@@ -96,7 +97,36 @@ export default function CropperPanel() {
         setStep('upload')
     }
 
+    const { saveCropStep } = usePersistence()
+
     const handleContinue = () => {
+        const cropParams = useEditorStore.getState().cropParams
+        const savedCropParams = useEditorStore.getState().savedCropParams
+
+        // Default to dirty if no saved params
+        let isDirty = !savedCropParams
+
+        if (savedCropParams && cropParams) {
+            // Check for any differences
+            if (
+                cropParams.x !== savedCropParams.x ||
+                cropParams.y !== savedCropParams.y ||
+                cropParams.width !== savedCropParams.width ||
+                cropParams.height !== savedCropParams.height ||
+                cropParams.rotation !== savedCropParams.rotation
+            ) {
+                isDirty = true
+            } else {
+                isDirty = false
+            }
+        }
+
+        if (isDirty) {
+            console.log('[CROPPER] Params changed, saving to DB...')
+            saveCropStep()
+        } else {
+            console.log('[CROPPER] No changes detected, skipping DB save.')
+        }
 
         setStep('tune')
     }
