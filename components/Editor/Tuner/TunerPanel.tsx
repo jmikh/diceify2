@@ -581,6 +581,8 @@ export default function TunerPanel() {
             if (isDirty) {
               console.log('[TUNER] Params changed, saving to DB...')
               saveTuneStep()
+              // Reset build progress in store
+              useEditorStore.getState().setBuildProgress({ x: 0, y: 0, percentage: 0 })
             } else {
               console.log('[TUNER] No changes detected, skipping DB save.')
             }

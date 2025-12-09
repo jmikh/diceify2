@@ -124,6 +124,8 @@ export default function CropperPanel() {
         if (isDirty) {
             console.log('[CROPPER] Params changed, saving to DB...')
             saveCropStep()
+            // Reset build progress in store
+            useEditorStore.getState().setBuildProgress({ x: 0, y: 0, percentage: 0 })
         } else {
             console.log('[CROPPER] No changes detected, skipping DB save.')
         }

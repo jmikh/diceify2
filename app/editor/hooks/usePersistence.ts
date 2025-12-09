@@ -100,6 +100,10 @@ export function usePersistence() {
                     cropWidth: cropParams.width,
                     cropHeight: cropParams.height,
                     cropRotation: cropParams.rotation,
+                    // Reset build progress when crop changes
+                    currentX: 0,
+                    currentY: 0,
+                    percentComplete: 0
 
                 })
             })
@@ -139,6 +143,10 @@ export function usePersistence() {
                     gridWidth: diceGrid?.width || null,
                     gridHeight: diceGrid?.height || null,
                     totalDice: diceStats.totalCount,
+                    // Reset build progress when tune parameters change
+                    currentX: 0,
+                    currentY: 0,
+                    percentComplete: 0
 
                 })
             })
