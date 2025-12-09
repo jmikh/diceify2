@@ -26,8 +26,6 @@ export async function PATCH(
       rotate2,
       rotate3,
       rotate6,
-      dieSize,
-      costPer1000,
       gridWidth,
       gridHeight,
       totalDice
@@ -63,8 +61,6 @@ export async function PATCH(
         rotate2,
         rotate3,
         rotate6,
-        dieSize,
-        costPer1000,
         gridWidth,
         gridHeight,
         totalDice,

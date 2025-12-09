@@ -14,8 +14,6 @@ export function usePersistence() {
     const diceParams = useEditorStore(state => state.diceParams)
     const diceStats = useEditorStore(state => state.diceStats)
     const diceGrid = useEditorStore(state => state.diceGrid)
-    const dieSize = useEditorStore(state => state.dieSize)
-    const costPer1000 = useEditorStore(state => state.costPer1000)
     const step = useEditorStore(state => state.step)
 
     const buildProgress = useEditorStore(state => state.buildProgress)
@@ -134,8 +132,6 @@ export function usePersistence() {
                     rotate2: diceParams.rotate2,
                     rotate3: diceParams.rotate3,
                     rotate6: diceParams.rotate6,
-                    dieSize,
-                    costPer1000,
                     gridWidth: diceGrid?.width || null,
                     gridHeight: diceGrid?.height || null,
                     totalDice: diceStats.totalCount,
@@ -146,12 +142,16 @@ export function usePersistence() {
             if (response.ok) {
                 devLog('Tune parameters saved successfully')
                 setLastSaved(new Date())
+
+                // Update saved state to mark as clean
+                useEditorStore.getState().setSavedTuneState(diceParams)
+
                 localStorage.removeItem('editorState')
             }
         } catch (error) {
             devError('Failed to save tune parameters:', error)
         }
-    }, [session, currentProjectId, diceParams, dieSize, costPer1000, diceGrid, diceStats, setLastSaved])
+    }, [session, currentProjectId, diceParams, diceGrid, diceStats, setLastSaved])
 
     return {
         saveProgressOnly,

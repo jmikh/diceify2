@@ -31,6 +31,8 @@ import { useState, useRef, useEffect } from 'react'
 import CountUp from 'react-countup'
 import { Grid3x3, Contrast, Sun, Sparkles, RotateCw, Palette } from 'lucide-react'
 import { useEditorStore } from '@/lib/store/useEditorStore'
+import { generateGridHash } from '@/lib/utils/paramUtils'
+import { usePersistence } from '@/app/editor/hooks/usePersistence'
 import styles from './TunerPanel.module.css'
 
 // Removed interface TunerPanelProps
@@ -42,6 +44,8 @@ export default function TunerPanel() {
 
   const diceStats = useEditorStore(state => state.diceStats)
   const { blackCount, whiteCount, totalCount } = diceStats
+
+  const { saveTuneStep } = usePersistence()
 
   // Track previous values for smooth transitions
   const prevCountRef = useRef(totalCount)
@@ -109,8 +113,6 @@ export default function TunerPanel() {
       setDiceParams({ rotate6: !params.rotate6 })
     }
   }
-
-  const onParamChange = setDiceParams // Alias for compatibility with existing code structure if needed, or just use setDiceParams directly
 
   return (
     <>
@@ -559,8 +561,32 @@ export default function TunerPanel() {
 
         <button
           onClick={() => {
-            setStep('build')
+            // Check if any params have changed since load/last save
+            // Check if any params have changed since load/last save
+            const savedParams = useEditorStore.getState().savedDiceParams
 
+            // If we don't have saved params (new project?), treat as dirty
+            let isDirty = !savedParams
+
+            if (savedParams) {
+              // Use hash comparison
+              const currentHash = generateGridHash(params)
+              const savedHash = generateGridHash(savedParams)
+
+              if (currentHash !== savedHash) {
+                isDirty = true
+              }
+            }
+
+            if (isDirty) {
+              console.log('[TUNER] Params changed, saving to DB...')
+              saveTuneStep()
+            } else {
+              console.log('[TUNER] No changes detected, skipping DB save.')
+            }
+
+            // Always proceed
+            setStep('build')
           }}
           className="
             flex-1 py-3.5 rounded-full

@@ -74,8 +74,6 @@ function EditorContent() {
   const diceStats = useEditorStore(state => state.diceStats)
   const diceGrid = useEditorStore(state => state.diceGrid)
   const processedImageUrl = useEditorStore(state => state.processedImageUrl)
-  const dieSize = useEditorStore(state => state.dieSize)
-  const costPer1000 = useEditorStore(state => state.costPer1000)
   const projectName = useEditorStore(state => state.projectName)
   const currentProjectId = useEditorStore(state => state.currentProjectId)
   const lastSaved = useEditorStore(state => state.lastSaved)
@@ -96,8 +94,6 @@ function EditorContent() {
   const setDiceStats = useEditorStore(state => state.setDiceStats)
   const setDiceGrid = useEditorStore(state => state.setDiceGrid)
   const setProcessedImageUrl = useEditorStore(state => state.setProcessedImageUrl)
-  const setDieSize = useEditorStore(state => state.setDieSize)
-  const setCostPer1000 = useEditorStore(state => state.setCostPer1000)
   const setProjectName = useEditorStore(state => state.setProjectName)
   const setIsInitializing = useEditorStore(state => state.setIsInitializing)
   const setBuildProgress = useEditorStore(state => state.setBuildProgress)
@@ -126,12 +122,12 @@ function EditorContent() {
 
   // Memoize frame dimensions to prevent re-renders
   const frameWidth = useMemo(() => {
-    return diceGrid ? (diceGrid.width * dieSize) / 10 : undefined
-  }, [diceGrid?.width, dieSize])
+    return diceGrid ? (diceGrid.width * 16) / 10 : undefined
+  }, [diceGrid?.width])
 
   const frameHeight = useMemo(() => {
-    return diceGrid ? (diceGrid.height * dieSize) / 10 : undefined
-  }, [diceGrid?.height, dieSize])
+    return diceGrid ? (diceGrid.height * 16) / 10 : undefined
+  }, [diceGrid?.height])
 
   // Auto-save timeout ref for build step
   const buildAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -285,8 +281,6 @@ function EditorContent() {
           diceParams,     // Used to regenerate dice grid
           step,
 
-          dieSize,
-          costPer1000,
           projectName,
           buildProgress,
           diceStats
@@ -304,8 +298,6 @@ function EditorContent() {
               diceParams,
               step,
 
-              dieSize,
-              costPer1000,
               projectName,
               buildProgress,
               diceStats
@@ -323,7 +315,7 @@ function EditorContent() {
       // Clear localStorage when logged in (using database instead)
       localStorage.removeItem('editorState')
     }
-  }, [session?.user?.id, originalImage, cropParams, diceParams, step, dieSize, costPer1000, projectName, buildProgress, diceStats])
+  }, [session?.user?.id, originalImage, cropParams, diceParams, step, projectName, buildProgress, diceStats])
 
   // Restore state from localStorage on mount (if no project is loaded)
   useEffect(() => {
@@ -345,8 +337,6 @@ function EditorContent() {
             // Don't restore croppedImage or processedImageUrl - they'll be regenerated
             if (state.cropParams) setCropParams(state.cropParams)
             if (state.diceParams) setDiceParams(state.diceParams)
-            if (state.dieSize) setDieSize(state.dieSize)
-            if (state.costPer1000) setCostPer1000(state.costPer1000)
             if (state.projectName) setProjectName(state.projectName)
             if (state.buildProgress) setBuildProgress(state.buildProgress)
             if (state.diceStats) setDiceStats(state.diceStats)

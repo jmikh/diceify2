@@ -29,9 +29,6 @@ interface EditorState {
   hasCropChanged: boolean
 
   // Dice Configuration
-  diceParams: DiceParams
-  dieSize: number // mm
-  costPer1000: number // dollars
 
   // Generated Data
   diceStats: DiceStats
@@ -42,6 +39,9 @@ interface EditorState {
   currentProjectId: string | null
   lastSaved: Date | null
   isSaving: boolean
+
+  // Saved State for Dirty Checking
+  savedDiceParams: DiceParams | null
 
   // UI State
   isInitializing: boolean
@@ -66,9 +66,12 @@ interface EditorState {
   setHasCropChanged: (changed: boolean) => void
   setDiceParams: (params: Partial<DiceParams>) => void
   setDiceStats: (stats: DiceStats) => void
+  setDiceStats: (stats: DiceStats) => void
   setDiceGrid: (grid: DiceGrid | null) => void
-  setDieSize: (size: number) => void
-  setCostPer1000: (cost: number) => void
+
+  // Actions to update saved state
+  setSavedTuneState: (params: DiceParams) => void
+
   setProjectName: (name: string) => void
   setCurrentProjectId: (id: string | null) => void
   setLastSaved: (date: Date | null) => void
@@ -99,7 +102,7 @@ const DEFAULT_DICE_PARAMS: DiceParams = {
   rotate2: false,
 }
 
-const DEFAULT_DICE_STATS: DiceStats = {
+export const DEFAULT_DICE_STATS: DiceStats = {
   blackCount: 0,
   whiteCount: 0,
   totalCount: 0,
@@ -117,8 +120,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   hasCropChanged: false,
 
   diceParams: DEFAULT_DICE_PARAMS,
-  dieSize: 16,
-  costPer1000: 60,
+
+  savedDiceParams: null,
 
   diceStats: DEFAULT_DICE_STATS,
   diceGrid: null,
@@ -154,9 +157,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   })),
 
   setDiceStats: (stats) => set({ diceStats: stats }),
+  setDiceStats: (stats) => set({ diceStats: stats }),
   setDiceGrid: (grid) => set({ diceGrid: grid }),
-  setDieSize: (size) => set({ dieSize: size }),
-  setCostPer1000: (cost) => set({ costPer1000: cost }),
+
+  setSavedTuneState: (params) => set({
+    savedDiceParams: { ...params },
+  }),
 
   setProjectName: (name) => set({ projectName: name }),
   setCurrentProjectId: (id) => set({ currentProjectId: id }),
@@ -219,8 +225,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       diceStats: DEFAULT_DICE_STATS,
       buildProgress: { x: 0, y: 0, percentage: 0 },
       diceGrid: null,
-      dieSize: 16,
-      costPer1000: 60,
+      diceGrid: null,
+      savedDiceParams: null,
       selectedRatio: '1:1',
       cropRotation: 0,
       // We don't reset project ID or name here usually, unless explicitly creating new

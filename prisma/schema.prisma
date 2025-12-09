@@ -69,8 +69,6 @@ model Project {
   percentComplete Float    @default(0)
   updatedAt       DateTime @updatedAt
   createdAt       DateTime @default(now())
-  costPer1000     Float    @default(60)
-  dieSize         Int      @default(16)
 
   cropHeight      Float?
   cropRotation    Float    @default(0)

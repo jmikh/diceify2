@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEditorStore } from '@/lib/store/useEditorStore'
+import { useEditorStore, DEFAULT_DICE_STATS } from '@/lib/store/useEditorStore'
+import { generateGridHash } from '@/lib/utils/paramUtils'
 import { devLog, devError } from '@/lib/utils/debug'
 import { WorkflowStep, DiceParams, DiceGrid, DiceStats } from '@/lib/types'
 
@@ -18,8 +19,6 @@ export function useProjectManager() {
     const diceParams = useEditorStore(state => state.diceParams)
     const diceStats = useEditorStore(state => state.diceStats)
     const diceGrid = useEditorStore(state => state.diceGrid)
-    const dieSize = useEditorStore(state => state.dieSize)
-    const costPer1000 = useEditorStore(state => state.costPer1000)
 
     const buildProgress = useEditorStore(state => state.buildProgress)
     const showProjectModal = useEditorStore(state => state.showProjectModal)
@@ -37,8 +36,6 @@ export function useProjectManager() {
     const setDiceParams = useEditorStore(state => state.setDiceParams)
     const setDiceStats = useEditorStore(state => state.setDiceStats)
     const setDiceGrid = useEditorStore(state => state.setDiceGrid)
-    const setDieSize = useEditorStore(state => state.setDieSize)
-    const setCostPer1000 = useEditorStore(state => state.setCostPer1000)
     const setBuildProgress = useEditorStore(state => state.setBuildProgress)
 
     const setIsInitializing = useEditorStore(state => state.setIsInitializing)
@@ -48,20 +45,6 @@ export function useProjectManager() {
     const [userProjects, setUserProjects] = useState<any[]>([])
     const loadingProjectRef = useRef(false)
     const [lastGridHash, setLastGridHash] = useState<string>('')
-
-    // Generate hash from grid parameters to detect changes
-    const generateGridHash = (params: DiceParams): string => {
-        return JSON.stringify({
-            numRows: params.numRows,
-            colorMode: params.colorMode,
-            contrast: params.contrast,
-            gamma: params.gamma,
-            edgeSharpening: params.edgeSharpening,
-            rotate6: params.rotate6,
-            rotate3: params.rotate3,
-            rotate2: params.rotate2,
-        })
-    }
 
     // Update URL with project ID
     const updateURLWithProject = useCallback((projectId: string | null) => {
@@ -132,8 +115,6 @@ export function useProjectManager() {
                     rotate2: false,
                     rotate3: false,
                     rotate6: false,
-                    dieSize: 16,
-                    costPer1000: 60,
                     gridData: null,
                     totalDice: 0,
                     completedDice: 0,
@@ -189,8 +170,6 @@ export function useProjectManager() {
                 rotate2: diceParams.rotate2,
                 rotate3: diceParams.rotate3,
                 rotate6: diceParams.rotate6,
-                dieSize,
-                costPer1000,
                 gridWidth: diceGrid?.width || null,
                 gridHeight: diceGrid?.height || null,
                 totalDice: diceStats.totalCount,
@@ -226,7 +205,7 @@ export function useProjectManager() {
         } catch (error) {
             devError('Failed to create project:', error)
         }
-    }, [session, originalImage, croppedImage, diceParams, dieSize, costPer1000, diceGrid, diceStats, buildProgress, fetchUserProjects, cropParams, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal])
+    }, [session, originalImage, croppedImage, diceParams, diceGrid, diceStats, buildProgress, fetchUserProjects, cropParams, setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setShowProjectModal])
 
     // Delete project
     const deleteProject = useCallback(async (projectId: string) => {
@@ -276,10 +255,23 @@ export function useProjectManager() {
         setCroppedImage(null)
         setCropParams(null)
         setProcessedImageUrl(null)
-        setDiceGrid(null)
-        setDiceStats({ blackCount: 0, whiteCount: 0, totalCount: 0 })
 
-        // Set project info
+        // Initialize saved state for dirty checking
+        const loadedDiceParams = {
+            numRows: project.numRows || 30,
+            colorMode: project.colorMode || 'both',
+            contrast: project.contrast || 0,
+            gamma: project.gamma || 1.0,
+            edgeSharpening: project.edgeSharpening || 0,
+            rotate2: project.rotate2 || false,
+            rotate3: project.rotate3 || false,
+            rotate6: project.rotate6 || false
+        }
+        useEditorStore.getState().setSavedTuneState(
+            loadedDiceParams
+        )
+
+        // Project Metadata
         setCurrentProjectId(project.id)
         setProjectName(project.name)
         updateURLWithProject(project.id)
@@ -339,8 +331,6 @@ export function useProjectManager() {
         setDiceParams(newDiceParams)
         setLastGridHash(generateGridHash(newDiceParams))
 
-        setDieSize(project.dieSize || 16)
-        setCostPer1000(project.costPer1000 || 60)
 
         if (project.totalDice) {
             setDiceStats({
@@ -368,8 +358,8 @@ export function useProjectManager() {
 
         setTimeout(() => {
             loadingProjectRef.current = false
-        }, 100)
-    }, [setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setOriginalImage, setCroppedImage, setCropParams, setProcessedImageUrl, setDiceGrid, setDiceStats, setDiceParams, setDieSize, setCostPer1000, setBuildProgress, setStep])
+        }, 500)
+    }, [setCurrentProjectId, setProjectName, updateURLWithProject, setLastSaved, setOriginalImage, setCroppedImage, setCropParams, setProcessedImageUrl, setDiceGrid, setDiceStats, setDiceParams, setBuildProgress, setStep])
 
     return {
         userProjects,
