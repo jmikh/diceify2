@@ -239,11 +239,7 @@ function BuildProgress({
                     <button
                         onClick={() => onNavigate('prevDiff')}
                         disabled={!canNavigate.prevDiff}
-                        className="p-3 rounded-xl transition-all disabled:opacity-30 hover:bg-white/10"
-                        style={{
-                            backgroundColor: theme.colors.glass.light,
-                            color: canNavigate.prevDiff ? theme.colors.text.primary : theme.colors.text.muted
-                        }}
+                        className={`p-3 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-white/5 hover:bg-white/20 ${canNavigate.prevDiff ? 'text-white/90' : 'text-white/50'}`}
                         title="Previous different dice"
                     >
                         <ChevronsLeft size={24} />
@@ -252,11 +248,7 @@ function BuildProgress({
                     <button
                         onClick={() => onNavigate('prev')}
                         disabled={!canNavigate.prev}
-                        className="p-3 rounded-xl transition-all disabled:opacity-30 hover:bg-white/10"
-                        style={{
-                            backgroundColor: theme.colors.glass.light,
-                            color: canNavigate.prev ? theme.colors.text.primary : theme.colors.text.muted
-                        }}
+                        className={`p-3 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-white/5 hover:bg-white/20 ${canNavigate.prev ? 'text-white/90' : 'text-white/50'}`}
                         title="Previous dice"
                     >
                         <ChevronLeft size={24} />
@@ -265,11 +257,7 @@ function BuildProgress({
                     <button
                         onClick={() => onNavigate('next')}
                         disabled={!canNavigate.next}
-                        className="p-3 rounded-xl transition-all disabled:opacity-30 hover:bg-white/10"
-                        style={{
-                            backgroundColor: theme.colors.glass.light,
-                            color: canNavigate.next ? theme.colors.text.primary : theme.colors.text.muted
-                        }}
+                        className={`p-3 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-white/5 hover:bg-white/20 ${canNavigate.next ? 'text-white/90' : 'text-white/50'}`}
                         title="Next dice"
                     >
                         <ChevronRight size={24} />
@@ -278,11 +266,7 @@ function BuildProgress({
                     <button
                         onClick={() => onNavigate('nextDiff')}
                         disabled={!canNavigate.nextDiff}
-                        className="p-3 rounded-xl transition-all disabled:opacity-30 hover:bg-white/10"
-                        style={{
-                            backgroundColor: theme.colors.glass.light,
-                            color: canNavigate.nextDiff ? theme.colors.text.primary : theme.colors.text.muted
-                        }}
+                        className={`p-3 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-white/5 hover:bg-white/20 ${canNavigate.nextDiff ? 'text-white/90' : 'text-white/50'}`}
                         title="Next different dice"
                     >
                         <ChevronsRight size={24} />

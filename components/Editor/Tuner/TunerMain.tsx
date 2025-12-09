@@ -12,17 +12,8 @@ interface TunerMainProps {
 
 export default function TunerMain({ diceCanvasRef, cropParams }: TunerMainProps) {
     return (
-        <div className="flex-grow flex flex-col items-center justify-center h-full" style={{ maxWidth: '850px' }}>
-            <div
-                className="rounded-3xl bg-[#0a0a0f] transition-all duration-500 ease-out flex items-center justify-center overflow-hidden border border-white/10 p-4 relative group"
-                style={{
-                    aspectRatio: cropParams ? `${cropParams.width}/${cropParams.height}` : 'auto',
-                    width: 'auto',
-                    height: 'auto',
-                    maxWidth: '100%',
-                    maxHeight: '100%'
-                }}
-            >
+        <>
+            <div>
 
                 {/* Download Button - Top Right */}
                 <button
@@ -39,6 +30,6 @@ export default function TunerMain({ diceCanvasRef, cropParams }: TunerMainProps)
                     maxHeight={850}
                 />
             </div>
-        </div>
+        </>
     )
 }

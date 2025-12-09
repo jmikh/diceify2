@@ -82,37 +82,6 @@ const BuildViewer = memo(function BuildViewer({
     const totalDice = useMemo(() => totalRows * totalCols, [totalRows, totalCols])
     const currentDice = useMemo(() => grid.dice[currentX]?.[currentY] || null, [grid.dice, currentX, currentY])
 
-    // Calculate consecutive count for current dice (on the same row/y-level)
-    const getConsecutiveCount = () => {
-        if (!currentDice) return 0
-
-        let count = 1
-        const currentFace = currentDice.face
-        const currentColor = currentDice.color
-
-        // Count forward along x-axis (same y)
-        for (let x = currentX + 1; x < totalCols; x++) {
-            const dice = grid.dice[x][currentY]
-            if (dice.face === currentFace && dice.color === currentColor) {
-                count++
-            } else {
-                break
-            }
-        }
-
-        // Count backward along x-axis (same y)
-        for (let x = currentX - 1; x >= 0; x--) {
-            const dice = grid.dice[x][currentY]
-            if (dice.face === currentFace && dice.color === currentColor) {
-                count++
-            } else {
-                break
-            }
-        }
-
-        return count
-    }
-
     // Calculate and animate viewBox transition
     const buildZoom = useCallback(() => {
         // Calculate container aspect ratio
@@ -392,23 +361,6 @@ const BuildViewer = memo(function BuildViewer({
             return currentY < totalRows - 1
         })()
     }), [currentIndex, totalDice, currentDice, currentX, currentY, totalCols, totalRows, grid.dice])
-
-    const handleNavigate = (direction: 'prev' | 'next' | 'prevDiff' | 'nextDiff') => {
-        switch (direction) {
-            case 'prev':
-                navigatePrev()
-                break
-            case 'next':
-                navigateNext()
-                break
-            case 'prevDiff':
-                navigatePrevDiff()
-                break
-            case 'nextDiff':
-                navigateNextDiff()
-                break
-        }
-    }
 
     // Notify parent when position changes - use ref to track last notified position
     const lastNotifiedPosition = useRef({ x: currentX, y: currentY })
@@ -735,17 +687,20 @@ const BuildViewer = memo(function BuildViewer({
 
 
                     {/* Zoom Controls */}
-                    <div className="absolute top-4 right-4 flex gap-3 z-10">
+                    <div className="absolute top-6 right-6 flex flex-col gap-2 z-10">
                         <button
                             onClick={() => setZoomLevel(Math.min(20, zoomLevel + 2))}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 text-pink-500 hover:text-pink-400 transition-all backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.15)]"
+                            disabled={zoomLevel >= 20}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 text-pink-500 hover:text-pink-400 transition-all backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.15)] disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Zoom Out"
                         >
                             <Minus className="w-5 h-5" />
                         </button>
+
                         <button
                             onClick={() => setZoomLevel(Math.max(4, zoomLevel - 2))}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 text-pink-500 hover:text-pink-400 transition-all backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.15)]"
+                            disabled={zoomLevel <= 4}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 text-pink-500 hover:text-pink-400 transition-all backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.15)] disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Zoom In"
                         >
                             <Plus className="w-5 h-5" />

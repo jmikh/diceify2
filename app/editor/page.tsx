@@ -424,26 +424,6 @@ function EditorContent() {
     }
   }
 
-  const handleStatsUpdate = (stats: DiceStats) => {
-    setDiceStats(stats)
-  }
-
-  const handleDieSizeChange = (size: number) => {
-    setDieSize(size)
-    if (step === 'tune') {
-      // Changes tracked internally
-      setHasTuneChanged(true) // Mark that tune has changed
-    }
-  }
-
-  const handleCostChange = (cost: number) => {
-    setCostPer1000(cost)
-    if (step === 'tune') {
-      // Changes tracked internally
-      setHasTuneChanged(true) // Mark that tune has changed
-    }
-  }
-
   const handleGridUpdate = (grid: DiceGrid) => {
     setDiceGrid(grid)
 
@@ -1290,7 +1270,7 @@ function EditorContent() {
           </div>
 
           {/* MAIN CONTENT AREA */}
-          <div className="flex-grow flex items-center justify-center relative min-w-[400px] max-w-[850px] max-h-[850px] overflow-hidden">
+          <div className="flex-grow flex items-center justify-center relative min-w-[400px] max-w-[850px] max-h-[850px] overflow-hidden bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
             {step === 'upload' && <UploadMain />}
 
             {step === 'crop' && (
