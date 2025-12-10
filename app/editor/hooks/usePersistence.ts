@@ -28,19 +28,22 @@ export function usePersistence() {
     buildProgressRef.current = buildProgress
 
     // Save only progress fields (for build step)
-    const saveProgressOnly = useCallback(async () => {
+    const saveProgressOnly = useCallback(async (overrideX?: number, overrideY?: number) => {
         if (!session?.user?.id || !currentProjectId) return
 
         setIsSaving(true)
         const currentProgress = buildProgressRef.current
+        const xToSave = overrideX !== undefined ? overrideX : currentProgress.x
+        const yToSave = overrideY !== undefined ? overrideY : currentProgress.y
+
         devLog(`[PROGRESS] About to save progress for project ${currentProjectId}`)
         try {
             const response = await fetch(`/api/projects/${currentProjectId}/progress`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    currentX: currentProgress.x,
-                    currentY: currentProgress.y,
+                    currentX: xToSave,
+                    currentY: yToSave,
                     completedDice: Math.floor((currentProgress.percentage / 100) * diceStats.totalCount),
 
                 })

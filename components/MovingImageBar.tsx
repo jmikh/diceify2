@@ -3,14 +3,14 @@
 import Image from 'next/image'
 import { useEffect, useRef } from 'react'
 
-const images = [
-  '/images/dali-51x51.png',
-  '/images/frida-54x54.png',
-  '/images/monalisa.jpg',
-  '/images/salah-61x61.png',
-  '/images/kobe-71x71.png',
-  '/images/sharbatgula-52x52.png',
-  '/images/ummkulthum58x58.png',
+const galleryItems = [
+  { src: '/images/dali-51x51.png', alt: 'Salvador Dali dice art mosaic' },
+  { src: '/images/frida-54x54.png', alt: 'Frida Kahlo portrait made of dice' },
+  { src: '/images/monalisa.jpg', alt: 'Mona Lisa dice mosaic art' },
+  { src: '/images/salah-61x61.png', alt: 'Mo Salah football player dice art' },
+  { src: '/images/kobe-71x71.png', alt: 'Kobe Bryant tribute in dice' },
+  { src: '/images/sharbatgula-52x52.png', alt: 'Afghan Girl famous portrait in dice' },
+  { src: '/images/ummkulthum58x58.png', alt: 'Umm Kulthum singer dice mosaic' },
 ]
 
 export default function MovingImageBar() {
@@ -58,7 +58,7 @@ export default function MovingImageBar() {
       >
         <div className="flex gap-8 px-8">
           {/* Duplicate images for seamless loop */}
-          {[...images, ...images].map((src, index) => (
+          {[...galleryItems, ...galleryItems].map((item, index) => (
             <div
               key={index}
               className="relative flex-shrink-0 opacity-60"
@@ -68,8 +68,8 @@ export default function MovingImageBar() {
               }}
             >
               <Image
-                src={src}
-                alt={`Dice art example ${index + 1}`}
+                src={item.src}
+                alt={item.alt}
                 fill
                 className="object-cover rounded-lg"
                 sizes="400px"

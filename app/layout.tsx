@@ -11,12 +11,21 @@ const syne = Syne({ subsets: ['latin'], variable: '--font-syne', display: 'swap'
 export const metadata: Metadata = {
   metadataBase: new URL('https://diceify.art'),
   title: {
-    default: 'Diceify - Dice Mosaic Art Creator',
+    default: 'Diceify - Dice Mosaic Art Builder',
     template: '%s | Diceify'
   },
-  description: 'Create stunning physical dice mosaics from your digital photos. Transform any image into buildable dice art with our free online tool.',
-  keywords: ['dice art', 'mosaic maker', 'photo to dice', 'dice mosaic', 'image converter', 'art generator', 'creative tools'],
-  authors: [{ name: 'Diceify' }],
+  description: 'The #1 free tool to create dice mosaic art. Convert your photos into buildable dice pixel art patterns. Calculate dice needed, view blueprints, and build your own masterpiece.',
+  keywords: [
+    'dice art',
+    'dice mosaic maker',
+    'photo to dice',
+    'dice pixel art',
+    'dice portrait generator',
+    'rubiks cube art alternative',
+    'mosaic blueprints',
+    'diy art project'
+  ],
+  authors: [{ name: 'Diceify Team' }],
   creator: 'Diceify',
   publisher: 'Diceify',
   formatDetection: {
@@ -25,8 +34,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: 'Diceify - Transform Photos into Dice Mosaic Art',
-    description: 'Create stunning physical dice mosaics from your digital photos. Transform any image into buildable dice art with our free online tool.',
+    title: 'Diceify - Free Photo to Dice Art Generator',
+    description: 'Turn any photo into a stunning dice mosaic. Get free blueprints, calculate dice requirements, and start building your physical pixel art today.',
     url: 'https://diceify.art',
     siteName: 'Diceify',
     locale: 'en_US',
@@ -36,7 +45,7 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Diceify - Transform Photos into Dice Art',
+        alt: 'Diceify - Transform Photos into Dice Art Examples',
       }
     ],
   },

@@ -130,8 +130,7 @@ function EditorContent() {
     return diceGrid ? (diceGrid.height * 16) / 10 : undefined
   }, [diceGrid?.height])
 
-  // Auto-save timeout ref for build step
-  const buildAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
 
   // Keep latest buildProgress in a ref to avoid stale closures
   const buildProgressRef = useRef(buildProgress)
@@ -176,27 +175,7 @@ function EditorContent() {
     }
   }
 
-  // Throttle position updates to reduce parent re-renders
-  const lastUpdateTimeRef = useRef(0)
-  const pendingUpdateRef = useRef<{ x: number; y: number } | null>(null)
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Schedule auto-save for build progress
-  const scheduleBuildAutoSave = useCallback(() => {
-    // Clear any existing timeout
-    if (buildAutoSaveTimeoutRef.current) {
-      clearTimeout(buildAutoSaveTimeoutRef.current)
-      devLog('[AUTO-SAVE] Resetting 15-second auto-save timer')
-    } else {
-      devLog('[AUTO-SAVE] Starting 15-second auto-save timer')
-    }
-
-    // Schedule new save after 15 seconds
-    buildAutoSaveTimeoutRef.current = setTimeout(() => {
-      devLog('[AUTO-SAVE] Saving build progress after 15 seconds of inactivity')
-      saveProgressOnly()
-    }, 15000) // 15 seconds delay
-  }, [saveProgressOnly])
+  // Close user menu when clicking outside
 
   // Clean up timeouts on unmount and save build progress
   useEffect(() => {
@@ -225,10 +204,7 @@ function EditorContent() {
       // Remove event listener
       window.removeEventListener('beforeunload', handleBeforeUnload)
 
-      // Clear timeouts
-      if (buildAutoSaveTimeoutRef.current) {
-        clearTimeout(buildAutoSaveTimeoutRef.current)
-      }
+
 
       // Save build progress on component unmount
       handleBeforeUnload()
@@ -517,10 +493,16 @@ function EditorContent() {
           sessionStorage.removeItem('shouldAutoSaveRestoredState')
         }
 
-        // Always show the modal on login - giving user choice to create named project or load
-        // Even if they have work in progress, we let them "Save & Create" via the modal
-        devLog('[LOGIN EFFECT] Showing project dashboard')
-        setShowProjectModal(true)
+        // Check if there is a project in the URL - if so, don't show modal
+        const projectIdParam = searchParams.get('project')
+        if (!projectIdParam) {
+          // Always show the modal on login - giving user choice to create named project or load
+          // Even if they have work in progress, we let them "Save & Create" via the modal
+          devLog('[LOGIN EFFECT] Showing project dashboard')
+          setShowProjectModal(true)
+        } else {
+          devLog('[LOGIN EFFECT] Skipping project dashboard - project ID in URL')
+        }
 
         // Mark initialization as complete after handling all login logic with small delay
         setTimeout(() => setIsInitializing(false), 500)
@@ -541,7 +523,7 @@ function EditorContent() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id, currentProjectId, isRestoringOAuthState, originalImage, processedImageUrl, croppedImage])
+  }, [session?.user?.id, currentProjectId, isRestoringOAuthState, originalImage, processedImageUrl, croppedImage, searchParams])
 
 
   // Clear localStorage when a project is loaded or workflow is reset
@@ -569,38 +551,16 @@ function EditorContent() {
       ? Math.round(((diceStats.blackCount + diceStats.whiteCount) / diceStats.totalCount) * 100)
       : 0
 
-    setBuildProgress({ x, y, percentage })
-
-    // Schedule DB update with throttling
-    const currentTime = Date.now()
-    if (currentTime - lastUpdateTimeRef.current >= 2000) {
-      // If enough time passed, update immediately
+    // Check if Y changed (row change) - Trigger Save
+    if (y !== buildProgress.y) {
       if (session?.user?.id && currentProjectId) {
-        scheduleBuildAutoSave(x, y)
-        lastUpdateTimeRef.current = currentTime
-      }
-    } else {
-      // Otherwise schedule for later if not already scheduled
-      if (!updateTimeoutRef.current) {
-        // Store pending update
-        pendingUpdateRef.current = { x, y }
-
-        updateTimeoutRef.current = setTimeout(() => {
-          if (pendingUpdateRef.current) {
-            if (session?.user?.id && currentProjectId) {
-              scheduleBuildAutoSave(pendingUpdateRef.current.x, pendingUpdateRef.current.y)
-              lastUpdateTimeRef.current = Date.now()
-            }
-            pendingUpdateRef.current = null
-            updateTimeoutRef.current = null
-          }
-        }, 2000)
-      } else {
-        // Update the pending value to latest
-        pendingUpdateRef.current = { x, y }
+        devLog('[AUTO-SAVE] Y changed, saving progress')
+        saveProgressOnly(x, y)
       }
     }
-  }, [diceGrid, diceStats, session, currentProjectId, scheduleBuildAutoSave, setShowAuthModal])
+
+    setBuildProgress({ x, y, percentage })
+  }, [diceGrid, diceStats, session, currentProjectId, saveProgressOnly, setShowAuthModal, buildProgress.y])
 
   // No cleanup needed - removed auto-save timers
 
