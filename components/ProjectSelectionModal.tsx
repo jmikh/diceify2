@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, FolderOpen, Clock, Trash2, AlertCircle, Plus } from 'lucide-react'
-import { theme } from '@/lib/theme'
+import { X, Clock, Trash2, AlertCircle, Plus } from 'lucide-react'
 import { devLog } from '@/lib/utils/debug'
 import Logo from '@/components/Logo'
 import Image from 'next/image'
@@ -19,7 +18,6 @@ interface Project {
 interface ProjectSelectionModalProps {
   isOpen: boolean
   onClose?: () => void
-  onCreateFromCurrent?: () => void
   onCreateNew: (name: string) => void
   onSelectProject: (projectId: string) => void
   onDeleteProject?: (projectId: string) => void
@@ -31,7 +29,6 @@ interface ProjectSelectionModalProps {
 export default function ProjectSelectionModal({
   isOpen,
   onClose,
-  onCreateFromCurrent,
   onCreateNew,
   onSelectProject,
   onDeleteProject,
@@ -47,11 +44,10 @@ export default function ProjectSelectionModal({
     if (isOpen) {
       devLog('[DEBUG] ProjectSelectionModal opened with:')
       devLog('[DEBUG] - hasCurrentState:', hasCurrentState)
-      devLog('[DEBUG] - onCreateFromCurrent:', onCreateFromCurrent ? 'function provided' : 'undefined')
       devLog('[DEBUG] - projects count:', projects.length)
       devLog('[DEBUG] - isAtCapacity:', projects.length >= maxProjects)
     }
-  }, [isOpen, hasCurrentState, onCreateFromCurrent, projects.length, maxProjects])
+  }, [isOpen, hasCurrentState, projects.length, maxProjects])
 
   const isAtCapacity = projects.length >= maxProjects
 

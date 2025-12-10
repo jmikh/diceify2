@@ -44,7 +44,7 @@ export default function TestDashboardPage() {
             <ProjectSelectionModal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
-                onCreateFromCurrent={() => console.log('Create from current')}
+
                 onCreateNew={handleCreate}
                 onSelectProject={(id) => console.log('Select', id)}
                 onDeleteProject={handleDelete}

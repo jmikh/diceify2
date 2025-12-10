@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
+import { useState, useEffect, useRef,  Suspense } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -10,10 +10,9 @@ import {
 } from 'lucide-react'
 import UploaderPanel from '@/components/Editor/Uploader/UploaderPanel'
 import UploadMain from '@/components/Editor/Uploader/UploadMain'
-import CropperPanel, { aspectRatioOptions } from '@/components/Editor/Cropper/CropperPanel'
-import { AspectRatio } from '@/lib/types'
+import CropperPanel from '@/components/Editor/Cropper/CropperPanel'
 import CropperMain from '@/components/Editor/Cropper/CropperMain'
-import DiceCanvas, { DiceCanvasRef } from '@/components/Editor/DiceCanvas'
+import { DiceCanvasRef } from '@/components/Editor/DiceCanvas'
 import TunerPanel from '@/components/Editor/Tuner/TunerPanel'
 import TunerMain from '@/components/Editor/Tuner/TunerMain'
 
@@ -48,11 +47,7 @@ function EditorContent() {
     createProjectFromCurrent,
     deleteProject,
     loadProject,
-    updateURLWithProject,
-    loadingProjectRef,
-    lastGridHash,
-    setLastGridHash,
-    generateGridHash
+    updateURLWithProject
   } = useProjectManager()
 
   const {
@@ -121,14 +116,7 @@ function EditorContent() {
   }, [])
 
 
-  // Memoize frame dimensions to prevent re-renders
-  const frameWidth = useMemo(() => {
-    return diceGrid ? (diceGrid.width * 16) / 10 : undefined
-  }, [diceGrid?.width])
 
-  const frameHeight = useMemo(() => {
-    return diceGrid ? (diceGrid.height * 16) / 10 : undefined
-  }, [diceGrid?.height])
 
 
 
@@ -156,24 +144,7 @@ function EditorContent() {
   }, [showUserMenu])
 
 
-  const handleGridUpdate = (grid: DiceGrid) => {
-    setDiceGrid(grid)
 
-    // Check if grid has changed
-    const newHash = generateGridHash(diceParams)
-    if (newHash !== lastGridHash) {
-      devLog('[DEBUG] Grid hash changed:', { old: lastGridHash, new: newHash })
-      setLastGridHash(newHash)
-      // Only reset build progress if we're not in the process of loading a project
-      // The loadingProjectRef will be true when we're loading a project
-      if (!loadingProjectRef.current) {
-        devLog('[DEBUG] Resetting build progress due to grid change (not loading project)')
-        setBuildProgress({ x: 0, y: 0, percentage: 0 })
-      } else {
-        devLog('[DEBUG] Skipping build progress reset - loading project')
-      }
-    }
-  }
 
   // Close user menu when clicking outside
 
@@ -778,7 +749,7 @@ function EditorContent() {
       {/* Project Capacity Modal - only shown when at capacity */}
       <ProjectSelectionModal
         isOpen={showProjectModal}
-        onCreateFromCurrent={undefined} // No create options in new flow
+
         onCreateNew={(name) => {
           if (originalImage) {
             createProjectFromCurrent(name)

@@ -36,7 +36,7 @@ export default function TestCapacityPage() {
             <ProjectSelectionModal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
-                onCreateFromCurrent={() => console.log('Create from current')}
+
                 onCreateNew={() => console.log('Create new')}
                 onSelectProject={(id) => console.log('Select', id)}
                 onDeleteProject={(id) => console.log('Delete', id)}
