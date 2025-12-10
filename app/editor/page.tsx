@@ -535,32 +535,17 @@ function EditorContent() {
     }
   }, [currentProjectId])
 
-  // Handle build progress updates with throttling
-  const handleBuildProgressUpdate = useCallback((x: number, y: number) => {
-    if (!diceGrid) return
 
-    // Check if user is trying to go beyond x=3 without authentication
-    if (!session && x > 3) {
-      devLog('[AUTH] User tried to navigate beyond x=3 without authentication')
-      setShowAuthModal(true)
-      return // Prevent the update
-    }
 
-    // Update local state immediately for UI
-    const percentage = diceStats.totalCount > 0
-      ? Math.round(((diceStats.blackCount + diceStats.whiteCount) / diceStats.totalCount) * 100)
-      : 0
+  // Save progress when Y changes (row change)
+  useEffect(() => {
+    // Skip initial render or if no project loaded
+    if (!session?.user?.id || !currentProjectId) return
 
-    // Check if Y changed (row change) - Trigger Save
-    if (y !== buildProgress.y) {
-      if (session?.user?.id && currentProjectId) {
-        devLog('[AUTO-SAVE] Y changed, saving progress')
-        saveProgressOnly(x, y)
-      }
-    }
-
-    setBuildProgress({ x, y, percentage })
-  }, [diceGrid, diceStats, session, currentProjectId, saveProgressOnly, setShowAuthModal, buildProgress.y])
+    devLog('[AUTO-SAVE] Y changed, saving progress')
+    // We rely on the ref inside saveProgressOnly to get current X and Y
+    saveProgressOnly()
+  }, [buildProgress.y, session?.user?.id, currentProjectId, saveProgressOnly])
 
   // No cleanup needed - removed auto-save timers
 
