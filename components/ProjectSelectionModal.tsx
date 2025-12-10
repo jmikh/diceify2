@@ -151,9 +151,12 @@ export default function ProjectSelectionModal({
 
             {/* Capacity Warning */}
             {isAtCapacity && (
-              <div className="flex items-center gap-2 text-red-300 text-sm bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                <AlertCircle size={16} />
-                <span>Project limit reached ({maxProjects}/{maxProjects}). Delete an existing project to create a new one.</span>
+              <div className="flex flex-col items-center justify-center text-center gap-1.5 text-purple-300 text-sm bg-purple-500/10 p-4 rounded-xl border border-purple-500/20">
+                <div className="flex items-center gap-2 font-medium">
+                  <AlertCircle size={16} />
+                  <span>Project limit reached ({maxProjects}/{maxProjects})</span>
+                </div>
+                <span className="opacity-80">Delete an existing project to create a new one.</span>
               </div>
             )}
           </div>
@@ -211,7 +214,7 @@ export default function ProjectSelectionModal({
                         <button
                           onClick={(e) => handleDeleteProject(project.id, e)}
                           disabled={isDeleting}
-                          className="p-2.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+                          className="p-2.5 rounded-lg hover:bg-purple-500/20 text-white/40 hover:text-purple-400 transition-all opacity-0 group-hover:opacity-100"
                           title="Delete Project"
                         >
                           <Trash2 size={18} />

@@ -745,7 +745,10 @@ html {
   }
 
   .hero-visual {
-    display: none;
+    display: block;
+    margin-top: 4rem;
+    height: 400px;
+    /* Reduced height for mobile */
   }
 
   .hero h1 {

@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 export default function Navbar() {
     return (
-        <nav className="fixed top-6 left-1/2 -translate-x-1/2 p-3 px-4 flex justify-between items-center gap-12 z-[100] bg-white/5 backdrop-blur-[20px] border border-white/10 rounded-full">
+        <nav className="fixed top-6 left-1/2 -translate-x-1/2 p-3 px-4 flex justify-between items-center gap-12 z-[100] bg-white/5 backdrop-blur-[20px] border border-white/10 rounded-full whitespace-nowrap">
             <div className="font-syne font-bold text-xl tracking-tight pl-3">
                 Dice<span className="text-[var(--pink)]">ify</span>
             </div>

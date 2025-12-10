@@ -45,6 +45,7 @@ function EditorContent() {
     userProjects,
     fetchUserProjects,
     createProject,
+    createProjectFromCurrent,
     deleteProject,
     loadProject,
     updateURLWithProject,
@@ -833,7 +834,13 @@ function EditorContent() {
       <ProjectSelectionModal
         isOpen={showProjectModal}
         onCreateFromCurrent={undefined} // No create options in new flow
-        onCreateNew={createProject} // Keep this for TypeScript, though unused in new flow
+        onCreateNew={(name) => {
+          if (originalImage) {
+            createProjectFromCurrent(name)
+          } else {
+            createProject(name)
+          }
+        }}
         onSelectProject={(projectId) => {
           const project = userProjects.find(p => p.id === projectId)
           if (project) {

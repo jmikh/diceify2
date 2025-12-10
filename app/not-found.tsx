@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
+import Logo from '@/components/Logo'
+import { Home, AlertTriangle, ArrowLeft } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: '404 - Page Not Found',
@@ -12,35 +14,54 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center px-4">
-      <div className="text-center max-w-md">
-        <div className="mb-8">
-          <div className="text-6xl font-bold mb-4">404</div>
-          <h1 className="text-3xl font-bold mb-2">Page Not Found</h1>
-          <p className="text-gray-400">
-            The page you&apos;re looking for doesn&apos;t exist or has been moved.
-          </p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0a0014] text-white">
+      {/* Background Elements */}
+      <div className="bg-gradient">
+        <div className="orb one"></div>
+        <div className="orb two"></div>
+        <div className="orb three"></div>
+      </div>
+      <div className="grid-overlay"></div>
 
-        <div className="space-y-4">
-          <Link
-            href="/"
-            className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-          >
-            Back to Home
-          </Link>
-          <Link
-            href="/editor"
-            className="block w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-          >
-            Try Dice Art Editor
-          </Link>
-        </div>
+      {/* Main Content */}
+      <div className="relative z-10 p-4 w-full max-w-lg">
+        <div className="glass p-8 md:p-12 text-center border border-white/10 shadow-2xl backdrop-blur-xl rounded-3xl">
 
-        <div className="mt-8 pt-8 border-t border-gray-700">
-          <p className="text-sm text-gray-500">
-            If you believe this is an error, please contact support.
+          {/* Icon/Logo area */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white/5 p-4 rounded-full border border-white/10 shadow-[0_0_30px_rgba(236,72,153,0.2)]">
+              <AlertTriangle className="w-12 h-12 text-[var(--pink)]" />
+            </div>
+          </div>
+
+          {/* Typography */}
+          <h1 className="text-7xl font-bold mb-2 font-syne bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+            404
+          </h1>
+          <h2 className="text-2xl font-semibold mb-6 text-white/90">
+            Page Not Found
+          </h2>
+          <p className="text-[var(--text-muted)] mb-10 text-lg leading-relaxed">
+            Oops! It looks like this page has rolled off the table.
+            The content you're looking for doesn't exist or has been moved.
           </p>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/"
+              className="group flex items-center justify-center gap-2 bg-[var(--pink)] hover:bg-[var(--pink-light)] text-white font-semibold py-3.5 px-8 rounded-full transition-all shadow-[0_0_20px_rgba(236,72,153,0.3)] hover:shadow-[0_0_30px_rgba(236,72,153,0.5)] transform hover:-translate-y-1"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span>Back to Home</span>
+            </Link>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-white/5 flex flex-col gap-4 items-center">
+            <div className="opacity-80 scale-90">
+              <Logo />
+            </div>
+          </div>
         </div>
       </div>
     </div>
