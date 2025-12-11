@@ -96,13 +96,22 @@ export default function CropperMain({
     const getStencilSize = useCallback(() => {
         if (typeof window === 'undefined') return { width: 0, height: 0 }
 
-        const sidebarTotalWidth = 350 + 24 + 32
-        const availableWidth = Math.min(900, windowSize.width - sidebarTotalWidth)
-        const containerHeight = Math.max(500, Math.min(800, windowSize.height - 180))
+        // Adaptive sizing based on screen width
+        const isMobile = windowSize.width < 1024
+
+        // On mobile, sidebar is stacked (or hidden), so we have full width
+        // On desktop, we subtract sidebar (350) + gap (24) + padding (32)
+        const sidebarOffset = isMobile ? 48 : (350 + 24 + 32)
+
+        const availableWidth = Math.min(900, windowSize.width - sidebarOffset)
+        // On mobile, give it more height relative to screen, adjusting for stacked panels
+        const verticalOffset = isMobile ? 300 : 180
+        const containerHeight = Math.max(300, Math.min(800, windowSize.height - verticalOffset))
+
         const availableHeight = containerHeight - 32
 
-        const maxWidth = availableWidth * 0.9
-        const maxHeight = availableHeight * 0.9
+        const maxWidth = availableWidth * 0.95 // Use slightly more space
+        const maxHeight = availableHeight * 0.95
 
         const ratio = selectedOption.ratio || 1
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef,  Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -699,9 +699,9 @@ function EditorContent() {
 
         {/* Step Content */}
         {/* Step Content */}
-        <div className="w-full mx-auto px-4 flex gap-6 items-stretch justify-center h-auto min-h-[calc(100vh-180px)]">
-          {/* LEFT PANEL AREA */}
-          <div className="flex-shrink-0 flex flex-col w-[350px] min-w-[350px] max-w-[350px] min-h-[650px] max-h-[850px] bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+        <div className="w-full mx-auto px-4 flex flex-col lg:flex-row gap-6 items-stretch justify-center h-auto min-h-[calc(100vh-180px)]">
+          {/* LEFT PANEL AREA - Stacked on mobile, Sidebar on desktop */}
+          <div className="flex-shrink-0 flex flex-col w-full lg:w-[350px] lg:min-w-[350px] lg:max-w-[350px] min-h-0 lg:min-h-[650px] max-h-none lg:max-h-[850px] bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl order-2 lg:order-1">
             {step === 'upload' && <UploaderPanel />}
 
             {step === 'crop' && <CropperPanel />}
@@ -713,8 +713,8 @@ function EditorContent() {
             )}
           </div>
 
-          {/* MAIN CONTENT AREA */}
-          <div className="flex-grow flex items-center justify-center relative min-w-[400px] max-w-[850px] max-h-[850px] overflow-hidden bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+          {/* MAIN CONTENT AREA - Top on mobile, Main on desktop */}
+          <div className="flex-grow flex items-center justify-center relative w-full lg:w-auto min-w-0 lg:min-w-[400px] max-w-full lg:max-w-[850px] min-h-[400px] lg:min-h-[650px] max-h-[60vh] lg:max-h-[850px] overflow-hidden bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-4 lg:p-6 shadow-2xl order-1 lg:order-2">
             {renderMainContent()}
           </div>
         </div>
