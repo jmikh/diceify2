@@ -49,11 +49,11 @@ export default async function Image() {
             <img
               src="https://diceify.art/images/dali-51x51.png"
               style={{
-                width: '150%',
-                height: '150%',
+                width: '100%',
+                height: '100%',
                 objectFit: 'cover',
-                opacity: 0.2,
-                transform: 'translate(-10%, 0)', // Shift slightly
+                objectPosition: 'left',
+                opacity: 1,
               }}
             />
           </div>
@@ -94,11 +94,12 @@ export default async function Image() {
             <img
               src="https://diceify.art/images/dali-51x51.png"
               style={{
-                width: '150%',
-                height: '150%',
+                width: '100%',
+                height: '100%',
                 objectFit: 'cover',
-                opacity: 0.2,
-                transform: 'scaleX(-1) translate(-10%, 0)', // Flip and shift
+                objectPosition: 'right',
+                opacity: 1,
+                transform: 'scaleX(-1)', // Flip
               }}
             />
           </div>

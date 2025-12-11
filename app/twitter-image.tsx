@@ -49,8 +49,10 @@ export default async function Image() {
             <img
               src="https://diceify.art/images/dali-51x51.png"
               style={{
+                width: '100%',
                 height: '100%',
                 objectFit: 'cover',
+                objectPosition: 'left',
                 opacity: 1,
               }}
             />
@@ -60,7 +62,7 @@ export default async function Image() {
           <div
             style={{
               display: 'flex',
-              width: '400px', // Fixed width for center
+              width: '200px', // Fixed width for center
               height: '100%',
               position: 'relative',
               alignItems: 'center',
@@ -73,7 +75,7 @@ export default async function Image() {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                opacity: 1, // Full opacity as requested "in between"
+                opacity: 1,
               }}
             />
             {/* Fade edges of white bg to blend? Optional but nice. 
@@ -98,8 +100,9 @@ export default async function Image() {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
+                objectPosition: 'right',
                 opacity: 1,
-                transform: 'scaleX(-1) ', // Flip and shift
+                transform: 'scaleX(-1)', // Flip
               }}
             />
           </div>
