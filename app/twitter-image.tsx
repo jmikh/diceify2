@@ -70,7 +70,7 @@ export default async function Image() {
             }}
           >
             <img
-              src="http://localhost:3000/images/white-bg.jpg"
+              src="https://diceify.art/images/white-bg.jpg"
               style={{
                 width: '100%',
                 height: '100%',
