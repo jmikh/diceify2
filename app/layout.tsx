@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { Inter, Outfit, Syne } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
-import './globals.css'
+import { auth } from '@/lib/auth'
+import { AnalyticsTracker } from '@/components/Analytics/AnalyticsTracker'
 
 const inter = Inter({ subsets: ['latin'] })
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit', display: 'swap' })
@@ -114,15 +116,19 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await auth()
+
   return (
     <html lang="en" className={`${outfit.variable} ${syne.variable}`}>
       <body className={outfit.className}>
         {children}
+        <AnalyticsTracker user={session?.user} />
+        <GoogleAnalytics gaId="G-BDR76Z4JEE" />
         <Analytics />
       </body>
     </html>

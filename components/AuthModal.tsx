@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { X } from 'lucide-react'
 import { devLog } from '@/lib/utils/debug'
+import { sendGAEvent } from '@next/third-parties/google'
 import Image from 'next/image'
 import Logo from '@/components/Logo'
 
@@ -26,7 +27,9 @@ interface AuthModalProps {
 export default function AuthModal({
   isOpen, onClose, onSuccess, message, editorState }: AuthModalProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<React.ReactNode | null>(null)
+  const [showOtherMethods, setShowOtherMethods] = useState(false)
+  const [disabledProviders, setDisabledProviders] = useState<string[]>([])
 
   if (!isOpen) return null
 
@@ -51,6 +54,16 @@ export default function AuthModal({
       setError('An unexpected error occurred.')
       setIsLoading(false)
     }
+  }
+
+  const handleUnsupportedProvider = (providerName: string) => {
+    sendGAEvent('event', 'unsupported_login_provider_click', { provider: providerName })
+    setError(
+      <>
+        Sorry, we are working on supporting {providerName} login.
+      </>
+    )
+    setDisabledProviders(prev => [...prev, providerName])
   }
 
   return (
@@ -122,6 +135,41 @@ export default function AuthModal({
             </svg>
             <span className="text-white/90 font-medium">Continue with Google</span>
           </button>
+
+          {!showOtherMethods ? (
+            <button
+              onClick={() => setShowOtherMethods(true)}
+              className="w-full py-2 text-sm text-white/50 hover:text-white/80 transition-colors"
+            >
+              Sign in using other methods
+            </button>
+          ) : (
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              {/* Apple */}
+              <button
+                onClick={() => handleUnsupportedProvider('Apple')}
+                disabled={isLoading || disabledProviders.includes('Apple')}
+                className="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl border border-[var(--border-glass)] bg-white/5 hover:bg-white/10 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <svg className="w-5 h-5 text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74s2.57-.99 4.31-.66C18.03 7.53 19.5 8.35 20 9.07c-3.17 1.86-2.57 6.32.95 7.72-.51 1.55-1.28 2.69-1.9 3.49zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                </svg>
+                <span className="text-white/90 font-medium">Sign in with Apple</span>
+              </button>
+
+              {/* Facebook */}
+              <button
+                onClick={() => handleUnsupportedProvider('Facebook')}
+                disabled={isLoading || disabledProviders.includes('Facebook')}
+                className="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl border border-[var(--border-glass)] bg-[#1877F2]/10 hover:bg-[#1877F2]/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <svg className="w-5 h-5 text-[#1877F2] group-hover:drop-shadow-[0_0_8px_rgba(24,119,242,0.3)] transition-all" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+                <span className="text-white/90 font-medium">Sign in with Facebook</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Terms */}

@@ -6,6 +6,7 @@ import { theme } from '@/lib/theme'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink } from 'lucide-react'
 import { useEditorStore } from '@/lib/store/useEditorStore'
 import { useBuildNavigation } from './useBuildNavigation'
+import { sendGAEvent } from '@next/third-parties/google'
 
 // --- ProgressBar Component (Exported for reuse) ---
 
@@ -276,6 +277,7 @@ export default function BuilderPanel() {
                     href="https://amzn.to/4aDdmgw"
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => sendGAEvent('event', 'purchase_dice_click', { label: 'amazon_affiliate' })}
                     className="w-full py-3 rounded-lg text-white font-medium transition-all flex items-center justify-center gap-2 text-sm group"
                     style={{
                         backgroundColor: theme.colors.accent.pink, // Use theme pink
