@@ -14,10 +14,16 @@ export const metadata: Metadata = {
   },
 }
 
+import Providers from '@/components/Providers'
+
 export default function EditorLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <Providers>
+      {children}
+    </Providers>
+  )
 }
