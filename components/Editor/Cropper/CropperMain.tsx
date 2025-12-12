@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { FixedCropper, FixedCropperRef, ImageRestriction } from 'react-advanced-cropper'
+import { FixedCropper, FixedCropperRef, ImageRestriction, Coordinates } from 'react-advanced-cropper'
 import 'react-advanced-cropper/dist/style.css'
 import 'react-advanced-cropper/dist/themes/corners.css'
 import styles from './Cropper.module.css'
@@ -128,6 +128,15 @@ export default function CropperMain({
 
     const stencilSize = getStencilSize()
 
+    // Create default coordinates from saved params
+    const defaultCoordinates = cropParams ? {
+        left: cropParams.x,
+        top: cropParams.y,
+        width: cropParams.width,
+        height: cropParams.height
+    } : undefined
+
+
     const performAutoCrop = useCallback(async (isComplete = false) => {
         try {
             const cropper = fixedCropperRef.current
@@ -208,6 +217,7 @@ export default function CropperMain({
             }}
             stencilSize={stencilSize}
             defaultTransforms={{ rotate: cropRotation }}
+            defaultCoordinates={defaultCoordinates}
             imageRestriction={ImageRestriction.stencil}
             onReady={() => {
                 devLog('Cropper onReady fired')

@@ -1,11 +1,13 @@
 'use client'
 
-import { SessionProvider } from 'next-auth/react'
+import { SessionProvider } from "next-auth/react"
+import { type Session } from "next-auth"
+import { AnalyticsTracker } from "@/components/Analytics/AnalyticsTracker"
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <>
       {children}
-    </SessionProvider>
+    </>
   )
 }

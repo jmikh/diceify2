@@ -20,8 +20,8 @@ export default function Navbar() {
                     </Link>
                 </li>
                 <li>
-                    <Link href="#about" className="text-[var(--text-muted)] text-sm font-medium px-4 py-2 rounded-full transition-all hover:text-white hover:bg-white/5 no-underline">
-                        About
+                    <Link href="#pricing" className="text-[var(--text-muted)] text-sm font-medium px-4 py-2 rounded-full transition-all hover:text-white hover:bg-white/5 no-underline">
+                        Plans
                     </Link>
                 </li>
             </ul>

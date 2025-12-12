@@ -14,16 +14,21 @@ export const metadata: Metadata = {
   },
 }
 
-import Providers from '@/components/Providers'
+import { auth } from '@/lib/auth'
+import { SessionProvider } from 'next-auth/react'
+import { AnalyticsTracker } from '@/components/Analytics/AnalyticsTracker'
 
-export default function EditorLayout({
+export default async function EditorLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await auth()
+
   return (
-    <Providers>
+    <SessionProvider session={session}>
       {children}
-    </Providers>
+      <AnalyticsTracker user={session?.user} />
+    </SessionProvider>
   )
 }

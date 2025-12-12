@@ -42,10 +42,10 @@ export class DiceSVGRenderer {
     const colors = DICE_RENDERING.COLORS[color]
     const strokeWidth = 100.0 * DICE_RENDERING.BORDER_WIDTH_FACTOR
     const cornerRadius = 100.0 * DICE_RENDERING.CORNER_RADIUS_FACTOR
-    
+
     // Add rotation transform if needed - use 50 50 as center since viewBox is 0 0 100 100
     const transform = rotate90 ? `transform='rotate(90 50 50)'` : ''
-    
+
     let svg = `<g ${transform}><rect width='100%' height='100%' fill='${colors.background}' stroke-width='${strokeWidth}%' rx='${cornerRadius}%' stroke='${DICE_RENDERING.COLORS.stroke}' />`
 
     if (side >= 2) { // top left 
@@ -69,32 +69,37 @@ export class DiceSVGRenderer {
     if (side >= 2) { // bottom right
       svg += `<circle cx='${upper}%' cy='${upper}%' r='${radius}%' fill='${colors.dot}' />`
     }
-    
+
     svg += '</g>'  // Close the group tag
     return svg
   }
 
   render(grid: DiceGrid): string {
     const svgElements: string[] = []
-    
+
     // Calculate dimensions
-    const cols = grid.dice[0]?.length || 0
-    const rows = grid.dice.length
-    
+    const cols = grid.width
+    const rows = grid.height
+
     // Create main SVG container
     const viewBox = `0 0 ${cols} ${rows}`
-    
+
     // Build dice elements
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const dice = grid.dice[row][col]
+    // Iterate x (cols) and y (rows) consistent with DiceGrid [x][y] structure
+    for (let x = 0; x < cols; x++) {
+      for (let y = 0; y < rows; y++) {
+        const dice = grid.dice[x][y]
+
+        // SVG Y coordinate needs to be flipped (SVG 0 is top, our 0 is bottom)
+        const svgY = rows - 1 - y
+
         const svg = this.getSvgDice(dice.face, dice.color, dice.rotate90 || false)
         svgElements.push(
-          `<svg x='${col}' y='${row}' width='1' height='1' viewBox='0 0 100 100'>${svg}</svg>`
+          `<svg x='${x}' y='${svgY}' width='1' height='1' viewBox='0 0 100 100'>${svg}</svg>`
         )
       }
     }
-    
+
     // Combine into final SVG with black background
     return `<svg 
       xmlns="http://www.w3.org/2000/svg" 
@@ -112,12 +117,12 @@ export class DiceSVGRenderer {
     let whites = 0
     const svgElements: string[] = []
     let highlightElement: string | null = null
-    
+
     // Calculate dimensions
     const cols = grid.width
     const rows = grid.height
-    
-    
+
+
     // Build dice elements and count - iterate through x,y coordinates
     for (let x = 0; x < cols; x++) {
       for (let y = 0; y < rows; y++) {
@@ -126,33 +131,33 @@ export class DiceSVGRenderer {
           devWarn(`Missing dice at x ${x}, y ${y}`)
           continue
         }
-        
+
         if (dice.color === 'black') {
           blacks++
         } else {
           whites++
         }
-        
+
         // SVG Y coordinate needs to be flipped (SVG 0 is top, our 0 is bottom)
         const svgY = rows - 1 - y
         const svg = this.getSvgDice(dice.face, dice.color, dice.rotate90 || false)
-        
+
         // Check if this is the highlighted dice
         const isHighlighted = highlight && highlight.highlightX === x && highlight.highlightY === y
-        
+
         // Always add the regular dice
         svgElements.push(
           `<svg x='${x}' y='${svgY}' width='1' height='1' viewBox='0 0 100 100'>${svg}</svg>`
         )
-        
+
         // Store highlight element separately to render it last (on top)
         if (isHighlighted) {
           // Smart positioning for counter based on edges
           let counterX = 85, counterY = 15 // Default: top-right
-          
+
           if (highlight.isAtEdge) {
             const { top, right, bottom, left } = highlight.isAtEdge
-            
+
             if (top && right) {
               // Top-right corner: move to bottom-left
               counterX = 15
@@ -179,14 +184,14 @@ export class DiceSVGRenderer {
               counterY = 85
             }
           }
-          
-          const consecutiveText = highlight.consecutiveCount && highlight.consecutiveCount > 1 
+
+          const consecutiveText = highlight.consecutiveCount && highlight.consecutiveCount > 1
             ? `<g transform='translate(${counterX}, ${counterY})'>
                 <circle cx='0' cy='0' r='15' fill='#FFA500' stroke='#FF8C00' stroke-width='2'/>
                 <text x='0' y='5' font-family='monospace' font-size='14' font-weight='bold' fill='#000' text-anchor='middle'>x${highlight.consecutiveCount}</text>
               </g>`
             : ''
-          
+
           highlightElement = `<svg x='${x}' y='${svgY}' width='1' height='1' viewBox='0 0 100 100' style='overflow: visible;'>
             <defs>
               <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -204,11 +209,11 @@ export class DiceSVGRenderer {
         }
       }
     }
-    
+
     // Return just the inner SVG content (without outer <svg> tags)
     // The BuildViewer will wrap this in its own SVG element with animated viewBox
     const svg = `${svgElements.join('\n')}${highlightElement ? '\n' + highlightElement : ''}`
-    
+
     return {
       svg,
       blacks,

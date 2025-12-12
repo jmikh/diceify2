@@ -1,10 +1,14 @@
 import { useCallback, useMemo } from 'react'
+import { useSession } from 'next-auth/react'
 import { useEditorStore } from '@/lib/store/useEditorStore'
 
 export function useBuildNavigation() {
+    const { data: session } = useSession()
     const diceGrid = useEditorStore(state => state.diceGrid)
     const buildProgress = useEditorStore(state => state.buildProgress)
     const setBuildProgress = useEditorStore(state => state.setBuildProgress)
+    const setShowAuthModal = useEditorStore(state => state.setShowAuthModal)
+    const setShowLimitModal = useEditorStore(state => state.setShowLimitModal)
 
     const currentX = buildProgress.x
     const currentY = buildProgress.y
@@ -27,12 +31,26 @@ export function useBuildNavigation() {
     }, [currentX, currentY, totalCols, setPosition])
 
     const navigateNext = useCallback(() => {
+        // Enforce trial limit for non-logged in users
+        // Only allow up to index 10 (11th dice)
+        // If current index > 10, we block further navigation
+        if (!session?.user && currentIndex > 10) {
+            setShowAuthModal(true)
+            return
+        }
+
+        // Enforce limit for free users (1000 dice)
+        if (session?.user && !session.user.isPro && currentIndex >= 1000) {
+            setShowLimitModal(true)
+            return
+        }
+
         if (currentX < totalCols - 1) {
             setPosition(currentX + 1, currentY)
         } else if (currentY < totalRows - 1) {
             setPosition(0, currentY + 1)
         }
-    }, [currentX, currentY, totalCols, totalRows, setPosition])
+    }, [currentX, currentY, totalCols, totalRows, setPosition, session, currentIndex, setShowAuthModal, setShowLimitModal])
 
     const currentDice = useMemo(() => diceGrid?.dice[currentX]?.[currentY] || null, [diceGrid, currentX, currentY])
 
@@ -60,6 +78,18 @@ export function useBuildNavigation() {
     const navigateNextDiff = useCallback(() => {
         if (!diceGrid) return
 
+        // Enforce trial limit for non-logged in users
+        if (!session?.user && currentIndex > 10) {
+            setShowAuthModal(true)
+            return
+        }
+
+        // Enforce limit for free users (1000 dice)
+        if (session?.user && !session.user.isPro && currentIndex >= 1000) {
+            setShowLimitModal(true)
+            return
+        }
+
         const currentFace = currentDice?.face
         const currentColor = currentDice?.color
 
@@ -76,7 +106,7 @@ export function useBuildNavigation() {
         if (currentY < totalRows - 1) {
             setPosition(0, currentY + 1)
         }
-    }, [currentX, currentY, currentDice, totalCols, totalRows, diceGrid, setPosition])
+    }, [currentX, currentY, currentDice, totalCols, totalRows, diceGrid, setPosition, session, currentIndex, setShowAuthModal])
 
     const canNavigate = useMemo(() => {
         if (!diceGrid) return { prev: false, next: false, prevDiff: false, nextDiff: false }

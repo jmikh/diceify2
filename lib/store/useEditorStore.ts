@@ -47,7 +47,10 @@ interface EditorState {
   isInitializing: boolean
   showAuthModal: boolean
   showProjectModal: boolean
+
   showDonationModal: boolean
+  showLimitModal: boolean
+  showProFeatureModal: boolean
 
   // Build State
   buildProgress: BuildProgress
@@ -80,6 +83,9 @@ interface EditorState {
   setShowAuthModal: (show: boolean) => void
   setShowProjectModal: (show: boolean) => void
   setShowDonationModal: (show: boolean) => void
+  setShowLimitModal: (show: boolean) => void
+  setShowProFeatureModal: (show: boolean) => void
+
   setBuildProgress: (progress: BuildProgress | ((prev: BuildProgress) => BuildProgress)) => void
   setSelectedRatio: (ratio: AspectRatio) => void
   setCropRotation: (rotation: number) => void
@@ -136,6 +142,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   showAuthModal: false,
   showProjectModal: false,
   showDonationModal: false,
+  showLimitModal: false,
+  showProFeatureModal: false,
 
   buildProgress: { x: 0, y: 0, percentage: 0 },
 
@@ -177,6 +185,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setShowAuthModal: (show) => set({ showAuthModal: show }),
   setShowProjectModal: (show) => set({ showProjectModal: show }),
   setShowDonationModal: (show) => set({ showDonationModal: show }),
+  setShowLimitModal: (show) => set({ showLimitModal: show }),
+  setShowProFeatureModal: (show) => set({ showProFeatureModal: show }),
 
   setBuildProgress: (progress) => set((state) => ({
     buildProgress: typeof progress === 'function' ? progress(state.buildProgress) : progress

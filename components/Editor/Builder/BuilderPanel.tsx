@@ -1,12 +1,14 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import CountUp from 'react-countup'
 import { theme } from '@/lib/theme'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink, Download } from 'lucide-react'
 import { useEditorStore } from '@/lib/store/useEditorStore'
 import { useBuildNavigation } from './useBuildNavigation'
 import { sendGAEvent } from '@next/third-parties/google'
+import { DiceSVGRenderer } from '@/lib/dice/svg-renderer'
 
 // --- ProgressBar Component (Exported for reuse) ---
 
@@ -41,6 +43,7 @@ export function ProgressBar({ percentage, showComplete = true, className = '' }:
 // --- BuilderPanel Component ---
 
 export default function BuilderPanel() {
+    const { data: session } = useSession()
     const {
         currentX,
         currentY,
@@ -75,6 +78,34 @@ export default function BuilderPanel() {
 
     const handleBack = () => {
         setStep('tune')
+    }
+
+    const handleDownloadSvg = () => {
+        // Check for subscription
+        if (!session?.user?.isPro) {
+            useEditorStore.getState().setShowProFeatureModal(true)
+            return
+        }
+
+        const grid = useEditorStore.getState().diceGrid
+        if (!grid) return
+
+        try {
+            const renderer = new DiceSVGRenderer()
+            const svgString = renderer.render(grid)
+
+            const blob = new Blob([svgString], { type: 'image/svg+xml' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `dice-art-${Date.now()}.svg`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+        } catch (error) {
+            console.error('Error generating SVG:', error)
+        }
     }
 
     return (
@@ -288,6 +319,18 @@ export default function BuilderPanel() {
                     <ExternalLink size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </a>
             </div>
+
+            {/* Download SVG Button */}
+            <div className="mb-6">
+                <button
+                    onClick={handleDownloadSvg}
+                    className="w-full py-3 rounded-lg border border-white/10 hover:bg-white/5 text-white/70 hover:text-white font-medium transition-all flex items-center justify-center gap-2 text-sm group"
+                >
+                    <Download size={16} className="group-hover:scale-110 transition-transform" />
+                    <span>Download SVG</span>
+                </button>
+            </div>
+
             <div className="flex-grow" />
 
             {/* Navigation Buttons */}

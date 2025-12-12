@@ -25,7 +25,10 @@ import DiceStepper from '@/components/Editor/DiceStepper'
 import Logo from '@/components/Logo'
 import AuthModal from '@/components/AuthModal'
 import DonationModal from '@/components/DonationModal'
+import LimitReachedModal from '@/components/LimitReachedModal'
+import ProFeatureModal from '@/components/ProFeatureModal'
 import Footer from '@/components/Footer'
+import { UpgradeButton } from '@/components/UpgradeButton'
 import { devLog, devError } from '@/lib/utils/debug'
 
 import { useEditorStore } from '@/lib/store/useEditorStore'
@@ -54,6 +57,10 @@ function EditorContent() {
     saveProgressOnly,
   } = usePersistence()
 
+  // Calculate limits based on subscription
+  const isPro = !!session?.user?.isPro
+  const maxProjects = isPro ? 3 : 1
+
 
   // Store state
   const step = useEditorStore(state => state.step)
@@ -61,6 +68,7 @@ function EditorContent() {
   const showAuthModal = useEditorStore(state => state.showAuthModal)
   const showProjectModal = useEditorStore(state => state.showProjectModal)
   const showDonationModal = useEditorStore(state => state.showDonationModal)
+  const showLimitModal = useEditorStore(state => state.showLimitModal)
 
   const originalImage = useEditorStore(state => state.originalImage)
   const croppedImage = useEditorStore(state => state.croppedImage)
@@ -215,6 +223,23 @@ function EditorContent() {
         })
     }
   }, [searchParams, status, session?.user?.id, currentProjectId, loadProject, updateURLWithProject, router])
+
+  // Handle missing project ID in URL when state is loaded (e.g. back navigation)
+  useEffect(() => {
+    // Only check if we're logged in and have a project loaded in state
+    if (status === 'authenticated' && currentProjectId && !searchParams.get('project')) {
+      devLog('[URL] Project loaded in state but missing from URL, redirecting...')
+      router.replace(`/editor?project=${currentProjectId}`)
+    }
+  }, [status, currentProjectId, searchParams, router])
+
+  // Ensure projects are always fetched when authenticated
+  // This handles the case where state is preserved (currentProjectId exists) but local hook state (userProjects) is reset on remount
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      fetchUserProjects()
+    }
+  }, [status, session?.user?.id, fetchUserProjects])
 
   // Save state to localStorage whenever it changes (for recovery on refresh)
   useEffect(() => {
@@ -594,9 +619,6 @@ function EditorContent() {
                       className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-600 hover:border-gray-400 transition-colors cursor-pointer"
                       onClick={() => {
                         setShowUserMenu(!showUserMenu)
-                        if (!showUserMenu) {
-                          fetchUserProjects()
-                        }
                       }}
                     >
                       {session.user?.image ? (
@@ -629,10 +651,21 @@ function EditorContent() {
                           <div className="text-sm font-medium text-white">
                             {session.user?.name || 'User'}
                           </div>
-                          <div className="text-xs text-gray-400 mt-0.5">
+                          <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
                             {session.user?.email}
+                            {session.user?.isPro && (
+                              <span className="px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-400 text-[10px] font-bold border border-pink-500/30">
+                                PRO
+                              </span>
+                            )}
                           </div>
                         </div>
+
+                        {!session.user?.isPro && (
+                          <div className="p-3 border-b border-white/10 bg-gradient-to-r from-pink-500/10 to-purple-600/10">
+                            <UpgradeButton className="w-full text-sm py-2 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-lg shadow-pink-500/20 text-white border border-white/10" />
+                          </div>
+                        )}
 
                         {/* Sign Out */}
                         <button
@@ -683,19 +716,20 @@ function EditorContent() {
                 }}
                 onCreateNew={createProject}
                 onDeleteProject={deleteProject}
+                maxProjects={maxProjects}
               />
             )}
           </div>
-        </div>
-      </header>
+        </div >
+      </header >
 
       {/* Main Content Area */}
-      <main className="relative p-4 flex-grow">
+      < main className="relative p-4 flex-grow" >
         {/* Center: Stepper */}
-        <div className="flex justify-center items-center mb-4">
+        < div className="flex justify-center items-center mb-4" >
           {/* Stepper */}
-          <DiceStepper />
-        </div>
+          < DiceStepper />
+        </div >
 
         {/* Step Content */}
         {/* Step Content */}
@@ -767,7 +801,7 @@ function EditorContent() {
         onDeleteProject={deleteProject}
         projects={userProjects}
         hasCurrentState={!!originalImage}
-        maxProjects={3}
+        maxProjects={maxProjects}
       />
 
       {/* Donation Modal */}
@@ -775,6 +809,10 @@ function EditorContent() {
         isOpen={showDonationModal}
         onClose={() => setShowDonationModal(false)}
       />
+
+      {/* Limit Reached Modal */}
+      <LimitReachedModal />
+      <ProFeatureModal />
 
       {/* Footer */}
       <Footer />

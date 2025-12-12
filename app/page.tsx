@@ -3,7 +3,7 @@ import Navbar from '@/components/LandingPage/Navbar'
 import Hero from '@/components/LandingPage/Hero'
 import HowItWorks from '@/components/LandingPage/HowItWorks'
 import Gallery from '@/components/LandingPage/Gallery'
-import CTA from '@/components/LandingPage/CTA'
+import Pricing from '@/components/LandingPage/Pricing'
 import Footer from '@/components/Footer'
 
 export default function Home() {
@@ -55,7 +55,7 @@ export default function Home() {
           <Hero />
           <HowItWorks />
           <Gallery />
-          <CTA />
+          <Pricing />
         </main>
         <Footer />
       </div>

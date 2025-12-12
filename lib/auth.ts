@@ -15,6 +15,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: async ({ session, token }) => {
       if (session?.user && token?.sub) {
         session.user.id = token.sub
+        session.user.isPro = token.isPro as boolean
         // Pass through the image and name from the token
         if (token.picture) {
           session.user.image = token.picture as string
@@ -25,17 +26,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return session
     },
-    jwt: async ({ user, token, account, profile }) => {
+    jwt: async ({ user, token, account, profile, trigger }) => {
       if (user) {
-        token.uid = user.id
+        token.uid = user.id as string
+        token.isPro = user.isPro
         token.picture = user.image
         token.name = user.name
       }
+
       // Update token if account/profile changes (like on sign in)
       if (account && profile) {
         token.picture = (profile as any).picture || (profile as any).image || user?.image
         token.name = (profile as any).name || user?.name
       }
+
+      // Re-fetch user data from database when session is updated (e.g. after Pro upgrade)
+      if (trigger === "update" && token.sub) {
+        try {
+          const freshUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { isPro: true }
+          })
+
+          if (freshUser) {
+            token.isPro = freshUser.isPro
+          }
+        } catch (error) {
+          console.error("Failed to refresh user data in JWT callback:", error)
+        }
+      }
+
       return token
     },
   },

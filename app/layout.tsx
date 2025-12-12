@@ -4,7 +4,8 @@ import { Analytics } from '@vercel/analytics/next'
 import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 import { auth } from '@/lib/auth'
-import { AnalyticsTracker } from '@/components/Analytics/AnalyticsTracker'
+
+import { Providers } from '@/components/Providers'
 
 const inter = Inter({ subsets: ['latin'] })
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit', display: 'swap' })
@@ -116,18 +117,17 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
-
   return (
     <html lang="en" className={`${outfit.variable} ${syne.variable}`}>
       <body className={outfit.className}>
-        {children}
-        <AnalyticsTracker user={session?.user} />
+        <Providers>
+          {children}
+        </Providers>
         <GoogleAnalytics gaId="G-BDR76Z4JEE" />
         <Analytics />
       </body>

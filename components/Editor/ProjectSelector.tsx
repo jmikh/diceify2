@@ -22,6 +22,7 @@ interface ProjectSelectorProps {
   onSelectProject?: (projectId: string) => void
   onCreateNew?: (name: string) => void
   onDeleteProject?: (projectId: string) => void
+  maxProjects?: number
 }
 
 export default function ProjectSelector({
@@ -33,7 +34,8 @@ export default function ProjectSelector({
   projects = [],
   onSelectProject,
   onCreateNew,
-  onDeleteProject
+  onDeleteProject,
+  maxProjects = 3
 }: ProjectSelectorProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(currentProject)
@@ -374,7 +376,7 @@ export default function ProjectSelector({
 
           {/* Footer Actions - Creating or Default */}
           <div className="p-3 border-t border-white/10 bg-white/5">
-            {onCreateNew && (projects.length < 3 ? (
+            {onCreateNew && (projects.length < maxProjects ? (
               isCreating ? (
                 <div className="flex items-center gap-2 animate-in fade-in duration-200">
                   <input
@@ -416,7 +418,7 @@ export default function ProjectSelector({
               )
             ) : (
               <div className="text-center text-xs text-gray-500 py-1">
-                Project limit reached (3/3)
+                Project limit reached ({projects.length}/{maxProjects})
               </div>
             ))}
           </div>
