@@ -47,7 +47,9 @@ export default function Pricing() {
             })
 
             if (!response.ok) {
-                throw new Error("Something went wrong")
+                const errorText = await response.text()
+                console.error("Server Error Response:", errorText)
+                throw new Error(errorText || "Something went wrong")
             }
 
             const data = await response.json()
