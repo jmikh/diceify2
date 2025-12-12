@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Script from 'next/script'
 import Navbar from '@/components/LandingPage/Navbar'
 import Hero from '@/components/LandingPage/Hero'
@@ -55,7 +56,9 @@ export default function Home() {
           <Hero />
           <HowItWorks />
           <Gallery />
-          <Pricing />
+          <Suspense fallback={<div className="py-24" />}>
+            <Pricing />
+          </Suspense>
         </main>
         <Footer />
       </div>
