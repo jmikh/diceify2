@@ -70,7 +70,7 @@ export default async function Image() {
             }}
           >
             <img
-              src="https://diceify.art/images/white-bg.jpg"
+              src={`${process.env.NEXT_PUBLIC_APP_URL}/images/background-pattern.png`}
               style={{
                 width: '100%',
                 height: '100%',
@@ -105,6 +105,7 @@ export default async function Image() {
           </div>
         </div>
 
+        {/* Logo - icon + text */}
         {/* Logo - icon + text */}
         {/* Pink Dice Icon */}
         <svg
