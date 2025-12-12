@@ -170,7 +170,7 @@ export default function Pricing() {
 
                         </ul>
 
-                        <Link href="/editor" className="btn-secondary w-full justify-center">
+                        <Link href="/editor" className="btn-secondary w-full justify-center" onClick={() => sendGAEvent('event', 'go_to_editor', { source: 'pricing_free' })}>
                             Start Creating Free
                         </Link>
                     </div>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { sendGAEvent } from '@next/third-parties/google'
 
 export default function Hero() {
     return (
@@ -14,7 +15,11 @@ export default function Hero() {
                 <h1>Turn photos into <span className="highlight">dice art</span></h1>
                 <p>Upload a photo, tune the contrast and detail, then follow our step-by-step guide to build stunning mosaic art using standard dice.</p>
                 <div className="hero-buttons">
-                    <Link href="/editor" className="btn-primary">
+                    <Link
+                        href="/editor"
+                        className="btn-primary"
+                        onClick={() => sendGAEvent('event', 'go_to_editor', { source: 'hero' })}
+                    >
                         Start creating
                     </Link>
                     <Link href="#how" className="btn-secondary">
