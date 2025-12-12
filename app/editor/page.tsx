@@ -24,7 +24,6 @@ import ProjectSelectionModal from '@/components/ProjectSelectionModal'
 import DiceStepper from '@/components/Editor/DiceStepper'
 import Logo from '@/components/Logo'
 import AuthModal from '@/components/AuthModal'
-import DonationModal from '@/components/DonationModal'
 import LimitReachedModal from '@/components/LimitReachedModal'
 import ProFeatureModal from '@/components/ProFeatureModal'
 import Footer from '@/components/Footer'
@@ -71,7 +70,6 @@ function EditorContent() {
   const showAuthModal = useEditorStore(state => state.showAuthModal)
   const authModalMessage = useEditorStore(state => state.authModalMessage)
   const showProjectModal = useEditorStore(state => state.showProjectModal)
-  const showDonationModal = useEditorStore(state => state.showDonationModal)
   const showLimitModal = useEditorStore(state => state.showLimitModal)
 
   const originalImage = useEditorStore(state => state.originalImage)
@@ -95,7 +93,6 @@ function EditorContent() {
   const setShowAuthModal = useEditorStore(state => state.setShowAuthModal)
   const setAuthModalMessage = useEditorStore(state => state.setAuthModalMessage)
   const setShowProjectModal = useEditorStore(state => state.setShowProjectModal)
-  const setShowDonationModal = useEditorStore(state => state.setShowDonationModal)
   const setOriginalImage = useEditorStore(state => state.setOriginalImage)
   const setCroppedImage = useEditorStore(state => state.setCroppedImage)
   const setCropParams = useEditorStore(state => state.setCropParams)
@@ -836,11 +833,7 @@ function EditorContent() {
         maxProjects={maxProjects}
       />
 
-      {/* Donation Modal */}
-      <DonationModal
-        isOpen={showDonationModal}
-        onClose={() => setShowDonationModal(false)}
-      />
+
 
       {/* Limit Reached Modal */}
       <LimitReachedModal />
