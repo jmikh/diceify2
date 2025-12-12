@@ -753,7 +753,7 @@ function EditorContent() {
       </header >
 
       {/* Main Content Area */}
-      < main className="relative p-4 flex-grow" >
+      < main className="relative p-1 sm:p-4 flex-grow" >
         {/* Center: Stepper */}
         < div className="flex justify-center items-center mb-4" >
           {/* Stepper */}
@@ -762,9 +762,9 @@ function EditorContent() {
 
         {/* Step Content */}
         {/* Step Content */}
-        <div className="w-full mx-auto px-4 flex flex-col lg:flex-row gap-6 items-stretch justify-center h-auto min-h-[calc(100vh-180px)]">
+        <div className="w-full mx-auto px-0 sm:px-4 flex flex-col lg:flex-row gap-6 items-stretch justify-center h-auto min-h-[calc(100vh-180px)]">
           {/* LEFT PANEL AREA - Stacked on mobile, Sidebar on desktop */}
-          <div className="flex-shrink-0 flex flex-col w-full lg:w-[350px] lg:min-w-[350px] lg:max-w-[350px] min-h-0 lg:min-h-[650px] max-h-none lg:max-h-[850px] bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl order-2 lg:order-1">
+          <div className="flex-shrink-0 flex flex-col w-full lg:w-[350px] lg:min-w-[350px] lg:max-w-[350px] min-h-0 lg:min-h-[650px] max-h-none lg:max-h-[650px] lg:[@media(min-height:800px)]:max-h-[750px] lg:[@media(min-height:900px)]:max-h-[850px] bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl order-2 lg:order-1">
             {step === 'upload' && <UploaderPanel />}
 
             {step === 'crop' && <CropperPanel />}
@@ -777,7 +777,7 @@ function EditorContent() {
           </div>
 
           {/* MAIN CONTENT AREA - Top on mobile, Main on desktop */}
-          <div className="flex-grow flex items-center justify-center relative w-full lg:w-auto min-w-0 lg:min-w-[400px] max-w-full lg:max-w-[850px] min-h-[400px] lg:min-h-[650px] max-h-[60vh] lg:max-h-[850px] overflow-hidden bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-4 lg:p-6 shadow-2xl order-1 lg:order-2">
+          <div className="flex-grow flex items-center justify-center relative w-full lg:w-auto min-w-0 lg:min-w-[400px] max-w-full lg:max-w-[850px] min-h-[400px] lg:min-h-[650px] max-h-[60vh] lg:max-h-[650px] lg:[@media(min-height:800px)]:max-h-[750px] lg:[@media(min-height:900px)]:max-h-[850px] overflow-hidden bg-[#0f0f12]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-4 lg:p-6 shadow-2xl order-1 lg:order-2">
             {renderMainContent()}
           </div>
         </div>

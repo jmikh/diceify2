@@ -117,7 +117,7 @@ export default function TunerPanel() {
 
   return (
     <>
-      <div className="space-y-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-6 flex-grow lg:overflow-y-auto lg:overflow-x-hidden pr-2 custom-scrollbar">
         {/* Stats Section - MOVED HERE */}
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
           {/* Total dice count - at the very top */}
@@ -397,155 +397,163 @@ export default function TunerPanel() {
         </div>
 
         {/* Grid Size - THIRD (Start of sliders) */}
-        <div className="group relative">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="group flex items-center gap-4 lg:[@media(min-height:800px)]:block">
+          <div className="flex items-center gap-2 mb-0 w-24 flex-shrink-0 lg:[@media(min-height:800px)]:mb-3 lg:[@media(min-height:800px)]:w-auto">
             <Grid3x3 size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
             <span className="text-[10px] font-medium text-gray-300 uppercase tracking-wider">Rows</span>
           </div>
-          <div className="flex items-center">
-            <input
-              type="range"
-              id="numRows"
-              min="20"
-              max="120"
-              value={params.numRows}
-              onChange={handleNumRowsChange}
-              onMouseDown={() => setIsDragging({ ...isDragging, numRows: true })}
-              onMouseUp={() => setIsDragging({ ...isDragging, numRows: false })}
-              onTouchStart={() => setIsDragging({ ...isDragging, numRows: true })}
-              onTouchEnd={() => setIsDragging({ ...isDragging, numRows: false })}
-              className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
+          <div className="relative mx-0 flex-grow lg:[@media(min-height:800px)]:mx-4">
+            <div className="flex items-center">
+              <input
+                type="range"
+                id="numRows"
+                min="20"
+                max="120"
+                value={params.numRows}
+                onChange={handleNumRowsChange}
+                onMouseDown={() => setIsDragging({ ...isDragging, numRows: true })}
+                onMouseUp={() => setIsDragging({ ...isDragging, numRows: false })}
+                onTouchStart={() => setIsDragging({ ...isDragging, numRows: true })}
+                onTouchEnd={() => setIsDragging({ ...isDragging, numRows: false })}
+                className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
+                style={{
+                  background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} 100%)`
+                }}
+              />
+            </div>
+            {/* Tooltip positioned above slider thumb - only visible when dragging */}
+            <div
+              className={`absolute -top-4 px-2 py-1 text-xs rounded transition-opacity pointer-events-none whitespace-nowrap ${isDragging.numRows ? 'opacity-100' : 'opacity-0'}`}
               style={{
-                background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} ${((params.numRows - 20) / 100) * 100}%, ${theme.colors.glass.border} 100%)`
+                left: `calc(0px + ${((params.numRows - 20) / 100) * 100}%)`,
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(10, 0, 20, 0.95)',
+                color: 'white'
               }}
-            />
-          </div>
-          {/* Tooltip positioned above slider thumb - only visible when dragging */}
-          <div
-            className={`absolute -top-4 px-2 py-1 text-xs rounded transition-opacity pointer-events-none whitespace-nowrap ${isDragging.numRows ? 'opacity-100' : 'opacity-0'}`}
-            style={{
-              left: `calc(0px + ${((params.numRows - 20) / 100) * 100}%)`,
-              transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(10, 0, 20, 0.95)',
-              color: 'white'
-            }}
-          >
-            {params.numRows}
+            >
+              {params.numRows}
+            </div>
           </div>
         </div>
 
         {/* Contrast */}
-        <div className="group relative">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="group flex items-center gap-4 lg:[@media(min-height:800px)]:block">
+          <div className="flex items-center gap-2 mb-0 w-24 flex-shrink-0 lg:[@media(min-height:800px)]:mb-3 lg:[@media(min-height:800px)]:w-auto">
             <Contrast size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
             <span className="text-[10px] font-medium text-gray-300 uppercase tracking-wider">Contrast</span>
           </div>
-          <div className="flex items-center">
-            <input
-              type="range"
-              id="contrast"
-              min="0"
-              max="100"
-              value={params.contrast}
-              onChange={handleContrastChange}
-              onMouseDown={() => setIsDragging({ ...isDragging, contrast: true })}
-              onMouseUp={() => setIsDragging({ ...isDragging, contrast: false })}
-              onTouchStart={() => setIsDragging({ ...isDragging, contrast: true })}
-              onTouchEnd={() => setIsDragging({ ...isDragging, contrast: false })}
-              className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
+          <div className="relative mx-0 flex-grow lg:[@media(min-height:800px)]:mx-4">
+            <div className="flex items-center">
+              <input
+                type="range"
+                id="contrast"
+                min="0"
+                max="100"
+                value={params.contrast}
+                onChange={handleContrastChange}
+                onMouseDown={() => setIsDragging({ ...isDragging, contrast: true })}
+                onMouseUp={() => setIsDragging({ ...isDragging, contrast: false })}
+                onTouchStart={() => setIsDragging({ ...isDragging, contrast: true })}
+                onTouchEnd={() => setIsDragging({ ...isDragging, contrast: false })}
+                className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
+                style={{
+                  background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${params.contrast}%, ${theme.colors.glass.border} ${params.contrast}%, ${theme.colors.glass.border} 100%)`
+                }}
+              />
+            </div>
+            {/* Tooltip positioned above slider thumb */}
+            <div
+              className={`absolute -top-4 px-2 py-1 text-xs rounded transition-opacity pointer-events-none whitespace-nowrap ${isDragging.contrast ? 'opacity-100' : 'opacity-0'}`}
               style={{
-                background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${params.contrast}%, ${theme.colors.glass.border} ${params.contrast}%, ${theme.colors.glass.border} 100%)`
+                left: `calc(0px + ${(params.contrast / 100) * 100}%)`,
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(10, 0, 20, 0.95)',
+                color: 'white'
               }}
-            />
-          </div>
-          {/* Tooltip positioned above slider thumb */}
-          <div
-            className={`absolute -top-4 px-2 py-1 text-xs rounded transition-opacity pointer-events-none whitespace-nowrap ${isDragging.contrast ? 'opacity-100' : 'opacity-0'}`}
-            style={{
-              left: `calc(0px + ${(params.contrast / 100) * 100}%)`,
-              transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(10, 0, 20, 0.95)',
-              color: 'white'
-            }}
-          >
-            {params.contrast}
+            >
+              {params.contrast}
+            </div>
           </div>
         </div>
 
         {/* Brightness (Gamma) */}
-        <div className="group relative">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="group flex items-center gap-4 lg:[@media(min-height:800px)]:block">
+          <div className="flex items-center gap-2 mb-0 w-24 flex-shrink-0 lg:[@media(min-height:800px)]:mb-3 lg:[@media(min-height:800px)]:w-auto">
             <Sun size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
             <span className="text-[10px] font-medium text-gray-300 uppercase tracking-wider">Brightness</span>
           </div>
-          <div className="flex items-center">
-            <input
-              type="range"
-              id="gamma"
-              min="0.5"
-              max="1.5"
-              step="0.01"
-              value={params.gamma}
-              onChange={handleGammaChange}
-              onMouseDown={() => setIsDragging({ ...isDragging, gamma: true })}
-              onMouseUp={() => setIsDragging({ ...isDragging, gamma: false })}
-              onTouchStart={() => setIsDragging({ ...isDragging, gamma: true })}
-              onTouchEnd={() => setIsDragging({ ...isDragging, gamma: false })}
-              className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
+          <div className="relative mx-0 flex-grow lg:[@media(min-height:800px)]:mx-4">
+            <div className="flex items-center">
+              <input
+                type="range"
+                id="gamma"
+                min="0.5"
+                max="1.5"
+                step="0.01"
+                value={params.gamma}
+                onChange={handleGammaChange}
+                onMouseDown={() => setIsDragging({ ...isDragging, gamma: true })}
+                onMouseUp={() => setIsDragging({ ...isDragging, gamma: false })}
+                onTouchStart={() => setIsDragging({ ...isDragging, gamma: true })}
+                onTouchEnd={() => setIsDragging({ ...isDragging, gamma: false })}
+                className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
+                style={{
+                  background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${((params.gamma - 0.5) / 1.0) * 100}%, ${theme.colors.glass.border} ${((params.gamma - 0.5) / 1.0) * 100}%, ${theme.colors.glass.border} 100%)`
+                }}
+              />
+            </div>
+            {/* Tooltip positioned above slider thumb */}
+            <div
+              className={`absolute -top-4 px-2 py-1 text-xs rounded transition-opacity pointer-events-none whitespace-nowrap ${isDragging.gamma ? 'opacity-100' : 'opacity-0'}`}
               style={{
-                background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${((params.gamma - 0.5) / 1.0) * 100}%, ${theme.colors.glass.border} ${((params.gamma - 0.5) / 1.0) * 100}%, ${theme.colors.glass.border} 100%)`
+                left: `calc(0px + ${((params.gamma - 0.5) / 1.0) * 100}%)`,
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(10, 0, 20, 0.95)',
+                color: 'white'
               }}
-            />
-          </div>
-          {/* Tooltip positioned above slider thumb */}
-          <div
-            className={`absolute -top-4 px-2 py-1 text-xs rounded transition-opacity pointer-events-none whitespace-nowrap ${isDragging.gamma ? 'opacity-100' : 'opacity-0'}`}
-            style={{
-              left: `calc(0px + ${((params.gamma - 0.5) / 1.0) * 100}%)`,
-              transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(10, 0, 20, 0.95)',
-              color: 'white'
-            }}
-          >
-            {`${((params.gamma - 1.0) * 100).toFixed(0)}%`}
+            >
+              {`${((params.gamma - 1.0) * 100).toFixed(0)}%`}
+            </div>
           </div>
         </div>
 
         {/* Edge Sharpening */}
-        <div className="group relative">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="group flex items-center gap-4 lg:[@media(min-height:800px)]:block">
+          <div className="flex items-center gap-2 mb-0 w-24 flex-shrink-0 lg:[@media(min-height:800px)]:mb-3 lg:[@media(min-height:800px)]:w-auto">
             <Sparkles size={16} style={{ color: theme.colors.text.secondary, flexShrink: 0 }} />
             <span className="text-[10px] font-medium text-gray-300 uppercase tracking-wider">Sharpening</span>
           </div>
-          <div className="flex items-center">
-            <input
-              type="range"
-              id="edgeSharpening"
-              min="0"
-              max="100"
-              value={params.edgeSharpening}
-              onChange={handleEdgeSharpeningChange}
-              onMouseDown={() => setIsDragging({ ...isDragging, edgeSharpening: true })}
-              onMouseUp={() => setIsDragging({ ...isDragging, edgeSharpening: false })}
-              onTouchStart={() => setIsDragging({ ...isDragging, edgeSharpening: true })}
-              onTouchEnd={() => setIsDragging({ ...isDragging, edgeSharpening: false })}
-              className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
+          <div className="relative mx-0 flex-grow lg:[@media(min-height:800px)]:mx-4">
+            <div className="flex items-center">
+              <input
+                type="range"
+                id="edgeSharpening"
+                min="0"
+                max="100"
+                value={params.edgeSharpening}
+                onChange={handleEdgeSharpeningChange}
+                onMouseDown={() => setIsDragging({ ...isDragging, edgeSharpening: true })}
+                onMouseUp={() => setIsDragging({ ...isDragging, edgeSharpening: false })}
+                onTouchStart={() => setIsDragging({ ...isDragging, edgeSharpening: true })}
+                onTouchEnd={() => setIsDragging({ ...isDragging, edgeSharpening: false })}
+                className={`flex-1 rounded-lg cursor-pointer ${styles.slider} h-2`}
+                style={{
+                  background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${params.edgeSharpening}%, ${theme.colors.glass.border} ${params.edgeSharpening}%, ${theme.colors.glass.border} 100%)`
+                }}
+              />
+            </div>
+            {/* Tooltip positioned above slider thumb */}
+            <div
+              className={`absolute -top-4 px-2 py-1 text-xs rounded transition-opacity pointer-events-none whitespace-nowrap ${isDragging.edgeSharpening ? 'opacity-100' : 'opacity-0'}`}
               style={{
-                background: `linear-gradient(to right, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0.5) ${params.edgeSharpening}%, ${theme.colors.glass.border} ${params.edgeSharpening}%, ${theme.colors.glass.border} 100%)`
+                left: `calc(0px + ${(params.edgeSharpening / 100) * 100}%)`,
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(10, 0, 20, 0.95)',
+                color: 'white'
               }}
-            />
-          </div>
-          {/* Tooltip positioned above slider thumb */}
-          <div
-            className={`absolute -top-4 px-2 py-1 text-xs rounded transition-opacity pointer-events-none whitespace-nowrap ${isDragging.edgeSharpening ? 'opacity-100' : 'opacity-0'}`}
-            style={{
-              left: `calc(0px + ${(params.edgeSharpening / 100) * 100}%)`,
-              transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(10, 0, 20, 0.95)',
-              color: 'white'
-            }}
-          >
-            {params.edgeSharpening}
+            >
+              {params.edgeSharpening}
+            </div>
           </div>
         </div>
       </div>
