@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   },
   description: 'The #1 free tool to create dice mosaic art. Convert your photos into buildable dice pixel art patterns. Calculate dice needed, view blueprints, and build your own masterpiece.',
   keywords: [
+    'dice',
     'dice art',
     'dice mosaic maker',
     'photo to dice',
