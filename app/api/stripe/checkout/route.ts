@@ -15,6 +15,10 @@ export async function POST() {
             throw new Error("Missing NEXT_PUBLIC_APP_URL")
         }
 
+        if (!process.env.STRIPE_PRICE_ID) {
+            throw new Error("Missing STRIPE_PRICE_ID")
+        }
+
         const checkoutSession = await stripe.checkout.sessions.create({
             mode: "payment",
             customer_creation: "always",
@@ -25,7 +29,7 @@ export async function POST() {
             },
             line_items: [
                 {
-                    price: "price_1SdKx6Lo6uxDWPxNVXbUgiXm",
+                    price: process.env.STRIPE_PRICE_ID,
                     quantity: 1,
                 },
             ],

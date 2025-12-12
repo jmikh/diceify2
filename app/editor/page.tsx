@@ -666,7 +666,7 @@ function EditorContent() {
 
                         {!session.user?.isPro && (
                           <div className="p-3 border-b border-white/10 bg-gradient-to-r from-pink-500/10 to-purple-600/10">
-                            <UpgradeButton className="w-full text-sm py-2 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-lg shadow-pink-500/20 text-white border border-white/10" />
+                            <UpgradeButton source="user_menu" className="w-full text-sm py-2 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-lg shadow-pink-500/20 text-white border border-white/10" />
                           </div>
                         )}
 

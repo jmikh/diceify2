@@ -6,6 +6,7 @@ import { getSession, SessionProvider } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import AuthModal from '@/components/AuthModal'
 import SessionRefresher from '@/components/SessionRefresher'
+import { sendGAEvent } from '@next/third-parties/google'
 
 export default function Pricing() {
     // Removed useSession hook to prevent fetch on load
@@ -21,6 +22,9 @@ export default function Pricing() {
 
 
     const onUpgrade = async () => {
+        // Track click
+        sendGAEvent('event', 'click_upgrade', { source: 'landing_page' })
+
         setIsLoading(true)
         const session = await getSession()
 

@@ -67,7 +67,7 @@ export default function LimitReachedModal() {
                         </ul>
                     </div>
 
-                    <UpgradeButton className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-lg shadow-pink-500/20 text-white font-semibold transition-all hover:scale-[1.02]" />
+                    <UpgradeButton source="limit_reached_1000k" className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 shadow-lg shadow-pink-500/20 text-white font-semibold transition-all hover:scale-[1.02]" />
 
                     <button
                         onClick={() => setShowLimitModal(false)}

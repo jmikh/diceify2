@@ -1,16 +1,21 @@
 "use client"
 
 import { useState } from "react"
+import { sendGAEvent } from '@next/third-parties/google'
 
 interface UpgradeButtonProps {
     className?: string
+    source?: string
 }
 
-export const UpgradeButton = ({ className }: UpgradeButtonProps) => {
+export const UpgradeButton = ({ className, source }: UpgradeButtonProps) => {
     const [isLoading, setIsLoading] = useState(false)
 
     const onUpgrade = async () => {
         try {
+            // Track the click event
+            sendGAEvent('event', 'click_upgrade', { source: source || 'unknown' })
+
             setIsLoading(true)
             const response = await fetch("/api/stripe/checkout", {
                 method: "POST",
