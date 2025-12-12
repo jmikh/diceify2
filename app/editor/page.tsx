@@ -55,6 +55,9 @@ function EditorContent() {
 
   const {
     saveProgressOnly,
+    saveUploadStep,
+    saveCropStep,
+    saveTuneStep
   } = usePersistence()
 
   // Calculate limits based on subscription
@@ -708,11 +711,37 @@ function EditorContent() {
                   // Update the local projects list to reflect the change
                   fetchUserProjects()
                 }}
-                onSelectProject={(projectId) => {
+                onSelectProject={async (projectId) => {
+                  // Find the target project first
                   const project = userProjects.find(p => p.id === projectId)
-                  if (project) {
-                    loadProject(project)
+                  if (!project) return
+
+                  // Auto-save current project before switching if we have an active project
+                  if (currentProjectId && session?.user?.id) {
+                    try {
+                      devLog('[CLIENT] Auto-saving before project switch...')
+                      switch (step) {
+                        case 'upload':
+                          await saveUploadStep()
+                          break
+                        case 'crop':
+                          await saveCropStep()
+                          break
+                        case 'tune':
+                          await saveTuneStep()
+                          break
+                        case 'build':
+                          await saveProgressOnly()
+                          break
+                      }
+                    } catch (err) {
+                      console.error("Failed to auto-save before switch:", err)
+                      // Continue with switch even if save fails
+                    }
                   }
+
+                  // Load the new project
+                  loadProject(project)
                 }}
                 onCreateNew={createProject}
                 onDeleteProject={deleteProject}

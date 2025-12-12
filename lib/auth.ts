@@ -15,7 +15,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: async ({ session, token }) => {
       if (session?.user && token?.sub) {
         session.user.id = token.sub
-        session.user.isPro = token.isPro as boolean
+
+        // Always fetch fresh Pro status from DB to ensure accuracy
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { isPro: true }
+          })
+          session.user.isPro = user?.isPro ?? false
+        } catch (e) {
+          console.error("Failed to fetch user pro status", e)
+          // Fallback to token if DB fails
+          session.user.isPro = token.isPro as boolean
+        }
+
         // Pass through the image and name from the token
         if (token.picture) {
           session.user.image = token.picture as string

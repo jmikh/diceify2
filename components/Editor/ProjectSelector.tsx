@@ -343,9 +343,6 @@ export default function ProjectSelector({
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5 flex items-center">
                       {new Date(project.updatedAt).toLocaleDateString()}
-                      {project.percentComplete !== undefined && (
-                        <span className="ml-1">• {Math.round(project.percentComplete)}%</span>
-                      )}
                     </div>
                   </button>
 
