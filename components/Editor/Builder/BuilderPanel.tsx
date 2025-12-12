@@ -81,8 +81,15 @@ export default function BuilderPanel() {
     }
 
     const handleDownloadSvg = () => {
+        // Check if logged in
+        if (!session?.user) {
+            useEditorStore.getState().setAuthModalMessage("You must be logged in to download SVG.")
+            useEditorStore.getState().setShowAuthModal(true)
+            return
+        }
+
         // Check for subscription
-        if (!session?.user?.isPro) {
+        if (!session.user.isPro) {
             useEditorStore.getState().setShowProFeatureModal(true)
             return
         }

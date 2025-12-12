@@ -69,6 +69,7 @@ function EditorContent() {
   const step = useEditorStore(state => state.step)
 
   const showAuthModal = useEditorStore(state => state.showAuthModal)
+  const authModalMessage = useEditorStore(state => state.authModalMessage)
   const showProjectModal = useEditorStore(state => state.showProjectModal)
   const showDonationModal = useEditorStore(state => state.showDonationModal)
   const showLimitModal = useEditorStore(state => state.showLimitModal)
@@ -92,6 +93,7 @@ function EditorContent() {
   const setStep = useEditorStore(state => state.setStep)
 
   const setShowAuthModal = useEditorStore(state => state.setShowAuthModal)
+  const setAuthModalMessage = useEditorStore(state => state.setAuthModalMessage)
   const setShowProjectModal = useEditorStore(state => state.setShowProjectModal)
   const setShowDonationModal = useEditorStore(state => state.setShowDonationModal)
   const setOriginalImage = useEditorStore(state => state.setOriginalImage)
@@ -789,15 +791,16 @@ function EditorContent() {
         isOpen={showAuthModal}
         onClose={() => {
           setShowAuthModal(false)
+          setAuthModalMessage(null)
           // User can continue exploring up to x=3
-        }
-        }
+        }}
         onSuccess={() => {
           setShowAuthModal(false)
+          setAuthModalMessage(null)
           setStep('build')
           // Everything else is handled automatically by the login useEffect
         }}
-        message="To continue using the builder you must be signed in"
+        message={authModalMessage || "To continue using the builder you must be signed in"}
         editorState={{
           originalImage,
           croppedImage,

@@ -46,6 +46,7 @@ interface EditorState {
   // UI State
   isInitializing: boolean
   showAuthModal: boolean
+  authModalMessage: string | null
   showProjectModal: boolean
 
   showDonationModal: boolean
@@ -81,6 +82,7 @@ interface EditorState {
   setIsSaving: (isSaving: boolean) => void
   setIsInitializing: (isInitializing: boolean) => void
   setShowAuthModal: (show: boolean) => void
+  setAuthModalMessage: (message: string | null) => void
   setShowProjectModal: (show: boolean) => void
   setShowDonationModal: (show: boolean) => void
   setShowLimitModal: (show: boolean) => void
@@ -140,6 +142,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   isInitializing: true,
   showAuthModal: false,
+  authModalMessage: null,
   showProjectModal: false,
   showDonationModal: false,
   showLimitModal: false,
@@ -183,6 +186,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setIsInitializing: (isInitializing) => set({ isInitializing }),
   setShowAuthModal: (show) => set({ showAuthModal: show }),
+  setAuthModalMessage: (message) => set({ authModalMessage: message }),
   setShowProjectModal: (show) => set({ showProjectModal: show }),
   setShowDonationModal: (show) => set({ showDonationModal: show }),
   setShowLimitModal: (show) => set({ showLimitModal: show }),
